@@ -2,7 +2,7 @@
 
 A professional web application for designing custom sports jerseys with player data, logos, and text customization. Built with React, TypeScript, Vite, and Supabase.
 
-![GxStudio Banner](public/placeholder.svg)
+![GxStudio Banner](public/gx-studio-banner.png)
 
 ## ✨ Features
 

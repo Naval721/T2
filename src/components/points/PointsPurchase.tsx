@@ -4,11 +4,11 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { 
-  ShoppingCart, 
-  CheckCircle, 
-  Star, 
-  Zap, 
+import {
+  ShoppingCart,
+  CheckCircle,
+  Star,
+  Zap,
   Crown,
   Sparkles,
   TrendingUp,
@@ -47,7 +47,7 @@ export const PointsPurchase = ({ isOpen, onClose, onPurchase, currentPoints }: P
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <DialogTitle className="text-3xl font-bold tracking-tight text-black">
             Buy Points
           </DialogTitle>
           <DialogDescription className="text-lg">
@@ -56,12 +56,12 @@ export const PointsPurchase = ({ isOpen, onClose, onPurchase, currentPoints }: P
         </DialogHeader>
 
         {/* Current Balance */}
-        <Alert className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
+        <Alert className="bg-gray-50 border-gray-200">
           <div className="flex items-center space-x-3">
-            <Sparkles className="h-5 w-5 text-blue-600" />
+            <Sparkles className="h-5 w-5 text-black" />
             <div>
-              <p className="font-semibold text-blue-900">Current Balance</p>
-              <p className="text-2xl font-bold text-blue-600">{formatPoints(currentPoints)} points</p>
+              <p className="font-semibold text-black">Current Balance</p>
+              <p className="text-2xl font-bold text-black">{formatPoints(currentPoints)} points</p>
             </div>
           </div>
         </Alert>
@@ -71,16 +71,15 @@ export const PointsPurchase = ({ isOpen, onClose, onPurchase, currentPoints }: P
           {POINTS_PLANS.map((plan) => {
             const totalPoints = calculateTotalPoints(plan)
             const isEnterprise = plan.id === 'enterprise'
-            
+
             return (
-              <Card 
-                key={plan.id} 
-                className={`relative overflow-hidden transition-all duration-300 hover:shadow-xl ${
-                  plan.popular ? 'border-2 border-blue-500 shadow-lg' : 'border-2'
-                } ${selectedPackage === plan.id ? 'ring-2 ring-blue-500' : ''}`}
+              <Card
+                key={plan.id}
+                className={`relative overflow-hidden transition-all duration-300 hover:shadow-xl ${plan.popular ? 'border-2 border-black shadow-lg' : 'border border-gray-200'
+                  } ${selectedPackage === plan.id ? 'ring-2 ring-black' : ''}`}
               >
                 {plan.popular && (
-                  <div className="absolute top-0 right-0 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-1 rounded-bl-lg text-sm font-semibold">
+                  <div className="absolute top-0 right-0 bg-black text-white px-4 py-1 rounded-bl-lg text-sm font-semibold">
                     <div className="flex items-center space-x-1">
                       <Star className="w-3 h-3" />
                       <span>Most Popular</span>
@@ -89,13 +88,13 @@ export const PointsPurchase = ({ isOpen, onClose, onPurchase, currentPoints }: P
                 )}
 
                 <CardHeader className="text-center pb-4">
-                  <div className="mx-auto w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center mb-3">
-                    {plan.id === 'basic' && <Zap className="w-8 h-8 text-white" />}
-                    {plan.id === 'professional' && <Crown className="w-8 h-8 text-white" />}
-                    {plan.id === 'enterprise' && <Sparkles className="w-8 h-8 text-white" />}
+                  <div className="mx-auto w-16 h-16 bg-gray-100 border border-gray-200 rounded-xl flex items-center justify-center mb-3">
+                    {plan.id === 'basic' && <Zap className="w-8 h-8 text-black" />}
+                    {plan.id === 'professional' && <Crown className="w-8 h-8 text-black" />}
+                    {plan.id === 'enterprise' && <Sparkles className="w-8 h-8 text-black" />}
                   </div>
-                  <CardTitle className="text-xl">{plan.name}</CardTitle>
-                  <CardDescription className="text-sm">{plan.description}</CardDescription>
+                  <CardTitle className="text-xl tracking-tight">{plan.name}</CardTitle>
+                  <CardDescription className="text-sm text-gray-500">{plan.description}</CardDescription>
                 </CardHeader>
 
                 <CardContent className="space-y-4">
@@ -108,11 +107,11 @@ export const PointsPurchase = ({ isOpen, onClose, onPurchase, currentPoints }: P
                       </div>
                     ) : (
                       <div className="space-y-1">
-                        <p className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                        <p className="text-4xl font-bold text-black tracking-tight">
                           {formatCurrency(plan.price)}
                         </p>
                         {plan.bonusPoints && plan.bonusPoints > 0 && (
-                          <Badge variant="secondary" className="bg-green-100 text-green-800">
+                          <Badge variant="outline" className="border-gray-200 bg-white text-black font-semibold">
                             <Gift className="w-3 h-3 mr-1" />
                             +{plan.bonusPoints} bonus points
                           </Badge>
@@ -122,11 +121,11 @@ export const PointsPurchase = ({ isOpen, onClose, onPurchase, currentPoints }: P
                   </div>
 
                   {/* Points */}
-                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg border border-blue-200">
+                  <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
                     <div className="text-center">
-                      <p className="text-sm text-gray-600 mb-1">You Get</p>
-                      <p className="text-3xl font-bold text-blue-600">{formatPoints(totalPoints)}</p>
-                      <p className="text-xs text-gray-600 mt-1">points</p>
+                      <p className="text-sm font-medium text-gray-500 mb-1">You Get</p>
+                      <p className="text-3xl font-bold text-black">{formatPoints(totalPoints)}</p>
+                      <p className="text-xs text-gray-500 mt-1">points</p>
                       {plan.value && (
                         <p className="text-xs text-gray-500 mt-2">{plan.value}</p>
                       )}
@@ -136,22 +135,22 @@ export const PointsPurchase = ({ isOpen, onClose, onPurchase, currentPoints }: P
                   {/* Features */}
                   <div className="space-y-2">
                     <div className="flex items-start space-x-2">
-                      <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                      <span className="text-sm">{formatPoints(plan.points)} base points</span>
+                      <CheckCircle className="w-4 h-4 text-black mt-0.5 flex-shrink-0" />
+                      <span className="text-sm font-medium">{formatPoints(plan.points)} base points</span>
                     </div>
                     {plan.bonusPoints && plan.bonusPoints > 0 && (
                       <div className="flex items-start space-x-2">
-                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                        <span className="text-sm">{formatPoints(plan.bonusPoints)} bonus points</span>
+                        <CheckCircle className="w-4 h-4 text-black mt-0.5 flex-shrink-0" />
+                        <span className="text-sm font-medium">{formatPoints(plan.bonusPoints)} bonus points</span>
                       </div>
                     )}
                     <div className="flex items-start space-x-2">
-                      <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                      <span className="text-sm">No expiration date</span>
+                      <CheckCircle className="w-4 h-4 text-black mt-0.5 flex-shrink-0" />
+                      <span className="text-sm font-medium">No expiration date</span>
                     </div>
                     <div className="flex items-start space-x-2">
-                      <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                      <span className="text-sm">Instant activation</span>
+                      <CheckCircle className="w-4 h-4 text-black mt-0.5 flex-shrink-0" />
+                      <span className="text-sm font-medium">Instant activation</span>
                     </div>
                   </div>
 
@@ -166,11 +165,10 @@ export const PointsPurchase = ({ isOpen, onClose, onPurchase, currentPoints }: P
                       }
                     }}
                     disabled={loading}
-                    className={`w-full ${
-                      plan.popular
-                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'
-                        : ''
-                    }`}
+                    className={`w-full font-semibold ${plan.popular
+                        ? 'bg-black text-white hover:bg-gray-800'
+                        : 'bg-white text-black border-gray-200 hover:bg-gray-50'
+                      }`}
                     variant={plan.popular ? 'default' : 'outline'}
                   >
                     <ShoppingCart className="w-4 h-4 mr-2" />
@@ -183,9 +181,9 @@ export const PointsPurchase = ({ isOpen, onClose, onPurchase, currentPoints }: P
         </div>
 
         {/* Point Costs Info */}
-        <Alert className="mt-6 bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200">
-          <Info className="h-5 w-5 text-amber-600" />
-          <AlertDescription className="text-amber-900">
+        <Alert className="mt-6 bg-gray-50 border-gray-200">
+          <Info className="h-5 w-5 text-black" />
+          <AlertDescription className="text-black">
             <p className="font-semibold mb-2">Point Costs:</p>
             <div className="grid grid-cols-2 gap-2 text-sm">
               <div>• Front Image: 1 point</div>
@@ -197,9 +195,9 @@ export const PointsPurchase = ({ isOpen, onClose, onPurchase, currentPoints }: P
         </Alert>
 
         {/* Example Calculations */}
-        <Alert className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
-          <TrendingUp className="h-5 w-5 text-green-600" />
-          <AlertDescription className="text-green-900">
+        <Alert className="bg-gray-50 border border-black shadow-sm">
+          <TrendingUp className="h-5 w-5 text-black" />
+          <AlertDescription className="text-black">
             <p className="font-semibold mb-2">What You Can Do:</p>
             <div className="text-sm space-y-1">
               <p>With <strong>700 points</strong>: ~175 full jerseys (front + back + 2 sleeves)</p>

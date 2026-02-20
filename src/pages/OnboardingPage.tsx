@@ -57,7 +57,7 @@ export const OnboardingPage = () => {
     setShowAuthModal(false)
     // After successful auth, show ready screen with free trial
     setCurrentStep('ready')
-    toast.success('🎉 Welcome! You got 5 free exports to start!')
+    toast.success('Welcome! You got 5 free exports to start.')
   }
 
   const handlePointsPurchase = async (packageId: string) => {
@@ -120,14 +120,14 @@ export const OnboardingPage = () => {
   // Show auth modal if needed
   if (showAuthModal) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-6">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
         <div className="w-full max-w-2xl">
-          <Card className="border-0 shadow-2xl">
+          <Card className="border shadow-sm bg-white">
             <CardHeader className="text-center pb-4">
-              <div className="mx-auto w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mb-4">
+              <div className="mx-auto w-16 h-16 bg-black rounded-xl flex items-center justify-center mb-4">
                 <User className="w-8 h-8 text-white" />
               </div>
-              <CardTitle className="text-3xl">Welcome to GxStudio</CardTitle>
+              <CardTitle className="text-3xl tracking-tight">Welcome to GxStudio</CardTitle>
               <CardDescription className="text-lg">
                 Create an account to start designing amazing jerseys
               </CardDescription>
@@ -143,7 +143,7 @@ export const OnboardingPage = () => {
                 <Button
                   variant="ghost"
                   onClick={handleBackToHome}
-                  className="text-gray-600"
+                  className="text-gray-600 hover:text-black hover:bg-gray-100"
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Back to Home
@@ -159,14 +159,14 @@ export const OnboardingPage = () => {
   // Show points purchase if needed
   if (showPointsModal) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-6">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
         <div className="w-full max-w-4xl">
-          <Card className="border-0 shadow-2xl">
+          <Card className="border shadow-sm bg-white">
             <CardHeader className="text-center pb-4">
-              <div className="mx-auto w-16 h-16 bg-gradient-to-r from-amber-600 to-orange-600 rounded-full flex items-center justify-center mb-4">
+              <div className="mx-auto w-16 h-16 bg-black rounded-xl flex items-center justify-center mb-4">
                 <ShoppingCart className="w-8 h-8 text-white" />
               </div>
-              <CardTitle className="text-3xl">Buy Points to Get Started</CardTitle>
+              <CardTitle className="text-3xl tracking-tight">Buy Points to Get Started</CardTitle>
               <CardDescription className="text-lg">
                 Choose a package to purchase points for exporting your designs
               </CardDescription>
@@ -182,7 +182,7 @@ export const OnboardingPage = () => {
                 <Button
                   variant="ghost"
                   onClick={handleBackToHome}
-                  className="text-gray-600"
+                  className="text-gray-600 hover:text-black hover:bg-gray-100"
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Back to Home
@@ -197,22 +197,22 @@ export const OnboardingPage = () => {
 
   // Show ready state
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
       <div className="w-full max-w-2xl">
-        <Card className="border-0 shadow-2xl">
+        <Card className="border shadow-sm bg-white">
           <CardHeader className="text-center pb-4">
-            <div className="mx-auto w-16 h-16 bg-gradient-to-r from-green-600 to-emerald-600 rounded-full flex items-center justify-center mb-4">
+            <div className="mx-auto w-16 h-16 bg-black rounded-xl flex items-center justify-center mb-4">
               <CheckCircle className="w-8 h-8 text-white" />
             </div>
-            <CardTitle className="text-3xl">You're All Set! 🎉</CardTitle>
+            <CardTitle className="text-3xl tracking-tight">You're All Set!</CardTitle>
             <CardDescription className="text-lg">
               {currentPoints === 5 ? (
                 <>
-                  You have <strong>5 FREE exports</strong> to start! Start designing now!
+                  You have <strong className="text-black">5 FREE exports</strong> to start! Start designing now.
                 </>
               ) : (
                 <>
-                  You have {formatPoints(currentPoints)} points. Start designing now!
+                  You have {formatPoints(currentPoints)} points. Start designing now.
                 </>
               )}
             </CardDescription>
@@ -220,37 +220,37 @@ export const OnboardingPage = () => {
           <CardContent className="space-y-6">
             {/* Progress Bar */}
             <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm text-gray-600">
+              <div className="flex items-center justify-between text-sm text-gray-500 font-medium">
                 <span>Setup Progress</span>
                 <span>{getProgress()}%</span>
               </div>
-              <Progress value={getProgress()} className="h-2" />
+              <Progress value={getProgress()} className="h-2 [&>div]:bg-black" />
             </div>
 
             {/* Steps Completed */}
             <div className="space-y-3">
-              <div className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg">
-                <CheckCircle className="w-5 h-5 text-green-600" />
-                <span className="text-sm">Account Created</span>
+              <div className="flex items-center space-x-3 p-3 bg-gray-50 border rounded-xl">
+                <CheckCircle className="w-5 h-5 text-black" />
+                <span className="text-sm font-medium text-black">Account Created</span>
               </div>
-              <div className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg">
-                <CheckCircle className="w-5 h-5 text-green-600" />
-                <span className="text-sm">
+              <div className="flex items-center space-x-3 p-3 bg-gray-50 border rounded-xl">
+                <CheckCircle className="w-5 h-5 text-black" />
+                <span className="text-sm font-medium text-black">
                   {currentPoints === 5 ? 'Free Trial Activated (5 exports)' : 'Points Available'}
                 </span>
               </div>
-              <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg border-2 border-blue-300">
-                <Sparkles className="w-5 h-5 text-blue-600" />
-                <span className="text-sm font-semibold">Ready to Design!</span>
+              <div className="flex items-center space-x-3 p-3 bg-white border-2 border-black rounded-xl shadow-sm">
+                <Sparkles className="w-5 h-5 text-black" />
+                <span className="text-sm font-bold text-black">Ready to Design!</span>
               </div>
             </div>
 
             {/* Action Buttons */}
-            <div className="space-y-3">
+            <div className="space-y-3 pt-2">
               <Button
                 onClick={handleSkipToDesign}
                 size="lg"
-                className="w-full h-12 text-lg"
+                className="w-full h-12 text-lg bg-black text-white hover:bg-gray-800 border border-black"
                 disabled={loading}
               >
                 {loading ? (
@@ -269,7 +269,7 @@ export const OnboardingPage = () => {
               <Button
                 variant="outline"
                 onClick={handleBackToHome}
-                className="w-full"
+                className="w-full h-12 text-black border-gray-200 hover:bg-gray-50"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Home

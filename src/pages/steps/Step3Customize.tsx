@@ -77,6 +77,7 @@ export const Step3Customize = ({
             selectedPlayer={selectedPlayer}
             onCanvasReady={onCanvasReady}
             defaultFont={defaultFont}
+            showTools={true}
           />
         </div>
       </div>

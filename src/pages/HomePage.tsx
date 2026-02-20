@@ -1,7 +1,6 @@
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import {
-  Shirt,
   ArrowRight,
   Upload,
   Palette,
@@ -10,6 +9,8 @@ import {
   BarChart3,
   FileImage
 } from 'lucide-react'
+import { GxLogo } from '@/components/ui/GxLogo'
+
 // Styles moved to index.css
 import featureDualPreview from '@/assets/images/features/dual-preview.png';
 import featureLiveCount from '@/assets/images/features/live-count.png';
@@ -83,11 +84,11 @@ export const HomePage = ({ onStart }: HomePageProps) => {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2 group cursor-pointer">
-              <div className="w-8 h-8 bg-black rounded-xl flex items-center justify-center transition-transform group-hover:scale-105">
-                <Shirt className="w-5 h-5 text-white" strokeWidth={2.5} />
+            <div className="flex items-center space-x-3 group cursor-pointer">
+              <div className="w-10 h-10 bg-black flex items-center justify-center transition-transform group-hover:scale-105 border-2 border-black shadow-[2px_2px_0px_0px_rgba(100,100,100,1)]">
+                <GxLogo className="w-6 h-6 text-white" />
               </div>
-              <span className="text-xl font-bold text-black tracking-tight" style={{ fontFamily: "'Inter', sans-serif" }}>GxStudio</span>
+              <span className="text-2xl font-black uppercase tracking-widest text-black" style={{ fontFamily: "'Inter', sans-serif" }}>GxStudio</span>
             </div>
             <div className="hidden md:flex items-center space-x-8">
               <a href="#features" className="text-gray-600 hover:text-black transition-colors">Home</a>
@@ -101,13 +102,17 @@ export const HomePage = ({ onStart }: HomePageProps) => {
       </nav>
 
       {/* Hero Section */}
-      <section className="pt-32 pb-20 px-6">
-        <div className="max-w-6xl mx-auto text-center">
-          <h1 className="text-5xl md:text-7xl font-bold text-black mb-4 leading-tight">
-            Start designing.
+      <section className="pt-32 pb-20 px-6 border-b-4 border-black relative">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+        <div className="max-w-6xl mx-auto text-center relative z-10">
+          <div className="inline-block bg-black text-white px-4 py-1 font-bold text-sm tracking-widest uppercase mb-8 border-2 border-black shadow-[4px_4px_0px_0px_rgba(200,200,200,1)]">
+            v2.0 Beta Live
+          </div>
+          <h1 className="text-6xl md:text-8xl font-black text-black mb-4 uppercase tracking-tighter leading-none">
+            START<br />DESIGNING.
           </h1>
-          <h2 className="text-5xl md:text-7xl font-bold text-gray-600 mb-16 leading-tight">
-            Print perfection.
+          <h2 className="text-3xl md:text-5xl font-bold text-gray-500 mb-16 uppercase tracking-wider">
+            PRINT PERFECTION.
           </h2>
 
           {/* CTA Button */}
@@ -115,10 +120,10 @@ export const HomePage = ({ onStart }: HomePageProps) => {
             <Button
               onClick={onStart}
               size="lg"
-              className="px-12 py-6 text-lg"
+              className="px-14 py-8 text-xl font-black tracking-widest uppercase bg-black text-white border-4 border-black hover:bg-white hover:text-black transition-all shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)] hover:translate-y-[-2px] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,0.2)]"
             >
               Get Started
-              <ArrowRight className="w-5 h-5 ml-2" />
+              <ArrowRight className="w-6 h-6 ml-3" />
             </Button>
           </div>
 
@@ -181,8 +186,9 @@ export const HomePage = ({ onStart }: HomePageProps) => {
       <section id="how" className="py-20 px-6 bg-gray-50">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-black mb-4">How it Works</h2>
-            <p className="text-lg text-gray-600">Create print-ready apparel designs in three simple steps</p>
+            <h2 className="text-5xl md:text-6xl font-black uppercase tracking-tight text-black mb-4">How it Works</h2>
+            <div className="h-1.5 w-24 bg-black mx-auto mb-6"></div>
+            <p className="text-xl text-gray-600 font-medium">Create print-ready apparel designs in three simple steps</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -208,8 +214,9 @@ export const HomePage = ({ onStart }: HomePageProps) => {
       <section id="designs" className="py-20 px-6">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-black mb-4">Designs</h2>
-            <p className="text-lg text-gray-600">Front & back previews for pixel-perfect prints</p>
+            <h2 className="text-5xl md:text-6xl font-black uppercase tracking-tight text-black mb-4">Designs</h2>
+            <div className="h-1.5 w-24 bg-black mx-auto mb-6"></div>
+            <p className="text-xl text-gray-600 font-medium">Front & back previews for pixel-perfect prints</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -229,17 +236,19 @@ export const HomePage = ({ onStart }: HomePageProps) => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 px-6 bg-black text-white">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-4xl md:text-5xl font-bold mb-6">Start designing.</h2>
-          <p className="text-xl text-gray-300 mb-12">Print perfection.</p>
+      <section className="py-24 px-6 bg-black text-white border-y-8 border-gray-900 relative overflow-hidden">
+        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
+        <div className="max-w-4xl mx-auto text-center relative z-10">
+          <h2 className="text-6xl md:text-8xl font-black uppercase tracking-tighter mb-6 relative">
+            START<br /><span className="text-gray-500">DESIGNING.</span>
+          </h2>
           <Button
             onClick={onStart}
             variant="outline"
-            className="bg-white text-black hover:bg-black hover:text-white px-12 py-4 text-lg font-semibold border-white"
+            className="bg-white text-black hover:bg-gray-200 px-14 py-8 text-xl font-black uppercase tracking-widest border-4 border-white shadow-[8px_8px_0px_0px_rgba(255,255,255,0.3)] hover:translate-y-[-2px] hover:shadow-[12px_12px_0px_0px_rgba(255,255,255,0.3)] transition-all"
           >
             Get Started
-            <ArrowRight className="w-5 h-5 ml-2" />
+            <ArrowRight className="w-6 h-6 ml-3" />
           </Button>
         </div>
       </section>

@@ -26,7 +26,6 @@ type VisibleBounds = {
 };
 
 export const ExportPanel = ({ canvasRef, selectedPlayer, playerData }: ExportPanelProps) => {
-    const [exportFormat, setExportFormat] = useState<'jpeg' | 'png'>('png');
     const [exportQuality, setExportQuality] = useState<'ultra' | 'high' | 'medium'>('ultra');
     const [isExporting, setIsExporting] = useState(false);
     const [freeExportCount, setFreeExportCount] = useState(0);
@@ -106,9 +105,9 @@ export const ExportPanel = ({ canvasRef, selectedPlayer, playerData }: ExportPan
                 maxY = Math.max(maxY, rect.top + rect.height);
             });
 
-            // Export with exact bounds - PNG for lossless, JPG with white background
+            // Export with exact bounds - PNG for lossless transparency
             const dataURL = canvasRef.toDataURL({
-                format: exportFormat,
+                format: 'png',
                 quality: 1.0, // Maximum quality
                 multiplier: getQualityMultiplier(),
                 left: minX,
@@ -118,30 +117,10 @@ export const ExportPanel = ({ canvasRef, selectedPlayer, playerData }: ExportPan
                 enableRetinaScaling: true
             });
 
-            // For JPEG, we need to create a temporary canvas with white background
-            let finalBlob: Blob;
-            if (exportFormat === 'jpeg') {
-                const img = new Image();
-                img.src = dataURL;
-                await new Promise(resolve => img.onload = resolve);
+            const response = await fetch(dataURL);
+            const finalBlob = await response.blob();
 
-                const tempCanvas = document.createElement('canvas');
-                const ctx = tempCanvas.getContext('2d')!;
-                tempCanvas.width = img.width;
-                tempCanvas.height = img.height;
-                ctx.fillStyle = '#ffffff';
-                ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-                ctx.drawImage(img, 0, 0);
-
-                finalBlob = await new Promise<Blob>((resolve) => {
-                    tempCanvas.toBlob((blob) => resolve(blob!), 'image/jpeg', 1.0);
-                });
-            } else {
-                const response = await fetch(dataURL);
-                finalBlob = await response.blob();
-            }
-
-            const fileName = generateFileName(selectedPlayer, exportFormat === 'png' ? 'png' : 'jpg');
+            const fileName = generateFileName(selectedPlayer, 'png');
             saveAs(finalBlob, fileName);
 
             // Deduct points for export
@@ -158,8 +137,7 @@ export const ExportPanel = ({ canvasRef, selectedPlayer, playerData }: ExportPan
             }
 
             const dpiText = exportQuality === 'ultra' ? '480 DPI' : exportQuality === 'high' ? '384 DPI' : '300 DPI';
-            const formatText = exportFormat === 'png' ? 'PNG (Lossless)' : `JPG (${dpiText})`;
-            toast.success(`Design exported as ${formatText} - ${fileName}`);
+            toast.success(`Design exported as PNG (${dpiText}) - ${fileName}`);
         } catch (error) {
             toast.error("Failed to export design");
             logger.error('Export error:', error);
@@ -202,10 +180,8 @@ export const ExportPanel = ({ canvasRef, selectedPlayer, playerData }: ExportPan
 
         try {
             const dpiText = exportQuality === 'ultra' ? '480 DPI' : exportQuality === 'high' ? '384 DPI' : '300 DPI';
-            const formatText = exportFormat === 'png' ? 'PNG' : 'JPG';
             toast.success(`Starting bulk export...`);
 
-            const bulkExportFormat = exportFormat;
             const bulkExportMultiplier = getQualityMultiplier();
 
             for (let i = 0; i < Math.min(playerData.length, 5); i++) {
@@ -241,7 +217,7 @@ export const ExportPanel = ({ canvasRef, selectedPlayer, playerData }: ExportPan
 
                     // Export
                     const dataURL = canvasRef.toDataURL({
-                        format: bulkExportFormat,
+                        format: 'png',
                         quality: 1.0,
                         multiplier: bulkExportMultiplier,
                         left: minX,
@@ -251,30 +227,10 @@ export const ExportPanel = ({ canvasRef, selectedPlayer, playerData }: ExportPan
                         enableRetinaScaling: true
                     });
 
-                    // Handle white background for JPEG
-                    let finalBlob: Blob;
-                    if (bulkExportFormat === 'jpeg') {
-                        const img = new Image();
-                        img.src = dataURL;
-                        await new Promise(resolve => img.onload = resolve);
+                    const response = await fetch(dataURL);
+                    const finalBlob = await response.blob();
 
-                        const tempCanvas = document.createElement('canvas');
-                        const ctx = tempCanvas.getContext('2d')!;
-                        tempCanvas.width = img.width;
-                        tempCanvas.height = img.height;
-                        ctx.fillStyle = '#ffffff';
-                        ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-                        ctx.drawImage(img, 0, 0);
-
-                        finalBlob = await new Promise<Blob>((resolve) => {
-                            tempCanvas.toBlob((blob) => resolve(blob!), 'image/jpeg', 1.0);
-                        });
-                    } else {
-                        const response = await fetch(dataURL);
-                        finalBlob = await response.blob();
-                    }
-
-                    const fileName = generateFileName(player, bulkExportFormat === 'png' ? 'png' : bulkExportFormat);
+                    const fileName = generateFileName(player, 'png');
                     folder?.file(fileName, finalBlob);
 
                     // Deduct points
@@ -335,7 +291,7 @@ export const ExportPanel = ({ canvasRef, selectedPlayer, playerData }: ExportPan
         });
 
         const dataURL = canvasRef.toDataURL({
-            format: 'jpeg',
+            format: 'png',
             quality: 1.0,
             multiplier: 1,
             left: minX,
@@ -350,11 +306,8 @@ export const ExportPanel = ({ canvasRef, selectedPlayer, playerData }: ExportPan
             newWindow.document.write(`
         <html>
           <head><title>Preview - ${selectedPlayer?.playerName}</title></head>
-          <body style="margin:0; padding:40px; background:white; text-align:center; font-family: monospace;">
-            <div style="display: inline-block; border: 4px solid black; padding: 20px;">
-              <h2 style="text-transform: uppercase;">${selectedPlayer?.playerName}</h2>
-              <img src="${dataURL}" style="max-width:100%; border: 1px solid #eee;" />
-            </div>
+          <body style="margin:0; padding:0; background:transparent; display:flex; justify-content:center; align-items:center; min-height:100vh;">
+            <img src="${dataURL}" style="max-width:100%; height:auto;" alt="${selectedPlayer?.playerName} Design" />
           </body>
         </html>
       `);
@@ -391,7 +344,7 @@ export const ExportPanel = ({ canvasRef, selectedPlayer, playerData }: ExportPan
             });
 
             const dataURL = canvasRef.toDataURL({
-                format: exportFormat,
+                format: 'png',
                 quality: 1,
                 multiplier: getQualityMultiplier(),
                 left: minX, top: minY, width: maxX - minX, height: maxY - minY,
@@ -428,7 +381,7 @@ export const ExportPanel = ({ canvasRef, selectedPlayer, playerData }: ExportPan
             });
 
             const dataURL = canvasRef.toDataURL({
-                format: exportFormat,
+                format: 'png',
                 quality: 1,
                 multiplier: getQualityMultiplier(),
                 left: minX, top: minY, width: maxX - minX, height: maxY - minY,
@@ -455,20 +408,7 @@ export const ExportPanel = ({ canvasRef, selectedPlayer, playerData }: ExportPan
             </div>
 
             {/* Export Settings */}
-            <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-2">
-                    <Label className="uppercase text-xs font-bold tracking-widest text-gray-500">File Format</Label>
-                    <Select value={exportFormat} onValueChange={(value: 'jpeg' | 'png') => setExportFormat(value)}>
-                        <SelectTrigger className="border-2 border-black rounded-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:ring-0">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="border-2 border-black rounded-none">
-                            <SelectItem value="png">PNG (Lossless)</SelectItem>
-                            <SelectItem value="jpeg">JPG (Compressed)</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-
+            <div className="grid grid-cols-1 gap-6">
                 <div className="space-y-2">
                     <Label className="uppercase text-xs font-bold tracking-widest text-gray-500">Quality</Label>
                     <Select value={exportQuality} onValueChange={(value: 'ultra' | 'high' | 'medium') => setExportQuality(value)}>

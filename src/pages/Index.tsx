@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 import { Header } from "@/components/Header";
 import { StepNavigation } from "@/components/StepNavigation";
 import { Step1Upload } from "@/pages/steps/Step1Upload";
@@ -14,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import heroImage from "@/assets/hero-jersey-designer.jpg";
 import { Canvas as FabricCanvas } from "fabric";
 import { toast } from "sonner";
-import { Save, AlertCircle, RotateCcw } from "lucide-react";
+import { Save, AlertCircle, RotateCcw, ImageIcon, Users, Paintbrush, Package } from "lucide-react";
 import {
   saveState,
   loadState,
@@ -42,6 +43,7 @@ export interface PlayerData {
 
 const Index = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [jerseyImages, setJerseyImages] = useState<JerseyImages>({});
   const [playerData, setPlayerData] = useState<PlayerData[]>([]);
@@ -60,6 +62,13 @@ const Index = () => {
     }
     setLastSaveTime(formatLastSaveTime());
   }, []);
+
+  // Protect route
+  useEffect(() => {
+    if (user === null) {
+      navigate('/onboarding');
+    }
+  }, [user, navigate]);
 
   // Auto-save state when it changes
   useEffect(() => {
@@ -321,62 +330,74 @@ const Index = () => {
           <>
             {currentStep === 1 && renderCurrentStep()}
             {currentStep !== 1 && (
-              <Card className="overflow-hidden">
-                <div className="relative">
+              <Card className="overflow-hidden border-2 border-black rounded-none shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+                <div className="relative border-b-2 border-black">
+                  <div className="absolute inset-0 bg-black/60 mix-blend-multiply flex items-center justify-center z-10" />
                   <img
                     src={heroImage}
                     alt="GxStudio Interface"
-                    className="w-full h-64 object-cover"
+                    className="w-full h-64 object-cover grayscale"
                   />
-                  <div className="absolute inset-0 bg-gradient-primary/80 flex items-center justify-center">
-                    <div className="text-center text-primary-foreground">
-                      <h2 className="text-3xl font-bold mb-2">GxStudio</h2>
-                      <p className="text-primary-foreground/90 text-lg">
+                  <div className="absolute inset-0 flex items-center justify-center z-20">
+                    <div className="text-center text-white border-4 border-white p-6 bg-black/40 backdrop-blur-sm shadow-2xl">
+                      <h2 className="text-4xl font-black uppercase tracking-widest mb-2">GxStudio</h2>
+                      <p className="text-white/90 text-lg uppercase font-mono tracking-wider">
                         Professional Customization
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <div className="p-8 text-center">
-                  <p className="text-muted-foreground mb-8 text-lg">
+                <div className="p-10 text-center bg-white">
+                  <p className="text-gray-600 mb-10 text-lg font-medium max-w-2xl mx-auto border-l-4 border-black pl-4 text-left">
                     Upload your jersey images and player data to start customizing professional
                     sports jerseys with our advanced design tools.
                   </p>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="p-6 bg-muted/50 rounded-lg">
-                      <div className="text-2xl mb-3">🎽</div>
-                      <h4 className="font-semibold text-lg mb-2">Step 1: Upload Jersey Images</h4>
-                      <p className="text-muted-foreground">
-                        Add front, back, sleeves, and collar images in high resolution for the best
-                        results
+                    <div className="p-6 bg-gray-50 border-2 border-gray-200 hover:border-black transition-colors text-left group">
+                      <div className="w-12 h-12 bg-black text-white flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <ImageIcon className="w-6 h-6" />
+                      </div>
+                      <h4 className="font-bold text-lg mb-2 uppercase tracking-wide">Step 1: Upload Jersey Images</h4>
+                      <p className="text-gray-500 font-mono text-sm leading-relaxed">
+                        Add front, back, sleeves, and collar images in high resolution for the best results
                       </p>
                     </div>
-                    <div className="p-6 bg-muted/50 rounded-lg">
-                      <div className="text-2xl mb-3">📊</div>
-                      <h4 className="font-semibold text-lg mb-2">Step 2: Import Player Data</h4>
-                      <p className="text-muted-foreground">
+                    <div className="p-6 bg-gray-50 border-2 border-gray-200 hover:border-black transition-colors text-left group">
+                      <div className="w-12 h-12 bg-black text-white flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <Users className="w-6 h-6" />
+                      </div>
+                      <h4 className="font-bold text-lg mb-2 uppercase tracking-wide">Step 2: Import Player Data</h4>
+                      <p className="text-gray-500 font-mono text-sm leading-relaxed">
                         Upload Excel file with player information including names, numbers, and sizes
                       </p>
                     </div>
-                    <div className="p-6 bg-muted/50 rounded-lg">
-                      <div className="text-2xl mb-3">🎨</div>
-                      <h4 className="font-semibold text-lg mb-2">Step 3: Design & Customize</h4>
-                      <p className="text-muted-foreground">
+                    <div className="p-6 bg-gray-50 border-2 border-gray-200 hover:border-black transition-colors text-left group">
+                      <div className="w-12 h-12 bg-black text-white flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <Paintbrush className="w-6 h-6" />
+                      </div>
+                      <h4 className="font-bold text-lg mb-2 uppercase tracking-wide">Step 3: Design & Customize</h4>
+                      <p className="text-gray-500 font-mono text-sm leading-relaxed">
                         Add logos, adjust text, and personalize each jersey with our intuitive tools
                       </p>
                     </div>
-                    <div className="p-6 bg-muted/50 rounded-lg">
-                      <div className="text-2xl mb-3">📦</div>
-                      <h4 className="font-semibold text-lg mb-2">Step 4: Export & Share</h4>
-                      <p className="text-muted-foreground">
+                    <div className="p-6 bg-gray-50 border-2 border-gray-200 hover:border-black transition-colors text-left group">
+                      <div className="w-12 h-12 bg-black text-white flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <Package className="w-6 h-6" />
+                      </div>
+                      <h4 className="font-bold text-lg mb-2 uppercase tracking-wide">Step 4: Export & Share</h4>
+                      <p className="text-gray-500 font-mono text-sm leading-relaxed">
                         Download individual designs or export all jerseys as a ZIP file for production
                       </p>
                     </div>
                   </div>
 
-                  <Button onClick={() => setCurrentStep(1)} size="lg" className="mt-8">
+                  <Button
+                    onClick={() => setCurrentStep(1)}
+                    size="lg"
+                    className="mt-10 bg-black text-white border-2 border-black rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition-all uppercase tracking-widest font-bold h-14 px-8"
+                  >
                     Go to Upload Step
                   </Button>
                 </div>

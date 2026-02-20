@@ -6,6 +6,7 @@ import { AuthModal } from "@/components/auth/AuthModal";
 import { UserDashboard } from "@/components/auth/UserDashboard";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Link } from "react-router-dom";
+import { GxLogo } from "@/components/ui/GxLogo";
 
 export const Header = () => {
   const { user, profile, signOut } = useAuth();
@@ -22,9 +23,9 @@ export const Header = () => {
       <div className="max-w-7xl mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 group">
-            <div className="w-8 h-8 bg-black rounded-xl flex items-center justify-center transition-transform group-hover:scale-105">
-              <Shirt className="w-5 h-5 text-white" strokeWidth={2.5} />
+          <Link to="/" className="flex items-center gap-3 group">
+            <div className="w-10 h-10 bg-black flex items-center justify-center transition-transform group-hover:scale-105 border-2 border-black shadow-[2px_2px_0px_0px_rgba(100,100,100,1)]">
+              <GxLogo className="w-6 h-6 text-white" />
             </div>
             <span className="text-xl font-bold text-black tracking-tight">GxStudio</span>
           </Link>

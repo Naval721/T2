@@ -17,7 +17,7 @@ type TextProps = {
     stroke: string | Pattern | Gradient<any>;
     strokeWidth: number;
     angle: number;
-    textAlign: string;
+    textAlign: any;
     width?: number;
     height?: number;
     originX: 'center';
@@ -48,6 +48,7 @@ interface DesignCanvasProps {
     selectedPlayer: PlayerData | null;
     onCanvasReady: (canvas: FabricCanvas | null) => void;
     defaultFont?: string; // Default font for player names/numbers
+    showTools?: boolean; // Toggle visibility of design tools for different steps
 }
 
 type ExportableCanvas = FabricCanvas & {
@@ -157,11 +158,11 @@ const exportCleanJerseyDesign = (canvas: FabricCanvas): string => {
         return '';
     }
 
-    // Export with exact bounds, white background, and 300 DPI
+    // Export with exact bounds, transparent bg (or white if you want), and 500 DPI
     return canvas.toDataURL({
-        format: 'jpeg',
-        quality: 0.95,
-        multiplier: 3.125,
+        format: 'png',
+        quality: 1,
+        multiplier: 5.21,
         left: minX,
         top: minY,
         width: maxX - minX,
@@ -170,7 +171,7 @@ const exportCleanJerseyDesign = (canvas: FabricCanvas): string => {
     } as any); // Cast as any to avoid backgroundColor type error if changed in v6
 };
 
-export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defaultFont = 'Anton' }: DesignCanvasProps) => {
+export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defaultFont = 'Anton', showTools = false }: DesignCanvasProps) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [fabricCanvas, setFabricCanvas] = useState<FabricCanvas | null>(null);
     const [currentView, setCurrentView] = useState<'front' | 'back' | 'leftSleeve' | 'rightSleeve' | 'collar'>('front');
@@ -486,8 +487,10 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
                         jerseyImg.set({
                             scaleX: scale,
                             scaleY: scale,
-                            left: (fabricCanvas.width! - jerseyImg.width! * scale) / 2,
-                            top: (fabricCanvas.height! - jerseyImg.height! * scale) / 2,
+                            originX: 'center',
+                            originY: 'center',
+                            left: fabricCanvas.width! / 2,
+                            top: fabricCanvas.height! / 2,
                             selectable: false,
                             evented: false,
                             stroke: showCuttingOutline ? '#000000' : undefined, // Black outline for cutting guide
@@ -518,8 +521,10 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
                         leftSleeve.set({
                             scaleX: scale,
                             scaleY: scale,
-                            left: (fabricCanvas.width! - leftSleeve.width! * scale) / 2,
-                            top: (fabricCanvas.height! - leftSleeve.height! * scale) / 2,
+                            originX: 'center',
+                            originY: 'center',
+                            left: fabricCanvas.width! / 2,
+                            top: fabricCanvas.height! / 2,
                             selectable: false,
                             evented: false,
                             stroke: showCuttingOutline ? '#000000' : undefined, // Black outline for cutting guide
@@ -552,8 +557,10 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
                         rightSleeve.set({
                             scaleX: scale,
                             scaleY: scale,
-                            left: (fabricCanvas.width! - rightSleeve.width! * scale) / 2,
-                            top: (fabricCanvas.height! - rightSleeve.height! * scale) / 2,
+                            originX: 'center',
+                            originY: 'center',
+                            left: fabricCanvas.width! / 2,
+                            top: fabricCanvas.height! / 2,
                             selectable: false,
                             evented: false,
                             stroke: showCuttingOutline ? '#000000' : undefined, // Black outline for cutting guide
@@ -591,7 +598,9 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
                         collarImg.set({
                             scaleX: scale,
                             scaleY: scale,
-                            left: (fabricCanvas.width! - collarImg.width! * scale) / 2,
+                            originX: 'center',
+                            originY: 'top',
+                            left: fabricCanvas.width! / 2,
                             top: 154,
                             selectable: false,
                             evented: false,
@@ -762,7 +771,7 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
     const exportAllViews = async () => {
         if (!fabricCanvas || !selectedPlayer) return;
 
-        toast.info("Exporting all jersey views as JPG (200 DPI)...");
+        toast.info("Exporting all jersey views as PNG (500 DPI)...");
 
         const views: typeof currentView[] = ['front', 'back', 'leftSleeve', 'rightSleeve', 'collar'];
 
@@ -770,13 +779,13 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
             for (const view of views) {
                 await loadJerseyView(view);
 
-                // Use clean export function for JPG with white background
+                // Use clean export function for PNG
                 const dataURL = exportCleanJerseyDesign(fabricCanvas);
 
                 if (dataURL) {
                     const link = document.createElement('a');
                     link.href = dataURL;
-                    link.download = `${selectedPlayer.playerName}_${selectedPlayer.jerseyNumber}_${view}.jpg`;
+                    link.download = `${selectedPlayer.playerName}_${selectedPlayer.jerseyNumber}_${view}.png`;
                     link.click();
                     // Small delay to prevent browser from blocking multiple downloads
                     await new Promise(resolve => setTimeout(resolve, 200));
@@ -785,7 +794,7 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
 
             // Reload current view
             await loadJerseyView();
-            toast.success("All views exported as JPG (200 DPI) successfully!");
+            toast.success("All views exported as PNG (500 DPI) successfully!");
         } catch (error) {
             toast.error("Failed to export some views");
             logger.error('Export error:', error);
@@ -802,7 +811,7 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
         if (!fabricCanvas || !selectedPlayer) return;
 
         try {
-            // Use clean export function for JPG with white background
+            // Use clean export function for PNG
             const dataURL = exportCleanJerseyDesign(fabricCanvas);
 
             if (!dataURL) {
@@ -812,9 +821,9 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
 
             const link = document.createElement('a');
             link.href = dataURL;
-            link.download = `${selectedPlayer.playerName}_${selectedPlayer.jerseyNumber}_${currentView}.jpg`;
+            link.download = `${selectedPlayer.playerName}_${selectedPlayer.jerseyNumber}_${currentView}.png`;
             link.click();
-            toast.success(`Current view exported as JPG (200 DPI)!`);
+            toast.success(`Current view exported as PNG (500 DPI)!`);
         } catch (error) {
             toast.error("Failed to export current view");
             logger.error('Export error:', error);
@@ -1094,64 +1103,71 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
                     >
                         Collar
                     </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={centerFitBackNameNumber}
-                        disabled={currentView !== 'back'}
-                        title="Center name & number on back (like example)"
-                    >
-                        Auto Center
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={exportCurrentView}
-                        title="Export current view as JPG (200 DPI)"
-                    >
-                        <Download className="w-4 h-4 mr-2" />
-                        Export Current
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={exportAllViews}
-                        title="Export all views as JPG (200 DPI)"
-                    >
-                        <Download className="w-4 h-4 mr-2" />
-                        Export All
-                    </Button>
+
+                    {showTools && (
+                        <>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={centerFitBackNameNumber}
+                                disabled={currentView !== 'back'}
+                                title="Center name & number on back (like example)"
+                            >
+                                Auto Center
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={exportCurrentView}
+                                title="Export current view as PNG (500 DPI)"
+                            >
+                                <Download className="w-4 h-4 mr-2" />
+                                Export Current
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={exportAllViews}
+                                title="Export all views as PNG (500 DPI)"
+                            >
+                                <Download className="w-4 h-4 mr-2" />
+                                Export All
+                            </Button>
+                        </>
+                    )}
                 </div>
             </div>
 
-            <div className="border border-border rounded-lg overflow-hidden bg-white">
-                <div className="flex items-center justify-between p-3 bg-muted/50 border-b">
-                    <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm" onClick={handleZoomIn}>
-                            <ZoomIn className="w-4 h-4" />
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={handleZoomOut}>
-                            <ZoomOut className="w-4 h-4" />
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={enablePanMode}>
-                            <Move className="w-4 h-4" />
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={handleResetView}>
-                            <RotateCcw className="w-4 h-4" />
-                        </Button>
-                        <Button
-                            variant={showCuttingOutline ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => setShowCuttingOutline(!showCuttingOutline)}
-                            title="Toggle cutting outline"
-                        >
-                            <Scissors className="w-4 h-4" />
-                        </Button>
+            <div className={`border rounded-lg overflow-hidden bg-white ${showTools ? 'border-border' : 'border-transparent'}`}>
+                {showTools && (
+                    <div className="flex items-center justify-between p-3 bg-muted/50 border-b">
+                        <div className="flex items-center gap-2">
+                            <Button variant="outline" size="sm" onClick={handleZoomIn}>
+                                <ZoomIn className="w-4 h-4" />
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={handleZoomOut}>
+                                <ZoomOut className="w-4 h-4" />
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={enablePanMode}>
+                                <Move className="w-4 h-4" />
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={handleResetView}>
+                                <RotateCcw className="w-4 h-4" />
+                            </Button>
+                            <Button
+                                variant={showCuttingOutline ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => setShowCuttingOutline(!showCuttingOutline)}
+                                title="Toggle cutting outline"
+                            >
+                                <Scissors className="w-4 h-4" />
+                            </Button>
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                            Zoom: {Math.round(zoom * 100)}% | Export: PNG (500 DPI)
+                        </div>
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                        Zoom: {Math.round(zoom * 100)}% | Export: JPG (200 DPI)
-                    </div>
-                </div>
+                )}
 
                 <div className="flex justify-center p-4">
                     <canvas
@@ -1162,7 +1178,9 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
             </div>
 
             <div className="mt-4 text-xs text-muted-foreground text-center">
-                Use the customization tools to add logos, adjust text, and personalize the design. All exports are in JPG format at 200 DPI for professional printing quality.
+                {showTools
+                    ? "Use the customization tools to add logos, adjust text, and personalize the design. All exports are in PNG format at 500 DPI for professional printing quality."
+                    : "Review your designs and switch between views. Click 'Continue to Customization' to proceed."}
             </div>
         </Card>
     );

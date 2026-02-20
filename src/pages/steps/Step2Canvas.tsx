@@ -111,6 +111,7 @@ export const Step2Canvas = ({
             selectedPlayer={selectedPlayer}
             onCanvasReady={onCanvasReady}
             defaultFont={defaultFont}
+            showTools={false}
           />
         </div>
       </div>

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { User, LogOut } from "lucide-react";
+import { User, LogOut, Shirt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { AuthModal } from "@/components/auth/AuthModal";
@@ -22,11 +22,11 @@ export const Header = () => {
       <div className="max-w-7xl mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-black rounded flex items-center justify-center">
-              <span className="text-white font-bold text-sm">DS</span>
+          <Link to="/" className="flex items-center gap-2 group">
+            <div className="w-8 h-8 bg-black rounded-xl flex items-center justify-center transition-transform group-hover:scale-105">
+              <Shirt className="w-5 h-5 text-white" strokeWidth={2.5} />
             </div>
-            <span className="text-xl font-bold text-black">GxStudio</span>
+            <span className="text-xl font-bold text-black tracking-tight">GxStudio</span>
           </Link>
 
           {/* Navigation */}

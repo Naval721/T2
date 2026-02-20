@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { Shirt } from "lucide-react";
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
@@ -6,7 +7,12 @@ const Footer = () => {
     <footer className="border-t bg-white">
       <div className="max-w-7xl mx-auto px-6 py-10 grid grid-cols-1 md:grid-cols-4 gap-8">
         <div>
-          <div className="text-2xl font-bold mb-2">GxStudio</div>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-8 h-8 bg-black rounded-xl flex items-center justify-center">
+              <Shirt className="w-5 h-5 text-white" strokeWidth={2.5} />
+            </div>
+            <span className="text-xl font-bold text-black tracking-tight">GxStudio</span>
+          </div>
           <p className="text-slate-600">Professional sports customization platform.</p>
         </div>
         <div>

@@ -7,13 +7,13 @@ import { Separator } from '@/components/ui/separator'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useAuth } from '@/hooks/useAuth'
 import { PointsPurchase } from '@/components/points/PointsPurchase'
-import { 
-  User, 
-  Crown, 
-  Download, 
-  Calendar, 
-  Settings, 
-  LogOut, 
+import {
+  User,
+  Crown,
+  Download,
+  Calendar,
+  Settings,
+  LogOut,
   Sparkles,
   Shield,
   Zap,
@@ -58,11 +58,11 @@ export const UserDashboard = ({ onClose }: UserDashboardProps) => {
   return (
     <div className="space-y-6">
       {/* User Info Header */}
-      <Card>
+      <Card className="border shadow-sm">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
+              <div className="w-12 h-12 bg-black rounded-xl flex items-center justify-center">
                 <User className="w-6 h-6 text-white" />
               </div>
               <div>
@@ -70,7 +70,7 @@ export const UserDashboard = ({ onClose }: UserDashboardProps) => {
                 <CardDescription>{profile.email}</CardDescription>
               </div>
             </div>
-            <Badge className="bg-blue-100 text-blue-800">
+            <Badge className="bg-black text-white hover:bg-gray-800">
               <div className="flex items-center space-x-1">
                 <Sparkles className="w-4 h-4" />
                 <span>{formatPoints(currentPoints)} points</span>
@@ -82,11 +82,11 @@ export const UserDashboard = ({ onClose }: UserDashboardProps) => {
 
       {/* Free Trial Banner */}
       {currentPoints === 5 && (
-        <Alert className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-300">
-          <Gift className="h-5 w-5 text-green-600" />
+        <Alert className="bg-gray-50 border-gray-200">
+          <Gift className="h-5 w-5 text-black" />
           <AlertDescription>
-            <p className="font-semibold text-green-900 mb-1">🎉 Free Trial Active!</p>
-            <p className="text-green-700 text-sm">
+            <p className="font-semibold text-black mb-1">Free Trial Active!</p>
+            <p className="text-gray-600 text-sm">
               You have 5 free exports to try our platform. Buy more points to continue after your trial!
             </p>
           </AlertDescription>
@@ -94,13 +94,13 @@ export const UserDashboard = ({ onClose }: UserDashboardProps) => {
       )}
 
       {/* Points Balance */}
-      <Card className="border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-purple-50">
+      <Card className="border shadow-sm bg-gray-50/50">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
-            <Sparkles className="w-5 h-5 text-blue-600" />
+            <Sparkles className="w-5 h-5 text-black" />
             <span>Points Balance</span>
             {currentPoints === 5 && (
-              <Badge className="ml-2 bg-green-100 text-green-800">
+              <Badge variant="outline" className="ml-2 bg-white text-black border-gray-200">
                 <Gift className="w-3 h-3 mr-1" />
                 Free Trial
               </Badge>
@@ -111,28 +111,30 @@ export const UserDashboard = ({ onClose }: UserDashboardProps) => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="text-center p-6 bg-white rounded-lg shadow-sm">
-            <p className="text-sm text-gray-600 mb-2">Available Points</p>
-            <p className="text-5xl font-bold text-blue-600">{formatPoints(currentPoints)}</p>
+          <div className="text-center p-6 bg-white rounded-xl border shadow-sm">
+            <p className="text-sm text-gray-500 mb-2 font-medium">Available Points</p>
+            <p className="text-5xl font-bold text-black">{formatPoints(currentPoints)}</p>
             {currentPoints === 5 && (
-              <p className="text-xs text-green-600 mt-2">✨ Free trial - 5 free exports</p>
+              <p className="text-xs text-gray-500 mt-2 flex items-center justify-center gap-1">
+                <Sparkles className="w-3 h-3" /> Free trial - 5 free exports
+              </p>
             )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-white p-4 rounded-lg shadow-sm">
-              <p className="text-xs text-gray-600 mb-1">Total Purchased</p>
-              <p className="text-xl font-bold text-green-600">{formatPoints(totalPurchased)}</p>
+            <div className="bg-white p-4 rounded-xl border shadow-sm">
+              <p className="text-xs text-gray-500 mb-1 font-medium">Total Purchased</p>
+              <p className="text-xl font-bold text-black">{formatPoints(totalPurchased)}</p>
             </div>
-            <div className="bg-white p-4 rounded-lg shadow-sm">
-              <p className="text-xs text-gray-600 mb-1">Total Used</p>
-              <p className="text-xl font-bold text-orange-600">{formatPoints(totalUsed)}</p>
+            <div className="bg-white p-4 rounded-xl border shadow-sm">
+              <p className="text-xs text-gray-500 mb-1 font-medium">Total Used</p>
+              <p className="text-xl font-bold text-black">{formatPoints(totalUsed)}</p>
             </div>
           </div>
 
-          <Button 
+          <Button
             onClick={() => setShowPurchaseDialog(true)}
-            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+            className="w-full bg-black text-white hover:bg-gray-800"
           >
             <ShoppingCart className="w-4 h-4 mr-2" />
             Buy More Points
@@ -141,7 +143,7 @@ export const UserDashboard = ({ onClose }: UserDashboardProps) => {
       </Card>
 
       {/* What You Can Export */}
-      <Card>
+      <Card className="border shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <TrendingUp className="w-5 h-5" />
@@ -153,64 +155,64 @@ export const UserDashboard = ({ onClose }: UserDashboardProps) => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <p className="text-sm text-gray-600 mb-1">Front Images</p>
-              <p className="text-2xl font-bold text-blue-600">{exportsPossible.frontOnly}</p>
+            <div className="bg-gray-50 border p-4 rounded-xl">
+              <p className="text-sm text-gray-500 mb-1 font-medium">Front Images</p>
+              <p className="text-2xl font-bold text-black">{exportsPossible.frontOnly}</p>
             </div>
-            <div className="bg-purple-50 p-4 rounded-lg">
-              <p className="text-sm text-gray-600 mb-1">Back Images</p>
-              <p className="text-2xl font-bold text-purple-600">{exportsPossible.backOnly}</p>
+            <div className="bg-gray-50 border p-4 rounded-xl">
+              <p className="text-sm text-gray-500 mb-1 font-medium">Back Images</p>
+              <p className="text-2xl font-bold text-black">{exportsPossible.backOnly}</p>
             </div>
-            <div className="bg-green-50 p-4 rounded-lg">
-              <p className="text-sm text-gray-600 mb-1">Full Jerseys</p>
-              <p className="text-2xl font-bold text-green-600">{exportsPossible.fullJersey}</p>
+            <div className="bg-gray-50 border p-4 rounded-xl">
+              <p className="text-sm text-gray-500 mb-1 font-medium">Full Jerseys</p>
+              <p className="text-2xl font-bold text-black">{exportsPossible.fullJersey}</p>
             </div>
-            <div className="bg-orange-50 p-4 rounded-lg">
-              <p className="text-sm text-gray-600 mb-1">With Collar</p>
-              <p className="text-2xl font-bold text-orange-600">{exportsPossible.fullJerseyWithCollar}</p>
+            <div className="bg-gray-50 border p-4 rounded-xl">
+              <p className="text-sm text-gray-500 mb-1 font-medium">With Collar</p>
+              <p className="text-2xl font-bold text-black">{exportsPossible.fullJerseyWithCollar}</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Point Costs Info */}
-      <Card>
+      <Card className="border shadow-sm">
         <CardHeader>
           <CardTitle>Point Costs</CardTitle>
           <CardDescription>How many points each export costs</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-              <span className="text-sm">Front Image</span>
-              <Badge variant="outline" className="font-bold">1 point</Badge>
+            <div className="flex items-center justify-between p-3 bg-gray-50 border rounded-xl">
+              <span className="text-sm font-medium">Front Image</span>
+              <Badge variant="outline" className="font-bold bg-white text-black border-gray-200">1 point</Badge>
             </div>
-            <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
-              <span className="text-sm">Back Image</span>
-              <Badge variant="outline" className="font-bold">2 points</Badge>
+            <div className="flex items-center justify-between p-3 bg-gray-50 border rounded-xl">
+              <span className="text-sm font-medium">Back Image</span>
+              <Badge variant="outline" className="font-bold bg-white text-black border-gray-200">2 points</Badge>
             </div>
-            <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-              <span className="text-sm">Per Sleeve</span>
-              <Badge variant="outline" className="font-bold">1 point</Badge>
+            <div className="flex items-center justify-between p-3 bg-gray-50 border rounded-xl">
+              <span className="text-sm font-medium">Per Sleeve</span>
+              <Badge variant="outline" className="font-bold bg-white text-black border-gray-200">1 point</Badge>
             </div>
-            <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
-              <span className="text-sm">Collar</span>
-              <Badge variant="outline" className="font-bold">1 point</Badge>
+            <div className="flex items-center justify-between p-3 bg-gray-50 border rounded-xl">
+              <span className="text-sm font-medium">Collar</span>
+              <Badge variant="outline" className="font-bold bg-white text-black border-gray-200">1 point</Badge>
             </div>
-            <div className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-100 to-purple-100 rounded-lg border-2 border-blue-300">
-              <span className="text-sm font-semibold">Full Jersey (F+B+2S)</span>
-              <Badge className="bg-blue-600 font-bold">4 points</Badge>
+            <div className="flex items-center justify-between p-3 bg-gray-50 border border-black/10 rounded-xl">
+              <span className="text-sm font-semibold text-black">Full Jersey (F+B+2S)</span>
+              <Badge className="font-bold bg-black text-white">4 points</Badge>
             </div>
-            <div className="flex items-center justify-between p-3 bg-gradient-to-r from-purple-100 to-pink-100 rounded-lg border-2 border-purple-300">
-              <span className="text-sm font-semibold">Full Jersey with Collar</span>
-              <Badge className="bg-purple-600 font-bold">5 points</Badge>
+            <div className="flex items-center justify-between p-3 bg-gray-50 border border-black/10 rounded-xl">
+              <span className="text-sm font-semibold text-black">Full Jersey with Collar</span>
+              <Badge className="font-bold bg-black text-white">5 points</Badge>
             </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Features */}
-      <Card>
+      <Card className="border shadow-sm">
         <CardHeader>
           <CardTitle>Your Features</CardTitle>
           <CardDescription>All features available with points</CardDescription>
@@ -218,45 +220,45 @@ export const UserDashboard = ({ onClose }: UserDashboardProps) => {
         <CardContent>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm">High-Quality Exports (300 DPI)</span>
-              <CheckCircle className="w-4 h-4 text-green-600" />
+              <span className="text-sm font-medium">High-Quality Exports (300 DPI)</span>
+              <CheckCircle className="w-4 h-4 text-black" />
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm">Individual Sleeve Export</span>
-              <CheckCircle className="w-4 h-4 text-green-600" />
+              <span className="text-sm font-medium">Individual Sleeve Export</span>
+              <CheckCircle className="w-4 h-4 text-black" />
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm">Secure Cloud Storage</span>
-              <CheckCircle className="w-4 h-4 text-green-600" />
+              <span className="text-sm font-medium">Secure Cloud Storage</span>
+              <CheckCircle className="w-4 h-4 text-black" />
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm">No Watermarks</span>
-              <CheckCircle className="w-4 h-4 text-green-600" />
+              <span className="text-sm font-medium">No Watermarks</span>
+              <CheckCircle className="w-4 h-4 text-black" />
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm">Points Never Expire</span>
-              <CheckCircle className="w-4 h-4 text-green-600" />
+              <span className="text-sm font-medium">Points Never Expire</span>
+              <CheckCircle className="w-4 h-4 text-black" />
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <Separator />
+      <Separator className="bg-gray-100" />
 
       {/* Actions */}
       <div className="space-y-3">
-        <Button 
-          variant="outline" 
-          className="w-full justify-start"
+        <Button
+          variant="outline"
+          className="w-full justify-start border-gray-200 hover:bg-gray-50"
           onClick={() => toast.info('Settings coming soon!')}
         >
           <Settings className="w-4 h-4 mr-2" />
           Account Settings
         </Button>
-        
-        <Button 
-          variant="outline" 
-          className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+
+        <Button
+          variant="outline"
+          className="w-full justify-start text-red-600 border-red-100 hover:text-red-700 hover:bg-red-50"
           onClick={handleSignOut}
           disabled={loading}
         >

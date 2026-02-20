@@ -1,0 +1,9 @@
+
+> jersey-artist-studio@0.0.0 preview
+> vite preview
+
+  [32mΓ₧£[39m  [1mLocal[22m:   [36mhttp://localhost:[1m4173[22m/[39m
+  [32mΓ₧£[39m  [1mNetwork[22m: [36mhttp://172.21.136.3:[1m4173[22m/[39m
+  [32mΓ₧£[39m  [1mNetwork[22m: [36mhttp://10.5.0.2:[1m4173[22m/[39m
+  [32mΓ₧£[39m  [1mNetwork[22m: [36mhttp://10.53.24.106:[1m4173[22m/[39m
+[2m[32m  Γ₧£[39m[22m[2m  press [22m[1mh + enter[22m[2m to show help[22m

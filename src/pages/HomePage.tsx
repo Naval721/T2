@@ -83,11 +83,11 @@ export const HomePage = ({ onStart }: HomePageProps) => {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center">
-                <Shirt className="w-5 h-5 text-white" />
+            <div className="flex items-center space-x-2 group cursor-pointer">
+              <div className="w-8 h-8 bg-black rounded-xl flex items-center justify-center transition-transform group-hover:scale-105">
+                <Shirt className="w-5 h-5 text-white" strokeWidth={2.5} />
               </div>
-              <span className="text-lg font-semibold text-black">GxStudio</span>
+              <span className="text-xl font-bold text-black tracking-tight" style={{ fontFamily: "'Inter', sans-serif" }}>GxStudio</span>
             </div>
             <div className="hidden md:flex items-center space-x-8">
               <a href="#features" className="text-gray-600 hover:text-black transition-colors">Home</a>

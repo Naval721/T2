@@ -53,7 +53,7 @@ export const CustomizationTools = ({ onAddText, onAddLogo }: CustomizationToolsP
     <div className="space-y-6">
       {/* Text Input */}
       <div>
-        <Label className="mb-2 block font-semibold">Custom Text</Label>
+        <Label className="mb-2 block uppercase text-xs font-bold tracking-widest text-gray-500">Custom Text</Label>
         <div className="flex gap-2">
           <Input
             type="text"
@@ -61,8 +61,9 @@ export const CustomizationTools = ({ onAddText, onAddLogo }: CustomizationToolsP
             value={customText}
             onChange={(e) => setCustomText(e.target.value)}
             onKeyPress={(e) => e.key === "Enter" && handleAddText()}
+            className="rounded-none border-2 border-black focus-visible:ring-0 focus-visible:border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
           />
-          <Button onClick={handleAddText} size="icon">
+          <Button onClick={handleAddText} size="icon" className="rounded-none border-2 border-black bg-black text-white hover:bg-gray-900 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[-1px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all">
             <Type className="w-4 h-4" />
           </Button>
         </div>
@@ -78,7 +79,7 @@ export const CustomizationTools = ({ onAddText, onAddLogo }: CustomizationToolsP
 
       {/* Font Size */}
       <div>
-        <Label className="mb-2 block">Font Size: {fontSize}px</Label>
+        <Label className="mb-2 block uppercase text-xs font-bold tracking-widest text-gray-500">Font Size: {fontSize}px</Label>
         <Slider
           value={[fontSize]}
           onValueChange={(value) => setFontSize(value[0])}
@@ -92,19 +93,19 @@ export const CustomizationTools = ({ onAddText, onAddLogo }: CustomizationToolsP
       {/* Text Color */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className="mb-2 block">Text Color</Label>
+          <Label className="mb-2 block uppercase text-xs font-bold tracking-widest text-gray-500">Text Color</Label>
           <div className="flex gap-2">
             <Input
               type="color"
               value={textColor}
               onChange={(e) => setTextColor(e.target.value)}
-              className="w-16 h-10 p-1 cursor-pointer"
+              className="w-16 h-10 p-0 rounded-none border-2 border-black cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
             />
             <Input
               type="text"
               value={textColor}
               onChange={(e) => setTextColor(e.target.value)}
-              className="flex-1"
+              className="flex-1 rounded-none border-2 border-black focus-visible:ring-0 focus-visible:border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] uppercase font-mono text-sm uppercase"
               placeholder="#ffffff"
             />
           </div>
@@ -112,19 +113,19 @@ export const CustomizationTools = ({ onAddText, onAddLogo }: CustomizationToolsP
 
         {/* Stroke Color */}
         <div>
-          <Label className="mb-2 block">Stroke Color</Label>
+          <Label className="mb-2 block uppercase text-xs font-bold tracking-widest text-gray-500">Stroke Color</Label>
           <div className="flex gap-2">
             <Input
               type="color"
               value={strokeColor}
               onChange={(e) => setStrokeColor(e.target.value)}
-              className="w-16 h-10 p-1 cursor-pointer"
+              className="w-16 h-10 p-0 rounded-none border-2 border-black cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
             />
             <Input
               type="text"
               value={strokeColor}
               onChange={(e) => setStrokeColor(e.target.value)}
-              className="flex-1"
+              className="flex-1 rounded-none border-2 border-black focus-visible:ring-0 focus-visible:border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] uppercase font-mono text-sm"
               placeholder="#000000"
             />
           </div>
@@ -133,7 +134,7 @@ export const CustomizationTools = ({ onAddText, onAddLogo }: CustomizationToolsP
 
       {/* Stroke Width */}
       <div>
-        <Label className="mb-2 block">Stroke Width: {strokeWidth}px</Label>
+        <Label className="mb-2 block uppercase text-xs font-bold tracking-widest text-gray-500">Stroke Width: {strokeWidth}px</Label>
         <Slider
           value={[strokeWidth]}
           onValueChange={(value) => setStrokeWidth(value[0])}
@@ -145,8 +146,8 @@ export const CustomizationTools = ({ onAddText, onAddLogo }: CustomizationToolsP
       </div>
 
       {/* Logo Upload */}
-      <div>
-        <Label className="mb-2 block font-semibold">Custom Logo</Label>
+      <div className="pt-2">
+        <Label className="mb-2 block uppercase text-xs font-bold tracking-widest text-gray-500">Custom Logo</Label>
         <input
           ref={logoInputRef}
           type="file"
@@ -157,7 +158,7 @@ export const CustomizationTools = ({ onAddText, onAddLogo }: CustomizationToolsP
         <Button
           onClick={() => logoInputRef.current?.click()}
           variant="outline"
-          className="w-full"
+          className="w-full h-12 uppercase font-bold tracking-widest rounded-none border-2 border-black bg-white text-black hover:bg-black hover:text-white transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[-1px] hover:shadow-[5px_5px_0px_0px_rgba(0,0,0,1)]"
         >
           <Upload className="w-4 h-4 mr-2" />
           Upload Logo

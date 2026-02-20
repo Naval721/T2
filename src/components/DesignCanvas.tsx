@@ -114,8 +114,18 @@ const getVisibleContentBounds = (canvas: FabricCanvas): CanvasBounds | null => {
     };
 };
 
+export const getSizeScaleFactor = (size: string | undefined): number => {
+    if (!size) return 1;
+    const sizeNum = parseInt(size);
+    if (isNaN(sizeNum)) return 1; // Handled non-numeric sizes
+    // Scale factor: 22=0.8x, 46=1.2x, linear interpolation
+    const minSize = 22, maxSize = 46;
+    const minScale = 0.8, maxScale = 1.2;
+    return ((sizeNum - minSize) / (maxSize - minSize)) * (maxScale - minScale) + minScale;
+};
+
 // Create a clean export function that exports only jersey design with white background for JPG
-const exportCleanJerseyDesign = (canvas: FabricCanvas): string => {
+export const exportCleanJerseyDesign = (canvas: FabricCanvas, sizeMultiplier: number = 1): string => {
     // Filter to only include jersey design elements
     const designObjects = canvas.getObjects().filter(object => {
         if (!object.visible) return false;
@@ -162,7 +172,7 @@ const exportCleanJerseyDesign = (canvas: FabricCanvas): string => {
     return canvas.toDataURL({
         format: 'png',
         quality: 1,
-        multiplier: 5.21,
+        multiplier: 5.21 * sizeMultiplier,
         left: minX,
         top: minY,
         width: maxX - minX,
@@ -216,16 +226,6 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
         } catch (e) {
             // Ignore storage errors
         }
-    };
-
-    // Helper function to calculate size-based scaling factor
-    const getSizeScaleFactor = (size: string | undefined): number => {
-        if (!size) return 1;
-        const sizeNum = parseInt(size);
-        // Scale factor: 22=0.8x, 46=1.2x, linear interpolation
-        const minSize = 22, maxSize = 46;
-        const minScale = 0.8, maxScale = 1.2;
-        return ((sizeNum - minSize) / (maxSize - minSize)) * (maxScale - minScale) + minScale;
     };
 
     useEffect(() => {
@@ -481,8 +481,7 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
                         const scaleX = maxWidth / jerseyImg.width!;
                         const scaleY = maxHeight / jerseyImg.height!;
                         const baseScale = Math.min(scaleX, scaleY);
-                        const sizeFactor = getSizeScaleFactor(selectedPlayer?.size);
-                        const scale = baseScale * sizeFactor;
+                        const scale = baseScale;
 
                         jerseyImg.set({
                             scaleX: scale,
@@ -516,8 +515,7 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
                         if (myToken !== loadTokenRef.current) return;
 
                         const baseScale = Math.min(400 / leftSleeve.width!, 400 / leftSleeve.height!);
-                        const sizeFactor = getSizeScaleFactor(selectedPlayer?.size);
-                        const scale = baseScale * sizeFactor;
+                        const scale = baseScale;
                         leftSleeve.set({
                             scaleX: scale,
                             scaleY: scale,
@@ -552,8 +550,7 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
                         if (myToken !== loadTokenRef.current) return;
 
                         const baseScale = Math.min(400 / rightSleeve.width!, 400 / rightSleeve.height!);
-                        const sizeFactor = getSizeScaleFactor(selectedPlayer?.size);
-                        const scale = baseScale * sizeFactor;
+                        const scale = baseScale;
                         rightSleeve.set({
                             scaleX: scale,
                             scaleY: scale,
@@ -592,8 +589,7 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
                         const scaleX = maxWidth / collarImg.width!;
                         const scaleY = maxHeight / collarImg.height!;
                         const baseScale = Math.min(scaleX, scaleY);
-                        const sizeFactor = getSizeScaleFactor(selectedPlayer?.size);
-                        const scale = baseScale * sizeFactor;
+                        const scale = baseScale;
 
                         collarImg.set({
                             scaleX: scale,
@@ -779,8 +775,8 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
             for (const view of views) {
                 await loadJerseyView(view);
 
-                // Use clean export function for PNG
-                const dataURL = exportCleanJerseyDesign(fabricCanvas);
+                // Use clean export function for PNG, passing the size multiplier
+                const dataURL = exportCleanJerseyDesign(fabricCanvas, getSizeScaleFactor(selectedPlayer.size));
 
                 if (dataURL) {
                     const link = document.createElement('a');
@@ -811,8 +807,8 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
         if (!fabricCanvas || !selectedPlayer) return;
 
         try {
-            // Use clean export function for PNG
-            const dataURL = exportCleanJerseyDesign(fabricCanvas);
+            // Use clean export function for PNG, passing the size multiplier
+            const dataURL = exportCleanJerseyDesign(fabricCanvas, getSizeScaleFactor(selectedPlayer.size));
 
             if (!dataURL) {
                 toast.error("No design content to export");
@@ -981,6 +977,9 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
             const nameTop = backTop + backHeight * 0.28;
             const numberTop = backTop + backHeight * 0.56;
 
+            const nameFont = Math.max(16, Math.round(backHeight * 0.05)); // Example baseline ratio
+            const numberFont = Math.max(48, Math.round(backHeight * 0.12)); // Example baseline ratio
+
             if (nameObj) {
                 nameObj.set({
                     left: centerX,
@@ -988,7 +987,12 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
                     originX: 'center',
                     originY: 'center',
                     textAlign: 'center',
+                    fontSize: nameFont,
                 });
+                const maxTextWidth = backWidth * 0.7;
+                while (nameObj.getScaledWidth() > maxTextWidth && nameObj.fontSize! > 12) {
+                    nameObj.set({ fontSize: nameObj.fontSize! - 1 });
+                }
             }
 
             if (numberObj) {
@@ -998,6 +1002,7 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
                     originX: 'center',
                     originY: 'center',
                     textAlign: 'center',
+                    fontSize: numberFont,
                 });
             }
 

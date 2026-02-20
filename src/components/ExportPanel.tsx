@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import type { PlayerData } from "@/pages/Index";
 import { logger } from "@/lib/logger";
+import { getSizeScaleFactor } from "./DesignCanvas";
 
 interface ExportPanelProps {
     canvasRef: FabricCanvas | null;
@@ -219,7 +220,7 @@ export const ExportPanel = ({ canvasRef, selectedPlayer, playerData }: ExportPan
                     const dataURL = canvasRef.toDataURL({
                         format: 'png',
                         quality: 1.0,
-                        multiplier: bulkExportMultiplier,
+                        multiplier: bulkExportMultiplier * getSizeScaleFactor(player.size),
                         left: minX,
                         top: minY,
                         width: maxX - minX,
@@ -293,7 +294,7 @@ export const ExportPanel = ({ canvasRef, selectedPlayer, playerData }: ExportPan
         const dataURL = canvasRef.toDataURL({
             format: 'png',
             quality: 1.0,
-            multiplier: 1,
+            multiplier: 1 * getSizeScaleFactor(selectedPlayer.size),
             left: minX,
             top: minY,
             width: maxX - minX,

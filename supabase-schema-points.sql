@@ -216,7 +216,7 @@ GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
 GRANT ALL ON ALL FUNCTIONS IN SCHEMA public TO anon, authenticated;
 
 -- Create view for user points dashboard
-CREATE OR REPLACE VIEW user_points_dashboard AS
+CREATE OR REPLACE VIEW user_points_dashboard WITH (security_invoker = on) AS
 SELECT 
     up.id,
     up.email,
@@ -236,7 +236,7 @@ GROUP BY up.id, up.email, up.full_name, up.points_balance,
 GRANT SELECT ON user_points_dashboard TO authenticated;
 
 -- Recreate user_dashboard_data view with new schema
-CREATE OR REPLACE VIEW user_dashboard_data AS
+CREATE OR REPLACE VIEW user_dashboard_data WITH (security_invoker = on) AS
 SELECT 
     up.id,
     up.email,

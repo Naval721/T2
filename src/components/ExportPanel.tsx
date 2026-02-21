@@ -29,7 +29,6 @@ type VisibleBounds = {
 export const ExportPanel = ({ canvasRef, selectedPlayer, playerData }: ExportPanelProps) => {
     const [exportQuality, setExportQuality] = useState<'ultra' | 'high' | 'medium'>('ultra');
     const [isExporting, setIsExporting] = useState(false);
-    const [freeExportCount, setFreeExportCount] = useState(0);
     const { user, profile, deductPoints, currentPoints } = useAuth();
 
     const getQualityMultiplier = () => {
@@ -61,13 +60,6 @@ export const ExportPanel = ({ canvasRef, selectedPlayer, playerData }: ExportPan
         const pointsNeeded = 1; // 1 point per export
         if (currentPoints < pointsNeeded) {
             toast.error("Insufficient points! Please buy more points to continue exporting.");
-            return;
-        }
-
-        // Check free trial limit (5 exports for users with 5 points)
-        const isFreeUser = currentPoints === 5 && profile?.total_points_purchased === 5;
-        if (isFreeUser && freeExportCount >= 5) {
-            toast.error("You've reached your free trial limit of 5 exports. Please buy points to continue!");
             return;
         }
 
@@ -132,11 +124,6 @@ export const ExportPanel = ({ canvasRef, selectedPlayer, playerData }: ExportPan
                 return;
             }
 
-            // Increment free export count for free users
-            if (isFreeUser) {
-                setFreeExportCount(prev => prev + 1);
-            }
-
             const dpiText = exportQuality === 'ultra' ? '480 DPI' : exportQuality === 'high' ? '384 DPI' : '300 DPI';
             toast.success(`Design exported as PNG (${dpiText}) - ${fileName}`);
         } catch (error) {
@@ -168,13 +155,6 @@ export const ExportPanel = ({ canvasRef, selectedPlayer, playerData }: ExportPan
             return;
         }
 
-        // Check free trial limit
-        const isFreeUser = currentPoints === 5 && profile?.total_points_purchased === 5;
-        if (isFreeUser && (playerData.length > 5 || freeExportCount + playerData.length > 5)) {
-            toast.error("Free trial limit reached! Please buy points for more!");
-            return;
-        }
-
         setIsExporting(true);
         const zip = new JSZip();
         const folder = zip.folder("jersey_designs");
@@ -185,7 +165,7 @@ export const ExportPanel = ({ canvasRef, selectedPlayer, playerData }: ExportPan
 
             const bulkExportMultiplier = getQualityMultiplier();
 
-            for (let i = 0; i < Math.min(playerData.length, 5); i++) {
+            for (let i = 0; i < playerData.length; i++) {
                 const player = playerData[i];
 
                 // Get design objects
@@ -240,7 +220,6 @@ export const ExportPanel = ({ canvasRef, selectedPlayer, playerData }: ExportPan
                         toast.error("Failed to deduct points.");
                         return;
                     }
-                    if (isFreeUser) setFreeExportCount(prev => prev + 1);
                 }
             }
 

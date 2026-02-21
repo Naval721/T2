@@ -16,7 +16,7 @@ interface AuthModalProps {
 }
 
 export const AuthModal = ({ isOpen, onClose, defaultMode = 'signin', onSuccess }: AuthModalProps) => {
-  const [mode, setMode] = useState<'signin' | 'signup'>(defaultMode)
+  const [mode, setMode] = useState<'signin' | 'signup' | 'check_email'>(defaultMode)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [fullName, setFullName] = useState('')
@@ -77,10 +77,14 @@ export const AuthModal = ({ isOpen, onClose, defaultMode = 'signin', onSuccess }
           onSuccess ? onSuccess() : onClose()
         }
       } else {
-        const { error } = await signUp(email, password, fullName)
+        const { error, needsEmailConfirmation } = await signUp(email, password, fullName)
         if (!error) {
-          resetForm()
-          onSuccess ? onSuccess() : onClose()
+          if (needsEmailConfirmation) {
+            setMode('check_email')
+          } else {
+            resetForm()
+            onSuccess ? onSuccess() : onClose()
+          }
         }
       }
     } finally {
@@ -106,133 +110,151 @@ export const AuthModal = ({ isOpen, onClose, defaultMode = 'signin', onSuccess }
       <DialogContent className="sm:max-w-md border-2 border-black">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-black text-center">
-            {mode === 'signin' ? 'Sign in' : 'Create account'}
+            {mode === 'check_email' ? 'Check your email' : mode === 'signin' ? 'Sign in' : 'Create account'}
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-5 mt-4">
-          {mode === 'signup' && (
-            <div className="space-y-2">
-              <Label htmlFor="fullName" className="text-sm font-medium text-black">
-                Full name
-              </Label>
-              <div className="relative">
-                <User className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                <Input
-                  id="fullName"
-                  type="text"
-                  placeholder="John Doe"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="pl-10 h-11 border-2 border-gray-300 focus:border-black"
-                  required
-                />
-              </div>
-              {errors.fullName && (
-                <Alert className="border-black bg-gray-50 py-2">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription className="text-sm">{errors.fullName}</AlertDescription>
-                </Alert>
-              )}
-            </div>
-          )}
-
-          <div className="space-y-2">
-            <Label htmlFor="email" className="text-sm font-medium text-black">
-              Email
-            </Label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-              <Input
-                id="email"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="pl-10 h-11 border-2 border-gray-300 focus:border-black"
-                required
-              />
-            </div>
-            {errors.email && (
-              <Alert className="border-black bg-gray-50 py-2">
-                <Alert Circle className="h-4 w-4" />
-                <AlertDescription className="text-sm">{errors.email}</AlertDescription>
-              </Alert>
-            )}
+        {mode === 'check_email' ? (
+          <div className="text-center space-y-4 py-8">
+            <Mail className="w-16 h-16 text-black mx-auto mb-4" />
+            <p className="text-gray-600 text-base">
+              We've sent a confirmation link to <strong>{email}</strong>.
+              Please check your email and click the link to activate your GxStudio account.
+            </p>
+            <Button
+              onClick={onClose}
+              className="mt-6 w-full h-11 bg-black text-white hover:bg-gray-800"
+            >
+              Close
+            </Button>
           </div>
+        ) : (
+          <>
+            <form onSubmit={handleSubmit} className="space-y-5 mt-4">
+              {mode === 'signup' && (
+                <div className="space-y-2">
+                  <Label htmlFor="fullName" className="text-sm font-medium text-black">
+                    Full name
+                  </Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                    <Input
+                      id="fullName"
+                      type="text"
+                      placeholder="John Doe"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      className="pl-10 h-11 border-2 border-gray-300 focus:border-black"
+                      required
+                    />
+                  </div>
+                  {errors.fullName && (
+                    <Alert className="border-black bg-gray-50 py-2">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription className="text-sm">{errors.fullName}</AlertDescription>
+                    </Alert>
+                  )}
+                </div>
+              )}
 
-          <div className="space-y-2">
-            <Label htmlFor="password" className="text-sm font-medium text-black">
-              Password
-            </Label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-              <Input
-                id="password"
-                type={showPassword ? 'text' : 'password'}
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="pl-10 pr-10 h-11 border-2 border-gray-300 focus:border-black"
-                required
-              />
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-medium text-black">
+                  Email
+                </Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="pl-10 h-11 border-2 border-gray-300 focus:border-black"
+                    required
+                  />
+                </div>
+                {errors.email && (
+                  <Alert className="border-black bg-gray-50 py-2">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription className="text-sm">{errors.email}</AlertDescription>
+                  </Alert>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-sm font-medium text-black">
+                  Password
+                </Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                  <Input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pl-10 pr-10 h-11 border-2 border-gray-300 focus:border-black"
+                    required
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-1 top-1 h-9 w-9 p-0"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4 text-gray-400" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-gray-400" />
+                    )}
+                  </Button>
+                </div>
+                {errors.password && (
+                  <Alert className="border-black bg-gray-50 py-2">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription className="text-sm">{errors.password}</AlertDescription>
+                  </Alert>
+                )}
+              </div>
+
               <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="absolute right-1 top-1 h-9 w-9 p-0"
-                onClick={() => setShowPassword(!showPassword)}
+                type="submit"
+                className="w-full h-11 bg-black text-white hover:bg-gray-800"
+                disabled={loading}
               >
-                {showPassword ? (
-                  <EyeOff className="h-4 w-4 text-gray-400" />
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Please wait...
+                  </>
                 ) : (
-                  <Eye className="h-4 w-4 text-gray-400" />
+                  mode === 'signin' ? 'Sign in' : 'Create account'
                 )}
               </Button>
+            </form>
+
+            <div className="text-center mt-6">
+              <p className="text-sm text-gray-600">
+                {mode === 'signin' ? "Don't have an account? " : "Already have an account? "}
+                <button
+                  type="button"
+                  className="font-semibold text-black hover:underline"
+                  onClick={switchMode}
+                >
+                  {mode === 'signin' ? 'Sign up' : 'Sign in'}
+                </button>
+              </p>
             </div>
-            {errors.password && (
-              <Alert className="border-black bg-gray-50 py-2">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription className="text-sm">{errors.password}</AlertDescription>
-              </Alert>
+
+            {mode === 'signup' && (
+              <div className="mt-4 p-4 border border-gray-200 rounded-lg">
+                <p className="text-sm text-gray-600">
+                  Start with 5 free exports. No credit card required.
+                </p>
+              </div>
             )}
-          </div>
-
-          <Button
-            type="submit"
-            className="w-full h-11 bg-black text-white hover:bg-gray-800"
-            disabled={loading}
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Please wait...
-              </>
-            ) : (
-              mode === 'signin' ? 'Sign in' : 'Create account'
-            )}
-          </Button>
-        </form>
-
-        <div className="text-center mt-6">
-          <p className="text-sm text-gray-600">
-            {mode === 'signin' ? "Don't have an account? " : "Already have an account? "}
-            <button
-              type="button"
-              className="font-semibold text-black hover:underline"
-              onClick={switchMode}
-            >
-              {mode === 'signin' ? 'Sign up' : 'Sign in'}
-            </button>
-          </p>
-        </div>
-
-        {mode === 'signup' && (
-          <div className="mt-4 p-4 border border-gray-200 rounded-lg">
-            <p className="text-sm text-gray-600">
-              Start with 5 free exports. No credit card required.
-            </p>
-          </div>
+          </>
         )}
       </DialogContent>
     </Dialog>

@@ -9,7 +9,7 @@ interface AuthContextType {
   profile: UserProfile | null
   session: Session | null
   loading: boolean
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: AuthError | null }>
+  signUp: (email: string, password: string, fullName: string) => Promise<{ error: AuthError | null, needsEmailConfirmation?: boolean }>
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>
   signOut: () => Promise<void>
   updateProfile: (updates: Partial<UserProfile>) => Promise<{ error: any }>
@@ -172,13 +172,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         return { error }
       }
 
+      let needsEmailConfirmation = false;
       if (data.user && !data.user.email_confirmed_at) {
+        needsEmailConfirmation = true;
         toast.success('Account created! Please check your email to confirm your account.')
       } else {
         toast.success('Account created successfully!')
       }
 
-      return { error: null }
+      return { error: null, needsEmailConfirmation }
     } catch (error) {
       logger.error('Unexpected sign up error:', error)
       toast.error('An unexpected error occurred. Please try again.')

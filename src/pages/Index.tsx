@@ -267,6 +267,7 @@ const Index = () => {
               jerseyImages={jerseyImages}
               onPrev={handlePrev}
               onComplete={handleComplete}
+              onPlayerSelect={setSelectedPlayer}
             />
           );
         default:

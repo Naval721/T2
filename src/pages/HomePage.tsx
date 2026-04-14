@@ -10,6 +10,7 @@ import {
   FileImage
 } from 'lucide-react'
 import { GxLogo } from '@/components/ui/GxLogo'
+import { Link } from 'react-router-dom'
 
 // Styles moved to index.css
 import featureDualPreview from '@/assets/images/features/dual-preview.png';
@@ -94,8 +95,8 @@ export const HomePage = ({ onStart }: HomePageProps) => {
               <a href="#features" className="text-gray-600 hover:text-black transition-colors">Home</a>
               <a href="#designs" className="text-gray-600 hover:text-black transition-colors">Gallery</a>
               <a href="#how" className="text-gray-600 hover:text-black transition-colors">Create</a>
-              <a href="/pricing" className="text-gray-600 hover:text-black transition-colors">Pricing</a>
-              <a href="/contact" className="text-gray-600 hover:text-black transition-colors">Contact</a>
+              <Link to="/pricing" className="text-gray-600 hover:text-black transition-colors">Pricing</Link>
+              <Link to="/contact" className="text-gray-600 hover:text-black transition-colors">Contact</Link>
             </div>
           </div>
         </div>
@@ -268,9 +269,9 @@ export const HomePage = ({ onStart }: HomePageProps) => {
             <div>
               <h3 className="text-lg font-semibold text-black mb-4">Support</h3>
               <ul className="space-y-2">
-                <li><a href="/faq" className="text-gray-600 hover:text-black transition-colors">FAQ</a></li>
-                <li><a href="/contact" className="text-gray-600 hover:text-black transition-colors">Contact</a></li>
-                <li><a href="/help" className="text-gray-600 hover:text-black transition-colors">Help Center</a></li>
+                <li><Link to="/contact" className="text-gray-600 hover:text-black transition-colors">FAQ</Link></li>
+                <li><Link to="/contact" className="text-gray-600 hover:text-black transition-colors">Contact</Link></li>
+                <li><Link to="/contact" className="text-gray-600 hover:text-black transition-colors">Help Center</Link></li>
               </ul>
             </div>
           </div>

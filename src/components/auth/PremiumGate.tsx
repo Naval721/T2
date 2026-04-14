@@ -12,13 +12,13 @@ import {
   Lock as LockIcon,
   Download,
   CheckCircle,
-  Sparkles,
   Users,
   Award,
   ShoppingCart,
   AlertTriangle,
   LogIn
 } from 'lucide-react'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { useState } from 'react'
 
 interface PremiumGateProps {
@@ -80,10 +80,11 @@ export const PremiumGate = ({ children, feature, description }: PremiumGateProps
           </Button>
         </div>
 
-        <UserDashboard
-          isOpen={showUserDashboard}
-          onClose={() => setShowUserDashboard(false)}
-        />
+        <Dialog open={showUserDashboard} onOpenChange={setShowUserDashboard}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <UserDashboard onClose={() => setShowUserDashboard(false)} />
+          </DialogContent>
+        </Dialog>
       </div>
     )
   }

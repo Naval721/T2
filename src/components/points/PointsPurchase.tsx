@@ -10,7 +10,8 @@ import {
   Star,
   Zap,
   Crown,
-  Sparkles,
+  Coins,
+  Building2,
   TrendingUp,
   Gift,
   Info
@@ -58,7 +59,7 @@ export const PointsPurchase = ({ isOpen, onClose, onPurchase, currentPoints }: P
         {/* Current Balance */}
         <Alert className="bg-gray-50 border-gray-200">
           <div className="flex items-center space-x-3">
-            <Sparkles className="h-5 w-5 text-black" />
+            <Coins className="h-5 w-5 text-black" />
             <div>
               <p className="font-semibold text-black">Current Balance</p>
               <p className="text-2xl font-bold text-black">{formatPoints(currentPoints)} points</p>
@@ -91,7 +92,7 @@ export const PointsPurchase = ({ isOpen, onClose, onPurchase, currentPoints }: P
                   <div className="mx-auto w-16 h-16 bg-gray-100 border border-gray-200 rounded-xl flex items-center justify-center mb-3">
                     {plan.id === 'basic' && <Zap className="w-8 h-8 text-black" />}
                     {plan.id === 'professional' && <Crown className="w-8 h-8 text-black" />}
-                    {plan.id === 'enterprise' && <Sparkles className="w-8 h-8 text-black" />}
+                    {plan.id === 'enterprise' && <Building2 className="w-8 h-8 text-black" />}
                   </div>
                   <CardTitle className="text-xl tracking-tight">{plan.name}</CardTitle>
                   <CardDescription className="text-sm text-gray-500">{plan.description}</CardDescription>
@@ -166,8 +167,8 @@ export const PointsPurchase = ({ isOpen, onClose, onPurchase, currentPoints }: P
                     }}
                     disabled={loading}
                     className={`w-full font-semibold ${plan.popular
-                        ? 'bg-black text-white hover:bg-gray-800'
-                        : 'bg-white text-black border-gray-200 hover:bg-gray-50'
+                      ? 'bg-black text-white hover:bg-gray-800'
+                      : 'bg-white text-black border-gray-200 hover:bg-gray-50'
                       }`}
                     variant={plan.popular ? 'default' : 'outline'}
                   >

@@ -63,10 +63,10 @@ const Index = () => {
     setLastSaveTime(formatLastSaveTime());
   }, []);
 
-  // Protect route
+  // Protect route — OnboardingPage lives at '/'
   useEffect(() => {
     if (user === null) {
-      navigate('/onboarding');
+      navigate('/');
     }
   }, [user, navigate]);
 
@@ -253,6 +253,7 @@ const Index = () => {
               canvasRef={canvasRef}
               onCanvasReady={setCanvasRef}
               defaultFont={defaultFont}
+              onFontChange={setDefaultFont}
               onNext={handleNext}
               onPrev={handlePrev}
             />
@@ -263,6 +264,7 @@ const Index = () => {
               canvasRef={canvasRef}
               selectedPlayer={selectedPlayer || (playerData.length > 0 ? playerData[0] : null)}
               playerData={playerData}
+              jerseyImages={jerseyImages}
               onPrev={handlePrev}
               onComplete={handleComplete}
             />

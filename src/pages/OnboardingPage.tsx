@@ -11,7 +11,7 @@ import {
   CheckCircle,
   User,
   ShoppingCart,
-  Sparkles,
+  Paintbrush,
   ArrowRight,
   ArrowLeft,
   Loader2
@@ -28,6 +28,7 @@ export const OnboardingPage = () => {
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [showPointsModal, setShowPointsModal] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [displayProgress, setDisplayProgress] = useState(0)
 
   const currentPoints = profile?.points_balance || 0
 
@@ -61,25 +62,31 @@ export const OnboardingPage = () => {
   }
 
   const handlePointsPurchase = async (packageId: string) => {
+    // Enterprise is a custom/contact plan — no direct points to add
+    if (packageId === 'enterprise') {
+      toast.info('For enterprise pricing, please contact us.')
+      navigate('/contact')
+      return
+    }
+
     setLoading(true)
     try {
-      // Simulate points purchase (replace with actual payment integration)
       const pointsMap: Record<string, number> = {
         'basic': 700,
         'professional': 2000,
-        'enterprise': 0
       }
 
       const points = pointsMap[packageId]
-      if (points > 0) {
+      if (points && points > 0) {
         await addPoints(points, `Purchased ${packageId} package`)
         toast.success(`${formatPoints(points)} points added to your account!`)
         setShowPointsModal(false)
         setCurrentStep('ready')
-        // Navigate to design studio after a short delay
         setTimeout(() => {
           navigate('/design')
         }, 1500)
+      } else {
+        toast.error('Unknown package selected.')
       }
     } catch (error) {
       toast.error('Failed to add points. Please try again.')
@@ -91,21 +98,22 @@ export const OnboardingPage = () => {
   const handleSkipToDesign = () => {
     navigate('/design')
   }
+  // Smooth progress bar animation
+  useEffect(() => {
+    let target = 0
+    if (currentStep === 'home') target = 0
+    if (currentStep === 'auth') target = 33
+    if (currentStep === 'points') target = 66
+    if (currentStep === 'ready') target = 100
+
+    const timer = setTimeout(() => setDisplayProgress(target), 50)
+    return () => clearTimeout(timer)
+  }, [currentStep])
 
   const handleBackToHome = () => {
     setCurrentStep('home')
     setShowAuthModal(false)
     setShowPointsModal(false)
-  }
-
-  const getProgress = () => {
-    switch (currentStep) {
-      case 'home': return 0
-      case 'auth': return 33
-      case 'points': return 66
-      case 'ready': return 100
-      default: return 0
-    }
   }
 
   // Show home page if not started
@@ -197,82 +205,105 @@ export const OnboardingPage = () => {
 
   // Show ready state
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-      <div className="w-full max-w-2xl">
-        <Card className="border shadow-sm bg-white">
-          <CardHeader className="text-center pb-4">
-            <div className="mx-auto w-16 h-16 bg-black rounded-xl flex items-center justify-center mb-4">
-              <CheckCircle className="w-8 h-8 text-white" />
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6 relative overflow-hidden">
+      {/* Decorative background elements */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+        <div className="absolute -top-20 -left-20 w-96 h-96 bg-black/5 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-black/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+      </div>
+
+      <div className="w-full max-w-2xl relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <Card className="border-0 shadow-2xl bg-white/80 backdrop-blur-xl">
+          <CardHeader className="text-center pb-6 border-b border-gray-100">
+            <div className="mx-auto w-20 h-20 bg-black rounded-2xl flex items-center justify-center mb-6 shadow-xl transform transition-transform hover:scale-110 hover:rotate-3 duration-300">
+              <CheckCircle className="w-10 h-10 text-white animate-[pulse_2s_ease-in-out_infinite]" />
             </div>
-            <CardTitle className="text-3xl tracking-tight">You're All Set!</CardTitle>
+            <CardTitle className="text-4xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 mb-2">
+              You're All Set!
+            </CardTitle>
             <CardDescription className="text-lg">
               {currentPoints === 5 ? (
                 <>
-                  You have <strong className="text-black">5 FREE exports</strong> to start! Start designing now.
+                  You have <strong className="text-black inline-block px-2 py-0.5 bg-gray-100 rounded-md">5 FREE exports</strong> to start! Start designing now.
                 </>
               ) : (
                 <>
-                  You have {formatPoints(currentPoints)} points. Start designing now.
+                  You have <strong className="text-black inline-block px-2 py-0.5 bg-gray-100 rounded-md">{formatPoints(currentPoints)} points</strong>. Start designing now.
                 </>
               )}
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Progress Bar */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm text-gray-500 font-medium">
-                <span>Setup Progress</span>
-                <span>{getProgress()}%</span>
-              </div>
-              <Progress value={getProgress()} className="h-2 [&>div]:bg-black" />
-            </div>
-
+          <CardContent className="space-y-8 pt-8">
             {/* Steps Completed */}
             <div className="space-y-3">
-              <div className="flex items-center space-x-3 p-3 bg-gray-50 border rounded-xl">
-                <CheckCircle className="w-5 h-5 text-black" />
-                <span className="text-sm font-medium text-black">Account Created</span>
+              <div className="group flex items-center justify-between p-4 bg-white border border-gray-100 rounded-2xl shadow-sm transition-all hover:shadow-md hover:border-gray-200">
+                <div className="flex items-center space-x-4">
+                  <div className="w-8 h-8 rounded-full bg-green-50 text-green-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <CheckCircle className="w-5 h-5" />
+                  </div>
+                  <span className="text-base font-semibold text-gray-700">Account Created</span>
+                </div>
+                <div className="w-2 h-2 rounded-full bg-green-500" />
               </div>
-              <div className="flex items-center space-x-3 p-3 bg-gray-50 border rounded-xl">
-                <CheckCircle className="w-5 h-5 text-black" />
-                <span className="text-sm font-medium text-black">
-                  {currentPoints === 5 ? 'Free Trial Activated (5 exports)' : 'Points Available'}
+
+              <div className="group flex items-center justify-between p-4 bg-white border border-gray-100 rounded-2xl shadow-sm transition-all hover:shadow-md hover:border-gray-200">
+                <div className="flex items-center space-x-4">
+                  <div className="w-8 h-8 rounded-full bg-green-50 text-green-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <CheckCircle className="w-5 h-5" />
+                  </div>
+                  <span className="text-base font-semibold text-gray-700">
+                    {currentPoints === 5 ? 'Free Trial Activated' : 'Points Available'}
+                  </span>
+                </div>
+                <span className="text-xs font-bold px-2 py-1 bg-gray-100 rounded-full text-gray-600">
+                  {currentPoints === 5 ? '5 Exports' : `${formatPoints(currentPoints)} pts`}
                 </span>
               </div>
-              <div className="flex items-center space-x-3 p-3 bg-white border-2 border-black rounded-xl shadow-sm">
-                <Sparkles className="w-5 h-5 text-black" />
-                <span className="text-sm font-bold text-black">Ready to Design!</span>
+
+              <div className="group flex items-center justify-between p-5 bg-gradient-to-r from-gray-900 to-black text-white rounded-2xl shadow-lg ring-4 ring-gray-100 transform transition-all hover:-translate-y-1 hover:shadow-2xl cursor-default">
+                <div className="flex items-center space-x-4">
+                  <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm group-hover:scale-110 transition-transform">
+                    <Paintbrush className="w-5 h-5 text-white" />
+                  </div>
+                  <span className="text-lg font-bold">Ready to Design!</span>
+                </div>
+                <div className="px-3 py-1 bg-white/20 rounded-full backdrop-blur-sm">
+                  <span className="text-xs font-bold text-white uppercase tracking-wider">Start Now</span>
+                </div>
               </div>
             </div>
 
             {/* Action Buttons */}
-            <div className="space-y-3 pt-2">
+            <div className="space-y-4 pt-4">
               <Button
                 onClick={handleSkipToDesign}
                 size="lg"
-                className="w-full h-12 text-lg bg-black text-white hover:bg-gray-800 border border-black"
+                className="w-full h-14 text-lg font-bold bg-black text-white hover:bg-gray-900 shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 overflow-hidden relative group"
                 disabled={loading}
               >
+                {/* Shine effect overlay */}
+                <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-[shimmer_1.5s_infinite]" />
+
                 {loading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Loading...
-                  </>
+                  <div className="flex items-center">
+                    <Loader2 className="w-6 h-6 mr-3 animate-spin" />
+                    Initializing Studio...
+                  </div>
                 ) : (
-                  <>
-                    Start Designing
-                    <ArrowRight className="w-5 h-5 ml-2" />
-                  </>
+                  <div className="flex items-center justify-center w-full">
+                    <span>Enter Design Studio</span>
+                    <ArrowRight className="w-6 h-6 ml-3 transform group-hover:translate-x-2 transition-transform" />
+                  </div>
                 )}
               </Button>
 
               <Button
-                variant="outline"
+                variant="ghost"
                 onClick={handleBackToHome}
-                className="w-full h-12 text-black border-gray-200 hover:bg-gray-50"
+                className="w-full h-12 text-gray-500 hover:text-black hover:bg-gray-100 font-semibold"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Home
+                Wait, back to Home
               </Button>
             </div>
           </CardContent>

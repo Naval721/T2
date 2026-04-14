@@ -2,9 +2,9 @@ import { ExportPanel } from "@/components/ExportPanel";
 import { PremiumGate } from "@/components/auth/PremiumGate";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Check, FileDown, Package, Sparkles, User, CheckCircle2, Crown, LayoutGrid } from "lucide-react";
+import { ArrowLeft, Check, FileDown, Package, User, CheckCircle2, Crown, LayoutGrid } from "lucide-react";
 import { Canvas as FabricCanvas } from "fabric";
-import type { PlayerData } from "@/pages/Index";
+import type { PlayerData, JerseyImages } from "@/pages/Index";
 
 // Feature Images
 import dualPreviewImg from "@/assets/images/features/dual-preview.png";
@@ -16,6 +16,7 @@ interface Step4ExportProps {
     canvasRef: FabricCanvas | null;
     selectedPlayer: PlayerData | null;
     playerData: PlayerData[];
+    jerseyImages: JerseyImages;
     onPrev: () => void;
     onComplete: () => void;
 }
@@ -24,6 +25,7 @@ export const Step4Export = ({
     canvasRef,
     selectedPlayer,
     playerData,
+    jerseyImages,
     onPrev,
     onComplete
 }: Step4ExportProps) => {
@@ -128,6 +130,7 @@ export const Step4Export = ({
                                     canvasRef={canvasRef}
                                     selectedPlayer={currentPlayer}
                                     playerData={playerData}
+                                    jerseyImages={jerseyImages}
                                 />
                             </div>
                         </PremiumGate>
@@ -166,7 +169,7 @@ export const Step4Export = ({
                             <div className="border-2 border-black p-3 bg-white hover:bg-black hover:text-white transition-all group cursor-default">
                                 <div className="aspect-[4/3] mb-3 overflow-hidden border border-gray-200 group-hover:border-gray-700 bg-gray-50 flex items-center justify-center">
                                     <img
-                                        src="/assets/images/features/dual-preview.png"
+                                        src={dualPreviewImg}
                                         alt="Dual Preview"
                                         className="w-full h-full object-contain p-2 mix-blend-multiply group-hover:mix-blend-normal group-hover:invert-0 transition-all"
                                     />
@@ -177,7 +180,7 @@ export const Step4Export = ({
                             <div className="border-2 border-black p-3 bg-white hover:bg-black hover:text-white transition-all group cursor-default">
                                 <div className="aspect-[4/3] mb-3 overflow-hidden border border-gray-200 group-hover:border-gray-700 bg-gray-50 flex items-center justify-center">
                                     <img
-                                        src="/assets/images/features/live-count.png"
+                                        src={liveCountImg}
                                         alt="Live Count"
                                         className="w-full h-full object-contain p-2 mix-blend-multiply group-hover:mix-blend-normal group-hover:invert-0 transition-all"
                                     />
@@ -188,7 +191,7 @@ export const Step4Export = ({
                             <div className="border-2 border-black p-3 bg-white hover:bg-black hover:text-white transition-all group cursor-default">
                                 <div className="aspect-[4/3] mb-3 overflow-hidden border border-gray-200 group-hover:border-gray-700 bg-gray-50 flex items-center justify-center">
                                     <img
-                                        src="/assets/images/features/hq-output.png"
+                                        src={hqOutputImg}
                                         alt="HQ Output"
                                         className="w-full h-full object-contain p-2 mix-blend-multiply group-hover:mix-blend-normal group-hover:invert-0 transition-all"
                                     />
@@ -199,7 +202,7 @@ export const Step4Export = ({
                             <div className="border-2 border-black p-3 bg-white hover:bg-black hover:text-white transition-all group cursor-default">
                                 <div className="aspect-[4/3] mb-3 overflow-hidden border border-gray-200 group-hover:border-gray-700 bg-gray-50 flex items-center justify-center">
                                     <img
-                                        src="/assets/images/features/designs.png"
+                                        src={designsImg}
                                         alt="Designs"
                                         className="w-full h-full object-contain p-2 mix-blend-multiply group-hover:mix-blend-normal group-hover:invert-0 transition-all"
                                     />

@@ -17,7 +17,7 @@ export default {
         sans: ["Inter", "sans-serif"],
         jersey: {
           'anton': ['Anton', 'sans-serif'],
-          'bebas': ['Bebas Neue', 'sans-serif'], 
+          'bebas': ['Bebas Neue', 'sans-serif'],
           'orbitron': ['Orbitron', 'sans-serif'],
           'oswald': ['Oswald', 'sans-serif'],
           'roboto-condensed': ['Roboto Condensed', 'sans-serif'],
@@ -119,10 +119,17 @@ export default {
             height: "0",
           },
         },
+        "shimmer": {
+          "100%": {
+            transform: "translateX(100%)",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "shimmer": "shimmer 2s infinite",
+        "spin-slow": "spin 8s linear infinite",
       },
     },
   },

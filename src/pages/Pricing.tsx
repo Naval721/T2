@@ -4,13 +4,16 @@ import { Badge } from "@/components/ui/badge";
 import { Check, ArrowRight } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { PointsPurchase } from "@/components/points/PointsPurchase";
 import { POINTS_PLANS, calculateTotalPoints, formatPoints, formatCurrency } from "@/types/points";
 import { Header } from "@/components/Header";
 
 const Pricing = () => {
-  const { user, profile } = useAuth();
+  const { user, profile, addPoints } = useAuth();
   const [showPurchaseDialog, setShowPurchaseDialog] = useState(false);
+  const navigate = useNavigate();
 
   const currentPoints = profile?.points_balance || 0;
 
@@ -134,7 +137,7 @@ const Pricing = () => {
                       } else if (user) {
                         setShowPurchaseDialog(true)
                       } else {
-                        window.location.href = '/'
+                        navigate('/')
                       }
                     }}
                     className={`w-full h-12 text-base ${isProfessional
@@ -216,7 +219,23 @@ const Pricing = () => {
           isOpen={showPurchaseDialog}
           onClose={() => setShowPurchaseDialog(false)}
           onPurchase={async (packageId) => {
-            console.log('Purchase package:', packageId)
+            try {
+              const { getPointsPlanById, calculateTotalPoints } = await import('@/types/points')
+              const plan = getPointsPlanById(packageId)
+              if (!plan) throw new Error('Unknown package')
+
+              const totalPoints = calculateTotalPoints(plan)
+              if (totalPoints <= 0) {
+                toast.info('Please contact us for enterprise pricing.')
+                return
+              }
+
+              const result = await addPoints(totalPoints, `Purchased ${plan.name}`)
+              if (!result.success) throw new Error('Transaction failed')
+            } catch (e) {
+              toast.error('Failed to process purchase.')
+              throw e // Let the PointsPurchase modal know it failed
+            }
           }}
           currentPoints={currentPoints}
         />

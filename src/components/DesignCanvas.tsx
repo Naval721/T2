@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Canvas as FabricCanvas, Image as FabricImage, Text as FabricText, TPointerEventInfo, Shadow, Pattern, Gradient } from "fabric";
+import { Canvas as FabricCanvas, Image as FabricImage, IText as FabricText, TPointerEventInfo, Shadow, Pattern, Gradient } from "fabric";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RotateCcw, ZoomIn, ZoomOut, Move, Download, Scissors } from "lucide-react";
@@ -253,7 +253,10 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
         onCanvasReady(canvas);
         isInitialized.current = true;
 
-        // Don't dispose canvas on unmount - keep it alive for position persistence
+        return () => {
+            canvas.dispose();
+            isInitialized.current = false;
+        };
     }, [onCanvasReady]);
 
     useEffect(() => {
@@ -265,102 +268,94 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
         fabricCanvas.renderAll();
     }, [fabricCanvas, jerseyImages, currentView, selectedPlayer, showCuttingOutline]);
 
+    const persistState = () => {
+        if (!selectedPlayer || !fabricCanvas) return;
+
+        const view = currentViewRef.current;
+        const objects = fabricCanvas.getObjects();
+        const nameObj = objects.find(o => (o as ExtendedFabricText).name === 'playerName') as ExtendedFabricText | undefined;
+        const numberObj = objects.find(o => (o as ExtendedFabricText).name === 'jerseyNumber') as ExtendedFabricText | undefined;
+        const customTexts = objects.filter(o => (o as ExtendedFabricText).name === 'customText') as ExtendedFabricText[];
+        const customLogos = objects.filter(o => (o as ExtendedFabricImage).name === 'customLogo') as ExtendedFabricImage[];
+
+        if (!textRef.current[view]) {
+            textRef.current[view] = {};
+        }
+
+        const pickProps = (t: ExtendedFabricText): TextProps => ({
+            text: t.text || '',
+            left: t.left ?? 0,
+            top: t.top ?? 0,
+            fontSize: t.fontSize ?? 38,
+            fontFamily: t.fontFamily ?? 'Anton',
+            fill: (t.fill as string) ?? '#000000',
+            stroke: (t.stroke as string) ?? '',
+            strokeWidth: t.strokeWidth ?? 0,
+            angle: t.angle ?? 0,
+            textAlign: t.textAlign ?? 'center',
+            width: t.width,
+            height: t.height,
+            originX: 'center',
+            originY: 'center',
+        });
+
+        if (nameObj && view === 'back') {
+            textRef.current[view].name = pickProps(nameObj);
+        }
+        if (numberObj && view === 'back') {
+            textRef.current[view].number = pickProps(numberObj);
+        }
+
+        if (customTexts.length > 0) {
+            textRef.current[view].customTexts = customTexts.map(pickProps);
+        }
+
+        if (customLogos.length > 0 && view === 'front') {
+            textRef.current[view].customLogos = customLogos.map(logo => ({
+                src: (logo as any).src || '',
+                left: logo.left ?? 0,
+                top: logo.top ?? 0,
+                scaleX: logo.scaleX ?? 1,
+                scaleY: logo.scaleY ?? 1,
+                angle: logo.angle ?? 0,
+                originX: 'center',
+                originY: 'center',
+            }));
+        }
+
+        saveGlobalTemplate();
+    };
+
     // Track dragging/move to persist text positions live for all views
     useEffect(() => {
         if (!fabricCanvas) return;
 
         const handler = (opt: any) => {
             if (!selectedPlayer || !fabricCanvas || !opt.target) return;
+            if ((fabricCanvas as any).__isExporting) return;
+            persistState();
+        };
 
-            const playerId = `${selectedPlayer.playerName}_${selectedPlayer.jerseyNumber}`;
-            const view = currentViewRef.current;
-            const objects = fabricCanvas.getObjects();
-            const nameObj = objects.find(o => (o as ExtendedFabricText).name === 'playerName') as ExtendedFabricText | undefined;
-            const numberObj = objects.find(o => (o as ExtendedFabricText).name === 'jerseyNumber') as ExtendedFabricText | undefined;
-            const customTexts = objects.filter(o => (o as ExtendedFabricText).name === 'customText') as ExtendedFabricText[];
-            const customLogos = objects.filter(o => (o as ExtendedFabricImage).name === 'customLogo') as ExtendedFabricImage[];
+        const movingHandler = (opt: any) => {
+            const obj = opt.target;
+            if (!obj || !fabricCanvas || (fabricCanvas as any).__isExporting) return;
 
-            // Initialize view if not exists
-            if (!textRef.current[view]) {
-                textRef.current[view] = {};
+            const name = (obj as any).name;
+            if ((name === 'playerName' || name === 'jerseyNumber') && currentViewRef.current === 'back') {
+                const backImg = fabricCanvas.getObjects().find(o => (o as any).name === 'jerseyBack');
+                if (backImg) {
+                    const rect = backImg.getBoundingRect();
+                    const centerX = rect.left + rect.width / 2;
+                    obj.set({ left: centerX });
+                    obj.setCoords();
+                }
             }
-
-            if (nameObj && view === 'back') {
-                textRef.current[view].name = {
-                    text: nameObj.text || '',
-                    left: nameObj.left ?? 0,
-                    top: nameObj.top ?? 0,
-                    fontSize: nameObj.fontSize ?? 38,
-                    fontFamily: nameObj.fontFamily ?? 'Anton',
-                    fill: (nameObj.fill as string) ?? '#000000',
-                    stroke: (nameObj.stroke as string) ?? '',
-                    strokeWidth: nameObj.strokeWidth ?? 0,
-                    angle: nameObj.angle ?? 0,
-                    textAlign: nameObj.textAlign ?? 'center',
-                    width: nameObj.width ?? 960,
-                    originX: 'center' as const,
-                    originY: 'center' as const,
-                };
-            }
-            if (numberObj && view === 'back') {
-                textRef.current[view].number = {
-                    text: numberObj.text || '',
-                    left: numberObj.left ?? 0,
-                    top: numberObj.top ?? 0,
-                    fontSize: numberObj.fontSize ?? 115,
-                    fontFamily: numberObj.fontFamily ?? 'Anton',
-                    fill: (numberObj.fill as string) ?? '#000000',
-                    stroke: (numberObj.stroke as string) ?? '',
-                    strokeWidth: numberObj.strokeWidth ?? 0,
-                    angle: numberObj.angle ?? 0,
-                    textAlign: numberObj.textAlign ?? 'center',
-                    height: numberObj.height ?? 720,
-                    originX: 'center' as const,
-                    originY: 'center' as const,
-                };
-            }
-
-            // Persist custom texts globally
-            if (customTexts.length > 0) {
-                textRef.current[view].customTexts = customTexts.map(text => ({
-                    text: text.text || '',
-                    left: text.left ?? 0,
-                    top: text.top ?? 0,
-                    fontSize: text.fontSize ?? 38,
-                    fontFamily: text.fontFamily ?? 'Anton',
-                    fill: (text.fill as string) ?? '#000000',
-                    stroke: (text.stroke as string) ?? '',
-                    strokeWidth: text.strokeWidth ?? 0,
-                    angle: text.angle ?? 0,
-                    textAlign: text.textAlign ?? 'center',
-                    width: text.width,
-                    height: text.height,
-                    originX: 'center' as const,
-                    originY: 'center' as const,
-                }));
-            }
-
-            // Persist custom logos only on front view
-            if (customLogos.length > 0 && view === 'front') {
-                textRef.current[view].customLogos = customLogos.map(logo => ({
-                    src: (logo as any).src || '',
-                    left: logo.left ?? 0,
-                    top: logo.top ?? 0,
-                    scaleX: logo.scaleX ?? 1,
-                    scaleY: logo.scaleY ?? 1,
-                    angle: logo.angle ?? 0,
-                    originX: 'center' as const,
-                    originY: 'center' as const,
-                }));
-            }
-
-            // Persist any change to global template (applies to all players)
-            saveGlobalTemplate();
         };
 
         fabricCanvas.on('object:added', handler);
         fabricCanvas.on('object:modified', handler);
         fabricCanvas.on('object:moving', handler);
+        fabricCanvas.on('object:moving', movingHandler);
         fabricCanvas.on('object:scaling', handler);
         fabricCanvas.on('object:rotating', handler);
 
@@ -368,6 +363,7 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
             fabricCanvas.off('object:added', handler);
             fabricCanvas.off('object:modified', handler);
             fabricCanvas.off('object:moving', handler);
+            fabricCanvas.off('object:moving', movingHandler);
             fabricCanvas.off('object:scaling', handler);
             fabricCanvas.off('object:rotating', handler);
         };
@@ -684,6 +680,8 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
                             nameText.set({ fontSize: nameText.fontSize! - 1 });
                         }
                         numberText.set({ left: centerX, top: numberTop, originX: 'center', originY: 'center', textAlign: 'center', fontSize: numberFont });
+                        // Persist the auto-center positions immediately
+                        persistState();
                     }
                     fabricCanvas.requestRenderAll();
                 }, 0);
@@ -732,23 +730,55 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
                 await Promise.all(customLogoPromises);
             }
 
-            // Player identifier (show on all views) - tiny label with name and number
+            // Player identity tag — tiny text snapped to the bottom-right corner of the
+            // jersey image so it looks "on the shirt". Non-selectable, excluded from export.
             if (selectedPlayer) {
-                const playerLabel = new FabricText(`${selectedPlayer.playerName} #${selectedPlayer.jerseyNumber}`, {
-                    left: 16,
-                    top: fabricCanvas.height! - 16,
-                    fontSize: 10,
-                    fill: '#444444',
-                    opacity: 0.85,
+                // Find the jersey/sleeve/collar image currently on canvas
+                const shirtObj = fabricCanvas.getObjects().find(o => {
+                    const n = (o as ExtendedFabricImage).name;
+                    return n === 'jerseyFront' || n === 'jerseyBack' ||
+                        n === 'leftSleeve' || n === 'rightSleeve' || n === 'collar';
+                }) as ExtendedFabricImage | undefined;
+
+                // Build label text: name · #number · size · team (if any)
+                const labelParts: string[] = [
+                    selectedPlayer.playerName,
+                    `#${selectedPlayer.jerseyNumber}`,
+                    `Sz ${selectedPlayer.size}`,
+                ];
+                if (selectedPlayer.teamName) labelParts.push(selectedPlayer.teamName);
+                const labelText = labelParts.join('  ·  ');
+
+                // Default to canvas bottom-left if no shirt image on canvas yet
+                let labelLeft = 12;
+                let labelTop = fabricCanvas.height! - 10;
+                let originX: 'left' | 'right' = 'left';
+                let originY: 'bottom' = 'bottom';
+
+                if (shirtObj) {
+                    // Position inside the bottom-right corner of the shirt
+                    const rect = shirtObj.getBoundingRect();
+                    labelLeft = rect.left + rect.width - 8;
+                    labelTop = rect.top + rect.height - 8;
+                    originX = 'right';
+                }
+
+                const playerLabel = new FabricText(labelText, {
+                    left: labelLeft,
+                    top: labelTop,
+                    fontSize: 9,
+                    fontFamily: 'monospace',
+                    fill: '#1a1a1a',
+                    opacity: 0.72,
                     selectable: false,
                     evented: false,
-                    originX: 'left',
-                    originY: 'bottom',
+                    originX,
+                    originY,
                 });
 
                 playerLabel.shadow = new Shadow({
-                    color: 'rgba(255, 255, 255, 0.9)',
-                    blur: 4,
+                    color: 'rgba(255, 255, 255, 0.95)',
+                    blur: 5,
                     offsetX: 0,
                     offsetY: 0,
                 });
@@ -953,6 +983,35 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
             }
         }
         if (numberObj) numberObj.set({ fontSize: numberFont });
+
+        // Persist the new auto-centered positions immediately
+        // We use the handler's internal logic which we refactored
+        const objects = fabricCanvas.getObjects();
+        const view = currentViewRef.current;
+        if (!textRef.current[view]) textRef.current[view] = {};
+
+        const pickProps = (t: ExtendedFabricText): TextProps => ({
+            text: t.text || '',
+            left: t.left ?? 0,
+            top: t.top ?? 0,
+            fontSize: t.fontSize ?? 38,
+            fontFamily: t.fontFamily ?? 'Anton',
+            fill: (t.fill as string) ?? '#000000',
+            stroke: (t.stroke as string) ?? '',
+            strokeWidth: t.strokeWidth ?? 0,
+            angle: t.angle ?? 0,
+            textAlign: t.textAlign ?? 'center',
+            width: t.width,
+            height: t.height,
+            originX: 'center',
+            originY: 'center',
+        });
+
+        if (nameObj) textRef.current[view].name = pickProps(nameObj);
+        if (numberObj) textRef.current[view].number = pickProps(numberObj);
+
+        saveGlobalTemplate();
+
         fabricCanvas.requestRenderAll();
         toast.success("Name and number positioned perfectly!");
     };
@@ -1109,17 +1168,18 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
                         Collar
                     </Button>
 
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={centerFitBackNameNumber}
+                        disabled={currentView !== 'back'}
+                        title="Center name & number on back (like example)"
+                    >
+                        Auto Center
+                    </Button>
+
                     {showTools && (
                         <>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={centerFitBackNameNumber}
-                                disabled={currentView !== 'back'}
-                                title="Center name & number on back (like example)"
-                            >
-                                Auto Center
-                            </Button>
                             <Button
                                 variant="outline"
                                 size="sm"

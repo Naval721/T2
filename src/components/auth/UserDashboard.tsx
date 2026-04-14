@@ -14,7 +14,7 @@ import {
   Calendar,
   Settings,
   LogOut,
-  Sparkles,
+  Coins,
   Shield,
   Zap,
   CheckCircle,
@@ -31,7 +31,7 @@ interface UserDashboardProps {
 }
 
 export const UserDashboard = ({ onClose }: UserDashboardProps) => {
-  const { user, profile, signOut, updateProfile } = useAuth()
+  const { user, profile, signOut, updateProfile, addPoints } = useAuth()
   const [loading, setLoading] = useState(false)
   const [showPurchaseDialog, setShowPurchaseDialog] = useState(false)
 
@@ -49,12 +49,42 @@ export const UserDashboard = ({ onClose }: UserDashboardProps) => {
   const exportsPossible = calculateExportsPossible(currentPoints)
 
   const handlePurchasePoints = async (packageId: string) => {
-    // This will be handled by the useAuth hook
-    toast.info('Points purchase coming soon!')
+    setLoading(true)
+    try {
+      const { getPointsPlanById, calculateTotalPoints } = await import('@/types/points')
+      const plan = getPointsPlanById(packageId)
+      if (!plan) {
+        toast.error('Unknown package selected.')
+        return
+      }
+      const totalPoints = calculateTotalPoints(plan)
+      if (totalPoints <= 0) {
+        toast.info('Please contact us for enterprise pricing.')
+        return
+      }
+      const result = await addPoints(totalPoints, `Purchased ${plan.name}`)
+      if (result.success) {
+        toast.success(`${formatPoints(totalPoints)} points added to your account!`)
+        setShowPurchaseDialog(false)
+      } else {
+        toast.error('Failed to add points. Please try again.')
+      }
+    } catch (error) {
+      toast.error('An unexpected error occurred.')
+    } finally {
+      setLoading(false)
+    }
   }
 
-  if (!profile) return null
+  if (!profile && !user) return null
 
+  const displayProfile = profile || {
+    full_name: user?.user_metadata?.full_name || 'User',
+    email: user?.email || '',
+    points_balance: 0,
+    total_points_purchased: 0,
+    total_points_used: 0
+  }
   return (
     <div className="space-y-6">
       {/* User Info Header */}
@@ -66,13 +96,13 @@ export const UserDashboard = ({ onClose }: UserDashboardProps) => {
                 <User className="w-6 h-6 text-white" />
               </div>
               <div>
-                <CardTitle className="text-lg">{profile.full_name || 'User'}</CardTitle>
-                <CardDescription>{profile.email}</CardDescription>
+                <CardTitle className="text-lg">{displayProfile.full_name || 'User'}</CardTitle>
+                <CardDescription>{displayProfile.email}</CardDescription>
               </div>
             </div>
             <Badge className="bg-black text-white hover:bg-gray-800">
               <div className="flex items-center space-x-1">
-                <Sparkles className="w-4 h-4" />
+                <Coins className="w-4 h-4" />
                 <span>{formatPoints(currentPoints)} points</span>
               </div>
             </Badge>
@@ -97,7 +127,7 @@ export const UserDashboard = ({ onClose }: UserDashboardProps) => {
       <Card className="border shadow-sm bg-gray-50/50">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
-            <Sparkles className="w-5 h-5 text-black" />
+            <Coins className="w-5 h-5 text-black" />
             <span>Points Balance</span>
             {currentPoints === 5 && (
               <Badge variant="outline" className="ml-2 bg-white text-black border-gray-200">
@@ -116,7 +146,7 @@ export const UserDashboard = ({ onClose }: UserDashboardProps) => {
             <p className="text-5xl font-bold text-black">{formatPoints(currentPoints)}</p>
             {currentPoints === 5 && (
               <p className="text-xs text-gray-500 mt-2 flex items-center justify-center gap-1">
-                <Sparkles className="w-3 h-3" /> Free trial - 5 free exports
+                <Gift className="w-3 h-3" /> Free trial - 5 free exports
               </p>
             )}
           </div>
@@ -250,7 +280,7 @@ export const UserDashboard = ({ onClose }: UserDashboardProps) => {
         <Button
           variant="outline"
           className="w-full justify-start border-gray-200 hover:bg-gray-50"
-          onClick={() => toast.info('Settings coming soon!')}
+          onClick={() => window.open('mailto:support@gxstudio.in?subject=Account Settings', '_blank')}
         >
           <Settings className="w-4 h-4 mr-2" />
           Account Settings

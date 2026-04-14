@@ -60,7 +60,7 @@ export const CustomizationTools = ({ onAddText, onAddLogo }: CustomizationToolsP
             placeholder="Enter text..."
             value={customText}
             onChange={(e) => setCustomText(e.target.value)}
-            onKeyPress={(e) => e.key === "Enter" && handleAddText()}
+            onKeyDown={(e) => e.key === "Enter" && handleAddText()}
             className="rounded-none border-2 border-black focus-visible:ring-0 focus-visible:border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
           />
           <Button onClick={handleAddText} size="icon" className="rounded-none border-2 border-black bg-black text-white hover:bg-gray-900 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[-1px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all">

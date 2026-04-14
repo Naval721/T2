@@ -1,190 +1,95 @@
-# 🎨 GxStudio - Professional Jersey Designer
+# 🎨 GxStudio Stitch - Professional Print Studio Engine
 
-A professional web application for designing custom sports jerseys with player data, logos, and text customization. Built with React, TypeScript, Vite, and Supabase.
+GxStudio Stitch is an enterprise-grade web application built to streamline the design, bulk-customization, and ultra-high-resolution (up to 600 DPI) export of 36-inch sports jerseys. Built specifically for modern print/sublimation shops, it combines an interactive Fabric.js canvas with an automated Point-based economy structure.
 
-![GxStudio Banner](public/gx-studio-banner.png)
+## ✨ Core Features & Capabilities
 
-## ✨ Features
+- **⚡ Bulk Roster Processing**: Import entire team rosters (names, numbers, sizes, positions) via Excel/CSV formatting to instantly queue hundreds of jerseys.
+- **🎨 Interactive Fabric Engine**: Advanced Canvas environment allowing drag-and-drop manipulation of player text constraints, rotation adjustments, and custom vector logos.
+- **🖨️ Production-Ready Exports**: 
+  - **Standard (300 DPI):** Clean exports for web / digital proofing.
+  - **High (450 DPI):** Production-level output.
+  - **Ultra (600 DPI):** True vector-mapped oversized renders explicitly tuned for printing physical 36-inch full-size garments.
+- **� Secure Points Economy**: A highly secure credit ledger powered by Supabase. Exports atomically verify balances and deduct points on the backend *before* browser blobs are delivered, making browser interception exploits physically impossible.
+- **� Auto-Recovery Save State**: Canvas states, component logic, and loaded rosters are strictly written to `localStorage` buffers to survive browser crashes.
 
-- **🖼️ Image Upload**: Import jersey templates and customize them
-- **📊 Excel Integration**: Bulk import player data via Excel/CSV files
-- **🎨 Canvas Editor**: Advanced fabric.js-based canvas for precise customization
-- **✏️ Text & Logo**: Add custom text, numbers, and logos to jerseys
-- **💾 Batch Export**: Export individual or batch jersey designs
-- **🔐 Authentication**: Secure user authentication with Supabase
-- **🎁 Free Trial**: 5 free exports for new users
-- **📱 Responsive**: Works seamlessly on desktop and mobile devices
+## 🚀 Tech Stack
 
-## 🚀 Quick Start
+- **Core**: React 18 (TypeScript), Vite 5
+- **Styling**: Tailwind CSS, Vanilla CSS, Shadcn UI
+- **Canvas Engineering**: Fabric.js
+- **Database & Auth**: Supabase (PostgreSQL with RLS policies enabled)
+- **Utility Layers**: `xlsx` (Excel processing), `jszip` (Bulk Packaging), `file-saver`, `sonner` (Toasts)
+
+---
+
+## � Installation & Environment Setup
 
 ### Prerequisites
+- Node.js 18+ 
+- Supabase account and Project (for Auth and Database functions)
 
-- Node.js 18+ or Bun
-- npm or bun package manager
-- Supabase account (for authentication and database)
-
-### Installation
+### Standard Setup
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/GxStudio.git
-cd GxStudio
+git clone https://github.com/your-org/GxStudioStitch.git
+cd GxStudioStitch
 
-# Install dependencies
+# Install all workspace dependencies
 npm install
-# or
-bun install
 
-# Set up environment variables
+# Setup your Environment
 cp .env.example .env
-# Edit .env with your Supabase credentials
-
-# Start development server
-npm run dev
-# or
-bun dev
 ```
 
-Visit `http://localhost:8080` to see the application.
-
-## 🔧 Environment Variables
-
-Create a `.env` file in the root directory:
-
+### Environment Variables
+Edit your `.env` file and point it to your live Supabase architecture. The app will seamlessly fall back to "Demo Mode" if these keys are missing.
 ```env
 VITE_SUPABASE_URL=your-supabase-project-url
 VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
 ```
 
-## 📦 Build for Production
-
+### Run Locally
 ```bash
-# Build the application
-npm run build
-
-# Preview production build locally
-npm run preview
+npm run dev
 ```
-
-## 🌐 Deployment
-
-### Deploy to Vercel (Recommended)
-
-1. **Push to GitHub**:
-   ```bash
-   git init
-   git add .
-   git commit -m "Initial commit"
-   git remote add origin https://github.com/yourusername/DotStitch.git
-   git push -u origin main
-   ```
-
-2. **Deploy on Vercel**:
-   - Go to [vercel.com](https://vercel.com)
-   - Click "Add New Project"
-   - Import your GitHub repository
-   - Add environment variables:
-     - `VITE_SUPABASE_URL`
-     - `VITE_SUPABASE_ANON_KEY`
-   - Click "Deploy"
-
-3. **Configure Supabase**:
-   - Go to Supabase Dashboard → Settings → API
-   - Add your Vercel URL to "Site URL" and "Redirect URLs"
-   - Example: `https://your-app.vercel.app`
-
-### Deploy to Other Platforms
-
-The app can also be deployed to:
-- **Netlify**: Similar process to Vercel
-- **Cloudflare Pages**: Connect GitHub repo and set build command
-- **AWS Amplify**: Import from GitHub and configure build settings
-
-## 🗄️ Database Setup
-
-Run the following SQL scripts in your Supabase SQL Editor:
-
-1. **Points System**: `supabase-schema-points.sql`
-2. **OTP System**: `supabase-schema-otp.sql`
-3. **Points Update**: `supabase-schema-points-update.sql`
-
-## 📁 Project Structure
-
-```
-GxStudio/
-├── src/
-│   ├── components/      # Reusable UI components
-│   ├── pages/          # Page components
-│   │   ├── HomePage.tsx
-│   │   └── steps/      # Multi-step wizard
-│   ├── lib/            # Utilities and helpers
-│   ├── hooks/          # Custom React hooks
-│   └── main.tsx        # Application entry point
-├── public/             # Static assets
-├── dist/               # Production build output
-├── vercel.json         # Vercel configuration
-├── vite.config.ts      # Vite configuration
-└── package.json        # Dependencies and scripts
-```
-
-## 🛠️ Available Scripts
-
-```bash
-# Development
-npm run dev              # Start dev server
-npm run build            # Build for production
-npm run preview          # Preview production build
-npm run lint             # Run ESLint
-
-# Deployment
-npm run deploy           # Deploy to Vercel (requires Vercel CLI)
-
-# Utilities
-npm run setup-images     # Setup image assets
-npm run optimize-images  # Image optimization guide
-```
-
-## 🎨 Tech Stack
-
-- **Frontend**: React 18, TypeScript
-- **Build Tool**: Vite 5
-- **Styling**: Tailwind CSS
-- **UI Components**: Radix UI, shadcn/ui
-- **Canvas**: Fabric.js
-- **Authentication**: Supabase Auth
-- **Database**: Supabase (PostgreSQL)
-- **State Management**: React Query (TanStack Query)
-- **File Processing**: xlsx, file-saver, jszip
-- **Routing**: React Router v6
-
-## 🔒 Security
-
-- Environment variables are never committed to the repository
-- Supabase Row Level Security (RLS) enabled
-- Authentication required for premium features
-- Secure OTP verification system
-
-## 📝 License
-
-This project is private and proprietary.
-
-## 👨‍💻 Author
-
-**GX Developer**
-
-## 🤝 Support
-
-For support, please contact the development team or open an issue in the repository.
-
-## 🎯 Roadmap
-
-- [ ] Add more jersey templates
-- [ ] Implement team management
-- [ ] Add payment integration
-- [ ] Mobile app version
-- [ ] Advanced design tools
-- [ ] Template marketplace
+Visit `http://localhost:5173` locally.
 
 ---
 
-**Made with ❤️ by GX Developer**
+## 🗄️ Database Architecture (Supabase)
+
+To link GxStudio to a live production database, the following tables must be executed via the Supabase SQL Editor to map to the hooks:
+
+1. `user_profiles`
+   - Maps to Auth `id` directly.
+   - Contains fields: `email`, `full_name`, `points_balance`, `total_points_purchased`, `total_points_used`.
+2. `points_transactions`
+   - Secure ledger tracking all point mutations.
+   - Requires trigger architectures linking to `user_profiles` to update raw point tallies automatically on `INSERT`.
+
+**Note on Row Level Security (RLS):** 
+Ensure `user_profiles` uses strict user-bound select filters `(auth.uid() = id)` so endpoints strictly remain locked to active sessions.
+
+---
+
+## � Security Posture Note
+
+All export functions inside `ExportPanel.tsx` enforce a **Strict Server Deduct Before Download** policy. 
+Unlike standard applications that deduct currencies upon asynchronous local loops, GxStudio securely awaits Supabase transaction verifications upfront, shutting off memory-leaking bulk arrays and infinite-point UI layer exploits. 
+
+The Canvas module natively disposes RAM chunks intelligently on component unmounting during intense Studio transitions, guarding long-running print-shop tabs from browser crashing.
+
+---
+
+## � Production Roadmap
+
+All UI structures, points economies, and login systems are completely wired and verified. The remaining architecture to establish is the final endpoint tunnel:
+
+- [ ] **Payment Gateway Verification:** Point `Pricing.tsx` to handle a live `Stripe` or `Razorpay` SDK checkout session payload.
+- [ ] **Email Receipt Triggers**: Integrate generic SMTP tools if automated receipt dispatching is necessary upon Bulk download completion. 
+- [ ] **Mobile Restriction**: Application remains heavily tailored to Desktop workflows; mobile routing remains heavily suppressed to encourage accurate mouse-mapped Canvas interactions. 
+
+---
+**Prepared and Engineered by the GxStudio Development Team**

@@ -46,7 +46,6 @@ export const Step1Upload = ({
           <Button
             onClick={onNext}
             size="lg"
-            size="lg"
           >
             Continue to Canvas Design
             <ArrowRight className="w-5 h-5 ml-2" />

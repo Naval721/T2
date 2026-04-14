@@ -156,6 +156,24 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         return { error: { message: 'Invalid email format' } as AuthError }
       }
 
+      // Demo Mode Fallback if Supabase missing
+      if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+        const fakeUserId = 'demo-user-' + Date.now();
+        setUser({ id: fakeUserId, email, user_metadata: { full_name: fullName } } as unknown as User);
+        setProfile({
+          id: fakeUserId,
+          email,
+          full_name: fullName,
+          points_balance: 50,
+          total_points_purchased: 50,
+          total_points_used: 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        } as UserProfile);
+        toast.success('Demo mode account created! 50 test points granted.')
+        return { error: null, needsEmailConfirmation: false }
+      }
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -201,6 +219,24 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         return { error: { message: 'Invalid email format' } as AuthError }
       }
 
+      // Demo Mode Fallback
+      if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+        const fakeUserId = 'demo-user-' + Date.now();
+        setUser({ id: fakeUserId, email, user_metadata: { full_name: 'Demo User' } } as unknown as User);
+        setProfile({
+          id: fakeUserId,
+          email,
+          full_name: 'Demo User',
+          points_balance: 50,
+          total_points_purchased: 50,
+          total_points_used: 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        } as UserProfile);
+        toast.success('Signed in using Demo Mode!');
+        return { error: null }
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -223,6 +259,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const signOut = async () => {
     try {
+      if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+        setUser(null)
+        setProfile(null)
+        toast.success('Signed out (Demo Mode)')
+        return;
+      }
+
       const { error } = await supabase.auth.signOut()
       if (error) {
         toast.error(error.message)

@@ -1,10 +1,11 @@
 import { DesignCanvas } from "@/components/DesignCanvas";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, ArrowLeft, Settings2, Users } from "lucide-react";
-import { Canvas as FabricCanvas, Text as FabricText, Image as FabricImage } from "fabric";
+import { ArrowRight, ArrowLeft, Settings2, Users, Paintbrush } from "lucide-react";
+import { Canvas as FabricCanvas, IText as FabricText, Image as FabricImage } from "fabric";
 import type { JerseyImages, PlayerData } from "@/pages/Index";
 import { CustomizationTools } from "@/components/CustomizationTools";
+import { FontSelector } from "@/components/FontSelector";
 
 interface Step3CustomizeProps {
   jerseyImages: JerseyImages;
@@ -13,7 +14,8 @@ interface Step3CustomizeProps {
   onPlayerSelect: (player: PlayerData) => void;
   canvasRef: FabricCanvas | null;
   onCanvasReady: (ref: FabricCanvas | null) => void;
-  defaultFont?: string;
+  defaultFont: string;
+  onFontChange: (font: string) => void;
   onNext: () => void;
   onPrev: () => void;
 }
@@ -26,6 +28,7 @@ export const Step3Customize = ({
   canvasRef,
   onCanvasReady,
   defaultFont,
+  onFontChange,
   onNext,
   onPrev
 }: Step3CustomizeProps) => {
@@ -106,6 +109,24 @@ export const Step3Customize = ({
                   </span>
                 </button>
               ))}
+            </div>
+          </div>
+
+          <div className="border-2 border-black bg-white shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+            <div className="bg-black text-white p-4 flex items-center gap-2">
+              <Paintbrush className="w-5 h-5" />
+              <h3 className="font-bold uppercase tracking-widest text-sm">Player Font</h3>
+            </div>
+            <div className="p-4">
+              <FontSelector
+                value={defaultFont}
+                onChange={onFontChange}
+                label="Name & Number Style"
+                showPreview={true}
+              />
+              <p className="text-[10px] text-gray-500 mt-2 font-mono uppercase">
+                Applies to all player names and numbers
+              </p>
             </div>
           </div>
 

@@ -270,6 +270,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       if (error) {
         toast.error(error.message)
       } else {
+        setUser(null)
+        setProfile(null)
         toast.success('Signed out successfully')
       }
     } catch (error) {

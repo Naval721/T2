@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import Footer from "@/components/Footer";
@@ -40,6 +40,31 @@ const LoadingFallback = () => (
   </div>
 );
 
+// Inner layout that can access useLocation
+const AppRoutes = () => {
+  const location = useLocation();
+  // Hide the global footer on the home/landing page — it has its own design
+  const hideFooter = location.pathname === "/";
+
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <Routes>
+        <Route path="/" element={<OnboardingPage />} />
+        <Route path="/design" element={<Index />} />
+        <Route path="/pricing" element={<Pricing />} />
+        <Route path="/contact" element={<Contact />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/refund" element={<Refund />} />
+        <Route path="/shipping" element={<Shipping />} />
+        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+      {!hideFooter && <Footer />}
+    </Suspense>
+  );
+};
+
 const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
@@ -48,21 +73,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <Suspense fallback={<LoadingFallback />}>
-              <Routes>
-                <Route path="/" element={<OnboardingPage />} />
-                <Route path="/design" element={<Index />} />
-                <Route path="/pricing" element={<Pricing />} />
-                <Route path="/contact" element={<Contact />} />
-                <Route path="/privacy" element={<Privacy />} />
-                <Route path="/terms" element={<Terms />} />
-                <Route path="/refund" element={<Refund />} />
-                <Route path="/shipping" element={<Shipping />} />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-              <Footer />
-            </Suspense>
+            <AppRoutes />
           </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>

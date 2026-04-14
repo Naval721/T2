@@ -10,7 +10,7 @@ import {
   FileImage
 } from 'lucide-react'
 import { GxLogo } from '@/components/ui/GxLogo'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 // Styles moved to index.css
 import featureDualPreview from '@/assets/images/features/dual-preview.png';
@@ -30,6 +30,12 @@ interface HomePageProps {
 }
 
 export const HomePage = ({ onStart }: HomePageProps) => {
+  const navigate = useNavigate()
+
+  const scrollTo = (id: string) => {
+    const el = document.getElementById(id)
+    if (el) el.scrollIntoView({ behavior: 'smooth' })
+  }
 
   const features = [
     {
@@ -85,16 +91,16 @@ export const HomePage = ({ onStart }: HomePageProps) => {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3 group cursor-pointer">
+            <div className="flex items-center space-x-3 group cursor-pointer" onClick={() => navigate('/')}>
               <div className="w-10 h-10 bg-black flex items-center justify-center transition-transform group-hover:scale-105 border-2 border-black shadow-[2px_2px_0px_0px_rgba(100,100,100,1)]">
                 <GxLogo className="w-6 h-6 text-white" />
               </div>
               <span className="text-2xl font-black uppercase tracking-widest text-black" style={{ fontFamily: "'Inter', sans-serif" }}>GxStudio</span>
             </div>
             <div className="hidden md:flex items-center space-x-8">
-              <a href="#features" className="text-gray-600 hover:text-black transition-colors">Home</a>
-              <a href="#designs" className="text-gray-600 hover:text-black transition-colors">Gallery</a>
-              <a href="#how" className="text-gray-600 hover:text-black transition-colors">Create</a>
+              <button onClick={() => scrollTo('features')} className="text-gray-600 hover:text-black transition-colors">Home</button>
+              <button onClick={() => scrollTo('designs')} className="text-gray-600 hover:text-black transition-colors">Gallery</button>
+              <button onClick={() => scrollTo('how')} className="text-gray-600 hover:text-black transition-colors">Create</button>
               <Link to="/pricing" className="text-gray-600 hover:text-black transition-colors">Pricing</Link>
               <Link to="/contact" className="text-gray-600 hover:text-black transition-colors">Contact</Link>
             </div>
@@ -254,43 +260,6 @@ export const HomePage = ({ onStart }: HomePageProps) => {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-12 px-6 border-t border-gray-200">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-8">
-            <div>
-              <h3 className="text-lg font-semibold text-black mb-4">Print Design</h3>
-              <ul className="space-y-2">
-                <li><a href="#features" className="text-gray-600 hover:text-black transition-colors">Home</a></li>
-                <li><a href="#designs" className="text-gray-600 hover:text-black transition-colors">Gallery</a></li>
-                <li><a href="#how" className="text-gray-600 hover:text-black transition-colors">Create</a></li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-black mb-4">Support</h3>
-              <ul className="space-y-2">
-                <li><Link to="/contact" className="text-gray-600 hover:text-black transition-colors">FAQ</Link></li>
-                <li><Link to="/contact" className="text-gray-600 hover:text-black transition-colors">Contact</Link></li>
-                <li><Link to="/contact" className="text-gray-600 hover:text-black transition-colors">Help Center</Link></li>
-              </ul>
-            </div>
-          </div>
-          <div className="pt-8 border-t border-gray-200 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center">
-                <div className="w-6 h-6 bg-white rounded"></div>
-              </div>
-              <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                <div className="w-6 h-6 bg-white rounded-full"></div>
-              </div>
-              <div className="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center">
-                <div className="w-6 h-6 bg-white transform rotate-45"></div>
-              </div>
-            </div>
-            <p className="text-gray-500 text-sm">© 2025 GxStudio. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
     </div>
   )
 }

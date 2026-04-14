@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -31,14 +32,30 @@ interface UserDashboardProps {
 }
 
 export const UserDashboard = ({ onClose }: UserDashboardProps) => {
+  const navigate = useNavigate()
   const { user, profile, signOut, updateProfile, addPoints } = useAuth()
   const [loading, setLoading] = useState(false)
   const [showPurchaseDialog, setShowPurchaseDialog] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
+  const [newName, setNewName] = useState(profile?.full_name || '')
 
   const handleSignOut = async () => {
     setLoading(true)
     await signOut()
     onClose()
+    setLoading(false)
+  }
+
+  const handleSaveSettings = async () => {
+    if (!newName.trim()) {
+      toast.error('Name cannot be empty')
+      return
+    }
+    setLoading(true)
+    const { error } = await updateProfile({ full_name: newName.trim() })
+    if (!error) {
+      setShowSettings(false)
+    }
     setLoading(false)
   }
 
@@ -280,11 +297,45 @@ export const UserDashboard = ({ onClose }: UserDashboardProps) => {
         <Button
           variant="outline"
           className="w-full justify-start border-gray-200 hover:bg-gray-50"
-          onClick={() => window.open('mailto:support@gxstudio.in?subject=Account Settings', '_blank')}
+          onClick={() => setShowSettings(!showSettings)}
         >
           <Settings className="w-4 h-4 mr-2" />
           Account Settings
         </Button>
+
+        {showSettings && (
+          <div className="border border-gray-200 rounded-xl p-4 bg-gray-50 space-y-3">
+            <p className="text-sm font-medium text-gray-700">Display Name</p>
+            <input
+              type="text"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="Your name"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black"
+            />
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                onClick={handleSaveSettings}
+                disabled={loading}
+                className="bg-black text-white hover:bg-gray-800 flex-1"
+              >
+                {loading ? 'Saving...' : 'Save'}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowSettings(false)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+            </div>
+            <p className="text-xs text-gray-500">
+              To change email or password, contact <a href="mailto:support@gxstudio.in" className="underline">support@gxstudio.in</a>
+            </p>
+          </div>
+        )}
 
         <Button
           variant="outline"

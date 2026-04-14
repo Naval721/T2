@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Header } from "@/components/Header";
@@ -7,6 +8,7 @@ import { Step1Upload } from "@/pages/steps/Step1Upload";
 import { Step2Canvas } from "@/pages/steps/Step2Canvas";
 import { Step3Customize } from "@/pages/steps/Step3Customize";
 import { Step4Export } from "@/pages/steps/Step4Export";
+import { DesignCanvas } from "@/components/DesignCanvas";
 import { HomePage } from "@/pages/HomePage";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import { Card } from "@/components/ui/card";
@@ -54,6 +56,21 @@ const Index = () => {
   const [showClearDialog, setShowClearDialog] = useState(false);
   const [lastSaveTime, setLastSaveTime] = useState<string>('Never');
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
+
+  // Re-check for portal target when step changes
+  useEffect(() => {
+    if (currentStep === 2 || currentStep === 3) {
+      // Small timeout to allow DOM to render the new step before searching
+      const timer = setTimeout(() => {
+        const target = document.getElementById('canvas-portal-target');
+        if (target) setPortalTarget(target);
+      }, 50);
+      return () => clearTimeout(timer);
+    } else {
+      setPortalTarget(null);
+    }
+  }, [currentStep]);
 
   // Check for saved session on mount
   useEffect(() => {
@@ -291,9 +308,6 @@ const Index = () => {
       );
     }
   };
-
-
-
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -327,6 +341,43 @@ const Index = () => {
               onStepChange={handleStepChange}
               canGoToStep={canGoToStep}
             />
+
+            {/*
+              PERSISTENT CANVAS: DesignCanvas stays mounted for steps 2-4.
+              - Uses React Portal to inject itself into the Step2/Step3 layout DOM tree exactly when they are rendered.
+              - In Step 4 (or if portal is missing), it remains hidden off-screen to keep Fabric context alive.
+            */}
+            {currentStep >= 2 && (
+              portalTarget ? (
+                createPortal(
+                  <div className="w-full h-full relative z-10">
+                    <DesignCanvas
+                      jerseyImages={jerseyImages}
+                      selectedPlayer={selectedPlayer}
+                      onCanvasReady={setCanvasRef}
+                      defaultFont={defaultFont}
+                      showTools={currentStep === 3}
+                    />
+                  </div>,
+                  portalTarget
+                )
+              ) : (
+                <div
+                  id="persistent-canvas-host"
+                  aria-hidden={currentStep === 4}
+                  className={currentStep === 4 ? "fixed -top-[9999px] -left-[9999px] opacity-0 pointer-events-none" : "hidden"}
+                >
+                  <DesignCanvas
+                    jerseyImages={jerseyImages}
+                    selectedPlayer={selectedPlayer}
+                    onCanvasReady={setCanvasRef}
+                    defaultFont={defaultFont}
+                    showTools={currentStep === 3}
+                  />
+                </div>
+              )
+            )}
+
             {renderCurrentStep()}
           </>
         ) : (

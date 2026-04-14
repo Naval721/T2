@@ -106,13 +106,9 @@ export const Step2Canvas = ({
 
         {/* Canvas Area */}
         <div className="xl:col-span-3">
-          <DesignCanvas
-            jerseyImages={jerseyImages}
-            selectedPlayer={selectedPlayer}
-            onCanvasReady={onCanvasReady}
-            defaultFont={defaultFont}
-            showTools={false}
-          />
+          <div id="canvas-portal-target" className="w-full h-full min-h-[720px] rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center relative bg-gray-50 overflow-hidden">
+            {/* The persistent canvas from Index.tsx is portaled here */}
+          </div>
         </div>
       </div>
 

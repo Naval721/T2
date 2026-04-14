@@ -148,13 +148,9 @@ export const Step3Customize = ({
 
         {/* Canvas Area */}
         <div className="xl:col-span-3">
-          <DesignCanvas
-            jerseyImages={jerseyImages}
-            selectedPlayer={selectedPlayer}
-            onCanvasReady={onCanvasReady}
-            defaultFont={defaultFont}
-            showTools={true}
-          />
+          <div id="canvas-portal-target" className="w-full h-full min-h-[720px] shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center relative bg-gray-50 border-4 border-black overflow-hidden">
+            {/* The persistent canvas from Index.tsx is portaled here */}
+          </div>
         </div>
       </div>
 

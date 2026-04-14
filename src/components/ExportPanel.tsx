@@ -384,7 +384,7 @@ export const ExportPanel = ({ canvasRef, selectedPlayer, playerData, jerseyImage
             return;
         }
 
-        const pointsPerPlayer = 5; // All 5 views
+        const pointsPerPlayer = 5;
         const totalCost = playerData.length * pointsPerPlayer;
 
         if (currentPoints < totalCost) {
@@ -396,6 +396,11 @@ export const ExportPanel = ({ canvasRef, selectedPlayer, playerData, jerseyImage
         (canvasRef as any).__isExporting = true;
         let pointsDeducted = false;
 
+        // Safe viewport transform save
+        const originalVT = canvasRef.viewportTransform
+            ? [...canvasRef.viewportTransform]
+            : [1, 0, 0, 1, 0, 0];
+
         try {
             const pointsResult = await deductPoints(totalCost, `Full Production Pack — ${playerData.length} players × 5 views`);
             if (!pointsResult.success) {
@@ -404,13 +409,14 @@ export const ExportPanel = ({ canvasRef, selectedPlayer, playerData, jerseyImage
             }
             pointsDeducted = true;
 
+            // Read design template from localStorage (saved by DesignCanvas on every edit)
             const globalTemplateRaw = localStorage.getItem('jerseyDesigner:globalTemplate');
             const globalTemplate = globalTemplateRaw ? JSON.parse(globalTemplateRaw) : {};
 
             const zip = new JSZip();
             const rootFolder = zip.folder(`GxStudio_Production_Batch_${new Date().toISOString().split('T')[0]}`);
 
-            const originalVT = [...canvasRef.viewportTransform!];
+            // Reset zoom/pan for clean exports
             canvasRef.setViewportTransform([1, 0, 0, 1, 0, 0]);
 
             const views = ['front', 'back', 'leftSleeve', 'rightSleeve', 'collar'] as const;
@@ -426,11 +432,23 @@ export const ExportPanel = ({ canvasRef, selectedPlayer, playerData, jerseyImage
                 collar: jerseyImages.collar,
             };
 
+            // Sizing constants matching DesignCanvas exactly
+            const CANVAS_W = canvasRef.width!;
+            const CANVAS_H = canvasRef.height!;
+            const sizeConfig: Record<string, { maxW: number; maxH: number; originY: 'center' | 'top'; top?: number }> = {
+                front: { maxW: 640, maxH: 514, originY: 'center' },
+                back: { maxW: 640, maxH: 514, originY: 'center' },
+                leftSleeve: { maxW: 400, maxH: 400, originY: 'center' },
+                rightSleeve: { maxW: 400, maxH: 400, originY: 'center' },
+                collar: { maxW: 560, maxH: 206, originY: 'top', top: 154 },
+            };
+
             let totalExported = 0;
+            const failures: string[] = [];
 
             for (let i = 0; i < playerData.length; i++) {
                 const player = playerData[i];
-                const safeName = player.playerName.replace(/\s+/g, '_');
+                const safeName = player.playerName.replace(/[^a-z0-9]/gi, '_');
                 const playerFolder = rootFolder?.folder(
                     `${String(i + 1).padStart(3, '0')}_${safeName}_#${player.jerseyNumber}`
                 );
@@ -438,77 +456,114 @@ export const ExportPanel = ({ canvasRef, selectedPlayer, playerData, jerseyImage
                 for (const view of views) {
                     try {
                         const imgUrl = viewImageUrls[view];
-                        if (!imgUrl) continue;
+                        if (!imgUrl) continue; // Skip unavailable views silently
 
                         const viewData = globalTemplate[view] || {};
+                        const cfg = sizeConfig[view];
 
-                        // Clear non-background objects
-                        [...canvasRef.getObjects()].forEach(obj => {
-                            const n = (obj as any).name;
-                            if (n !== internalNames[view]) canvasRef.remove(obj);
+                        // --- Clear canvas, load fresh background ---
+                        canvasRef.clear();
+                        canvasRef.backgroundColor = 'transparent';
+
+                        // Load background image — NO crossOrigin so blob: URLs work
+                        const bgImg = await FabricImage.fromURL(imgUrl);
+                        const scale = Math.min(cfg.maxW / bgImg.width!, cfg.maxH / bgImg.height!);
+                        bgImg.set({
+                            scaleX: scale,
+                            scaleY: scale,
+                            originX: 'center',
+                            originY: cfg.originY,
+                            left: CANVAS_W / 2,
+                            top: cfg.originY === 'top' ? (cfg.top ?? CANVAS_H / 2) : CANVAS_H / 2,
+                            selectable: false,
+                            evented: false,
                         });
+                        (bgImg as any).name = internalNames[view];
+                        canvasRef.add(bgImg);
+                        canvasRef.sendObjectToBack(bgImg);
 
-                        // Load background if missing
-                        if (!canvasRef.getObjects().find(o => (o as any).name === internalNames[view])) {
-                            const imgObj = await FabricImage.fromURL(imgUrl, { crossOrigin: 'anonymous' });
-                            imgObj.set({
-                                left: canvasRef.width! / 2,
-                                top: canvasRef.height! / 2,
-                                originX: 'center', originY: 'center',
-                                selectable: false, evented: false,
-                            });
-                            (imgObj as any).name = internalNames[view];
-                            canvasRef.add(imgObj);
-                            canvasRef.sendObjectToBack(imgObj);
-                        }
+                        // --- Player name / number on back view ---
+                        if (view === 'back') {
+                            const backRect = bgImg.getBoundingRect();
+                            const backCX = backRect.left + backRect.width / 2;
 
-                        // Player name + number (back view only, from template positions)
-                        if (view === 'back' && viewData.name) {
+                            // Use saved template positions if available, otherwise compute defaults
+                            const nameProp = viewData.name;
+                            const numProp = viewData.number;
+
+                            const nameTop = nameProp?.top ?? (backRect.top + backRect.height * 0.26);
+                            const numTop = numProp?.top ?? (backRect.top + backRect.height * 0.52);
+                            const nameFs = nameProp?.fontSize ?? Math.max(16, Math.round(backRect.height * 0.08));
+                            const numFs = numProp?.fontSize ?? Math.max(48, Math.round(backRect.height * 0.28));
+
                             const nameText = new FabricText(player.playerName, {
-                                ...viewData.name,
+                                ...(nameProp || {}),
+                                text: player.playerName,
+                                left: nameProp?.left ?? backCX,
+                                top: nameTop,
+                                fontSize: nameFs,
+                                fontFamily: nameProp?.fontFamily ?? 'Anton',
+                                fill: nameProp?.fill ?? '#000000',
+                                fontWeight: 'bold',
+                                originX: 'center', originY: 'center',
                                 selectable: false, evented: false,
                             });
                             (nameText as any).name = 'playerName';
                             canvasRef.add(nameText);
-                        }
-                        if (view === 'back' && viewData.number) {
+
                             const numText = new FabricText(player.jerseyNumber, {
-                                ...viewData.number,
+                                ...(numProp || {}),
+                                text: player.jerseyNumber,
+                                left: numProp?.left ?? backCX,
+                                top: numTop,
+                                fontSize: numFs,
+                                fontFamily: numProp?.fontFamily ?? 'Anton',
+                                fill: numProp?.fill ?? '#000000',
+                                fontWeight: 'bold',
+                                originX: 'center', originY: 'center',
                                 selectable: false, evented: false,
                             });
                             (numText as any).name = 'jerseyNumber';
                             canvasRef.add(numText);
                         }
 
-                        // Custom texts
-                        (viewData.customTexts || []).forEach((ct: any) => {
-                            const t = new FabricText(ct.text, { ...ct, selectable: false, evented: false });
+                        // --- Custom texts from template ---
+                        for (const ct of (viewData.customTexts || [])) {
+                            const t = new FabricText(ct.text ?? '', {
+                                ...ct,
+                                selectable: false, evented: false,
+                            });
                             (t as any).name = 'customText';
                             canvasRef.add(t);
-                        });
+                        }
 
-                        // Custom logos
+                        // --- Custom logos from template (NO crossOrigin — blob URLs) ---
                         for (const cl of (viewData.customLogos || [])) {
                             try {
-                                const logoImg = await FabricImage.fromURL(cl.src, { crossOrigin: 'anonymous' });
+                                if (!cl.src) continue;
+                                const logoImg = await FabricImage.fromURL(cl.src);
                                 logoImg.set({ ...cl, selectable: false, evented: false });
                                 (logoImg as any).name = 'customLogo';
                                 canvasRef.add(logoImg);
-                            } catch (e) {
-                                logger.error('Logo load fail in bulk export:', cl.src);
+                            } catch (logoErr) {
+                                logger.error('Logo load failed in bulk export:', cl.src, logoErr);
                             }
                         }
 
+                        // Let the browser settle the render
                         canvasRef.requestRenderAll();
-                        await new Promise(r => setTimeout(r, 60));
+                        await new Promise(r => setTimeout(r, 120));
 
+                        // --- Compute export bounds ---
                         const bounds = getDesignBounds(canvasRef);
-                        if (!bounds) continue;
+                        if (!bounds) {
+                            logger.warn(`No bounds – player ${player.playerName} view ${view}`);
+                            continue;
+                        }
 
+                        // --- Calculate multiplier with safety cap ---
                         let multiplier = getQualityMultiplier() * getSizeScaleFactor(player.size);
-                        // Sleeve/collar don't need full multiplier
-                        if (view === 'leftSleeve' || view === 'rightSleeve') multiplier *= 0.6;
-                        // Safety cap at 7000px
+                        if (view === 'leftSleeve' || view === 'rightSleeve') multiplier *= 0.7;
                         const maxDim = Math.max(bounds.width, bounds.height) * multiplier;
                         if (maxDim > 7000) multiplier = 7000 / Math.max(bounds.width, bounds.height);
 
@@ -523,38 +578,58 @@ export const ExportPanel = ({ canvasRef, selectedPlayer, playerData, jerseyImage
                             enableRetinaScaling: false,
                         });
 
-                        if (dataURL && dataURL.length > 100) {
+                        if (dataURL && dataURL.length > 200) {
                             playerFolder?.file(`${view}.png`, dataURLToBlob(dataURL));
                             totalExported++;
+                        } else {
+                            failures.push(`${player.playerName}/${view}`);
                         }
                     } catch (viewErr) {
-                        logger.error(`View ${view} failed for ${player.playerName}`, viewErr);
+                        const msg = viewErr instanceof Error ? viewErr.message : String(viewErr);
+                        logger.error(`View ${view} failed for ${player.playerName}: ${msg}`);
+                        failures.push(`${player.playerName}/${view}`);
                     }
                 }
 
-                // Progress: every 5 players or last player
+                // Progress toast every 5 players or on last
                 if ((i + 1) % 5 === 0 || i === playerData.length - 1) {
-                    toast.info(`Packing: ${i + 1} / ${playerData.length} players done...`);
+                    toast.info(`Packing: ${i + 1} / ${playerData.length} players...`);
                 }
             }
 
+            // Restore canvas state for the user
             canvasRef.setViewportTransform(originalVT as any);
             canvasRef.requestRenderAll();
 
-            if (totalExported === 0) throw new Error("No views were exported successfully");
+            if (totalExported === 0) {
+                // Real failure — nothing exported at all
+                throw new Error("No views were exported. Check that jersey images are valid and the design template has been saved.");
+            }
 
             const zipBlob = await zip.generateAsync({ type: "blob" });
             saveAs(zipBlob, `GxStudio_PRODUCTION_BATCH_${Date.now()}.zip`);
-            toast.success(`Full production pack ready! ${totalExported} view files exported (${totalCost} pts used)`);
+
+            if (failures.length > 0) {
+                toast.warning(`Pack done with ${failures.length} skipped view(s). ${totalExported} files exported.`);
+            } else {
+                toast.success(`Production pack ready! ${totalExported} files exported (${totalCost} pts used).`);
+            }
 
         } catch (err) {
-            logger.error('Full batch error:', err);
+            // Restore canvas even on failure
+            try {
+                canvasRef.setViewportTransform(originalVT as any);
+                canvasRef.requestRenderAll();
+            } catch { /* ignore */ }
+
+            logger.error('Full production pack error:', err);
             if (pointsDeducted) {
                 try {
                     await addPoints(totalCost, `Refund — failed production pack`);
-                    toast.error("Bulk export failed. Your points have been refunded.");
+                    const msg = err instanceof Error ? err.message : 'Unknown error';
+                    toast.error(`Export failed: ${msg}. Your ${totalCost} points have been refunded.`);
                 } catch {
-                    toast.error("Bulk export failed. Please contact support for a points refund.");
+                    toast.error(`Export failed. Please contact support — ${totalCost} points may need manual refund.`);
                 }
             } else {
                 const msg = err instanceof Error ? err.message : String(err);
@@ -565,6 +640,7 @@ export const ExportPanel = ({ canvasRef, selectedPlayer, playerData, jerseyImage
             setIsExporting(false);
         }
     };
+
 
     return (
         <div className="space-y-8 p-4">

@@ -6,6 +6,8 @@ import { RotateCcw, ZoomIn, ZoomOut, Move, Download, Scissors } from "lucide-rea
 import { toast } from "sonner";
 import type { JerseyImages, PlayerData } from "@/pages/Index";
 import { logger } from "@/lib/logger";
+import { getSizeScaleFactorFromDim, computeExportMultiplier } from '@/lib/sizes';
+import { useAuth } from "@/hooks/useAuth";
 
 type TextProps = {
     text: string;
@@ -47,8 +49,9 @@ interface DesignCanvasProps {
     jerseyImages: JerseyImages;
     selectedPlayer: PlayerData | null;
     onCanvasReady: (canvas: FabricCanvas | null) => void;
-    defaultFont?: string; // Default font for player names/numbers
-    showTools?: boolean; // Toggle visibility of design tools for different steps
+    defaultFont?: string;
+    defaultColor?: string;
+    showTools?: boolean;
 }
 
 type ExportableCanvas = FabricCanvas & {
@@ -114,25 +117,17 @@ const getVisibleContentBounds = (canvas: FabricCanvas): CanvasBounds | null => {
     };
 };
 
-export const getSizeScaleFactor = (size: string | undefined): number => {
-    if (!size) return 1;
-    const sizeNum = parseInt(size);
-    if (isNaN(sizeNum)) return 1; // Handled non-numeric sizes
-    // Scale factor: 22=0.8x, 46=1.2x, linear interpolation
-    const minSize = 22, maxSize = 46;
-    const minScale = 0.8, maxScale = 1.2;
-    return ((sizeNum - minSize) / (maxSize - minSize)) * (maxScale - minScale) + minScale;
-};
+export const getSizeScaleFactor = getSizeScaleFactorFromDim;
 
-// Create a clean export function that exports only jersey design with white background for JPG
-export const exportCleanJerseyDesign = (canvas: FabricCanvas, sizeMultiplier: number = 1): string => {
-    // Filter to only include jersey design elements
+export const exportCleanJerseyDesign = (
+    canvas: FabricCanvas,
+    sizeOrMultiplier: string | number = 1,
+    dpi: number = 300,
+): string => {
     const designObjects = canvas.getObjects().filter(object => {
         if (!object.visible) return false;
         const extendedObj = object as ExtendedFabricText | ExtendedFabricImage;
         const name = extendedObj.name;
-
-        // Include only jersey design elements, exclude UI labels
         return name === 'jerseyFront' ||
             name === 'jerseyBack' ||
             name === 'leftSleeve' ||
@@ -142,15 +137,11 @@ export const exportCleanJerseyDesign = (canvas: FabricCanvas, sizeMultiplier: nu
             name === 'jerseyNumber' ||
             name === 'customText' ||
             name === 'customLogo' ||
-            // Include sleeve and collar images
             (!name && (extendedObj as any).src);
     });
 
-    if (designObjects.length === 0) {
-        return '';
-    }
+    if (designObjects.length === 0) return '';
 
-    // Calculate exact bounds
     let minX = Number.POSITIVE_INFINITY;
     let minY = Number.POSITIVE_INFINITY;
     let maxX = Number.NEGATIVE_INFINITY;
@@ -164,24 +155,26 @@ export const exportCleanJerseyDesign = (canvas: FabricCanvas, sizeMultiplier: nu
         maxY = Math.max(maxY, rect.top + rect.height);
     });
 
-    if (!isFinite(minX) || !isFinite(minY) || !isFinite(maxX) || !isFinite(maxY)) {
-        return '';
-    }
+    if (!isFinite(minX) || !isFinite(minY) || !isFinite(maxX) || !isFinite(maxY)) return '';
 
-    // Export with exact bounds, transparent bg (or white if you want), and 500 DPI
+    const contentW = maxX - minX;
+    const multiplier = typeof sizeOrMultiplier === 'string'
+        ? computeExportMultiplier(sizeOrMultiplier, contentW, dpi)
+        : 5.21 * sizeOrMultiplier;
+
     return canvas.toDataURL({
         format: 'png',
         quality: 1,
-        multiplier: 5.21 * sizeMultiplier,
+        multiplier,
         left: minX,
         top: minY,
-        width: maxX - minX,
+        width: contentW,
         height: maxY - minY,
         enableRetinaScaling: false,
-    } as any); // Cast as any to avoid backgroundColor type error if changed in v6
+    } as any);
 };
 
-export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defaultFont = 'Anton', showTools = false }: DesignCanvasProps) => {
+export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defaultFont = 'Anton', defaultColor = '#000000', showTools = false }: DesignCanvasProps) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [fabricCanvas, setFabricCanvas] = useState<FabricCanvas | null>(null);
     const [currentView, setCurrentView] = useState<'front' | 'back' | 'leftSleeve' | 'rightSleeve' | 'collar'>('front');
@@ -190,6 +183,7 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
     // Persist text placements/styles across views and sessions globally
     const textRef = useRef<{ [view: string]: { name?: TextProps; number?: TextProps; customTexts?: TextProps[]; customLogos?: LogoProps[] } }>({});
     const currentViewRef = useRef<'front' | 'back' | 'leftSleeve' | 'rightSleeve' | 'collar'>('front');
+    const { deductPoints, currentPoints } = useAuth();
     const isInitialized = useRef(false);
 
     // Global placement ratios for consistent Auto Center across all players
@@ -634,7 +628,7 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
                     ...nameProps,
                 }) as ExtendedFabricText;
                 nameText.name = 'playerName';
-                nameText.set({ fontWeight: 'bold', selectable: true });
+                nameText.set({ fontWeight: 'bold', fill: defaultColor, selectable: true });
                 fabricCanvas.add(nameText);
 
                 // Jersey number (preserve previous placement/style if existed)
@@ -644,8 +638,8 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
                     left: fabricCanvas.width! / 2,
                     top: defaultNumberTop,
                     fontSize: 115,
-                    fontFamily: 'Anton',
-                    fill: '#000000',
+                    fontFamily: defaultFont,
+                    fill: defaultColor,
                     textAlign: 'center' as const,
                     height: 720,
                     originX: 'center' as const,
@@ -655,7 +649,7 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
                     ...numberProps,
                 }) as ExtendedFabricText;
                 numberText.name = 'jerseyNumber';
-                numberText.set({ fontWeight: 'bold', selectable: true });
+                numberText.set({ fontWeight: 'bold', fill: defaultColor, selectable: true });
                 fabricCanvas.add(numberText);
 
                 // Auto-center only if no previous saved placement
@@ -797,49 +791,58 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
     const exportAllViews = async () => {
         if (!fabricCanvas || !selectedPlayer) return;
 
-        toast.info("Exporting all jersey views as PNG (500 DPI)...");
+        if (currentPoints < 5) {
+            toast.error("Insufficient points! Exporting all views costs 5 points.");
+            return;
+        }
 
+        const proceed = await deductPoints(5, `Canvas Export All - ${selectedPlayer.playerName}`);
+        if (!proceed.success) {
+            toast.error("Failed to deduct points.");
+            return;
+        }
+
+        toast.info("Exporting all jersey views as PNG (500 DPI)...");
         const views: typeof currentView[] = ['front', 'back', 'leftSleeve', 'rightSleeve', 'collar'];
 
         try {
             for (const view of views) {
                 await loadJerseyView(view);
-
-                // Use clean export function for PNG, passing the size multiplier
-                const dataURL = exportCleanJerseyDesign(fabricCanvas, getSizeScaleFactor(selectedPlayer.size));
+                const dataURL = exportCleanJerseyDesign(fabricCanvas, selectedPlayer.size, 500);
 
                 if (dataURL) {
                     const link = document.createElement('a');
                     link.href = dataURL;
                     link.download = `${selectedPlayer.playerName}_${selectedPlayer.jerseyNumber}_${view}.png`;
                     link.click();
-                    // Small delay to prevent browser from blocking multiple downloads
                     await new Promise(resolve => setTimeout(resolve, 200));
                 }
             }
-
-            // Reload current view
             await loadJerseyView();
-            toast.success("All views exported as PNG (500 DPI) successfully!");
+            toast.success("All views exported successfully! (-5 pts)");
         } catch (error) {
             toast.error("Failed to export some views");
             logger.error('Export error:', error);
-            // Still try to reload current view even if export failed
-            try {
-                await loadJerseyView();
-            } catch (reloadError) {
-                logger.error('Failed to reload current view:', reloadError);
-            }
+            try { await loadJerseyView(); } catch (e) { }
         }
     };
 
     const exportCurrentView = async () => {
         if (!fabricCanvas || !selectedPlayer) return;
 
-        try {
-            // Use clean export function for PNG, passing the size multiplier
-            const dataURL = exportCleanJerseyDesign(fabricCanvas, getSizeScaleFactor(selectedPlayer.size));
+        if (currentPoints < 1) {
+            toast.error("Insufficient points! This export costs 1 point.");
+            return;
+        }
 
+        const proceed = await deductPoints(1, `Canvas Export Current - ${selectedPlayer.playerName}`);
+        if (!proceed.success) {
+            toast.error("Failed to deduct points.");
+            return;
+        }
+
+        try {
+            const dataURL = exportCleanJerseyDesign(fabricCanvas, selectedPlayer.size, 500);
             if (!dataURL) {
                 toast.error("No design content to export");
                 return;
@@ -849,7 +852,7 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
             link.href = dataURL;
             link.download = `${selectedPlayer.playerName}_${selectedPlayer.jerseyNumber}_${currentView}.png`;
             link.click();
-            toast.success(`Current view exported as PNG (500 DPI)!`);
+            toast.success(`Current view exported successfully! (-1 pt)`);
         } catch (error) {
             toast.error("Failed to export current view");
             logger.error('Export error:', error);
@@ -1104,6 +1107,32 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
             saveGlobalTemplate();
         }
     }, [defaultFont, fabricCanvas]);
+
+    // React to colour changes
+    useEffect(() => {
+        if (!fabricCanvas || !defaultColor) return;
+        let changed = false;
+        fabricCanvas.getObjects().forEach(obj => {
+            const extendedObj = obj as ExtendedFabricText;
+            if (extendedObj.name === 'playerName' || extendedObj.name === 'jerseyNumber') {
+                if (extendedObj.fill !== defaultColor) {
+                    extendedObj.set('fill', defaultColor);
+                    changed = true;
+                }
+            }
+        });
+        const views = ['front', 'back', 'leftSleeve', 'rightSleeve', 'collar'];
+        views.forEach(view => {
+            if (textRef.current[view]) {
+                if (textRef.current[view].name) (textRef.current[view].name as any).fill = defaultColor;
+                if (textRef.current[view].number) (textRef.current[view].number as any).fill = defaultColor;
+            }
+        });
+        if (changed) {
+            fabricCanvas.requestRenderAll();
+            saveGlobalTemplate();
+        }
+    }, [defaultColor, fabricCanvas]);
 
     if (!selectedPlayer) {
         return (

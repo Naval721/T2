@@ -52,6 +52,7 @@ const Index = () => {
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerData | null>(null);
   const [canvasRef, setCanvasRef] = useState<FabricCanvas | null>(null);
   const [defaultFont, setDefaultFont] = useState<string>('Anton'); // Default font for all players
+  const [defaultColor, setDefaultColor] = useState<string>('#000000'); // Default text colour for all players
   const [showRestoreDialog, setShowRestoreDialog] = useState(false);
   const [showClearDialog, setShowClearDialog] = useState(false);
   const [lastSaveTime, setLastSaveTime] = useState<string>('Never');
@@ -256,6 +257,8 @@ const Index = () => {
               onCanvasReady={setCanvasRef}
               defaultFont={defaultFont}
               onFontChange={setDefaultFont}
+              defaultColor={defaultColor}
+              onColorChange={setDefaultColor}
               onNext={handleNext}
               onPrev={handlePrev}
             />
@@ -271,6 +274,8 @@ const Index = () => {
               onCanvasReady={setCanvasRef}
               defaultFont={defaultFont}
               onFontChange={setDefaultFont}
+              defaultColor={defaultColor}
+              onColorChange={setDefaultColor}
               onNext={handleNext}
               onPrev={handlePrev}
             />
@@ -356,6 +361,7 @@ const Index = () => {
                       selectedPlayer={selectedPlayer}
                       onCanvasReady={setCanvasRef}
                       defaultFont={defaultFont}
+                      defaultColor={defaultColor}
                       showTools={currentStep === 3}
                     />
                   </div>,

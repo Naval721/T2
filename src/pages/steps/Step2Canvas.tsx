@@ -14,6 +14,8 @@ interface Step2CanvasProps {
   onCanvasReady: (ref: FabricCanvas | null) => void;
   defaultFont: string;
   onFontChange: (font: string) => void;
+  defaultColor: string;
+  onColorChange: (color: string) => void;
   onNext: () => void;
   onPrev: () => void;
 }
@@ -26,6 +28,8 @@ export const Step2Canvas = ({
   onCanvasReady,
   defaultFont,
   onFontChange,
+  defaultColor,
+  onColorChange,
   onNext,
   onPrev
 }: Step2CanvasProps) => {
@@ -71,6 +75,8 @@ export const Step2Canvas = ({
             <FontSelector
               value={defaultFont}
               onChange={onFontChange}
+              color={defaultColor}
+              onColorChange={onColorChange}
               label="Player Name & Number Font"
               showPreview={true}
             />

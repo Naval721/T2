@@ -16,6 +16,8 @@ interface Step3CustomizeProps {
   onCanvasReady: (ref: FabricCanvas | null) => void;
   defaultFont: string;
   onFontChange: (font: string) => void;
+  defaultColor: string;
+  onColorChange: (color: string) => void;
   onNext: () => void;
   onPrev: () => void;
 }
@@ -29,6 +31,8 @@ export const Step3Customize = ({
   onCanvasReady,
   defaultFont,
   onFontChange,
+  defaultColor,
+  onColorChange,
   onNext,
   onPrev
 }: Step3CustomizeProps) => {
@@ -121,6 +125,8 @@ export const Step3Customize = ({
               <FontSelector
                 value={defaultFont}
                 onChange={onFontChange}
+                color={defaultColor}
+                onColorChange={onColorChange}
                 label="Name & Number Style"
                 showPreview={true}
               />

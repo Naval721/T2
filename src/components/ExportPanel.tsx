@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import type { PlayerData, JerseyImages } from "@/pages/Index";
 import { logger } from "@/lib/logger";
+import { getSizeScaleFactorFromDim } from "@/lib/sizes";
 
 interface ExportPanelProps {
     canvasRef: FabricCanvas | null;
@@ -38,11 +39,15 @@ export const ExportPanel = ({ canvasRef, selectedPlayer, playerData, jerseyImage
     const { user, profile, deductPoints, addPoints, currentPoints } = useAuth();
 
     const getQualityMultiplier = () => {
+        // Base canvas width for front/back is 640px.
+        // Size 28 baseline width is 15.5 inches.
+        // So for 600 DPI, target px = 15.5 * 600 = 9300 px.
+        // Multiplier = 9300 / 640 = 14.53125.
         switch (exportQuality) {
-            case 'ultra': return 10.0;  // ~600 DPI
-            case 'high': return 7.5;    // ~450 DPI
-            case 'medium': return 4.5;  // ~300 DPI
-            default: return 10.0;
+            case 'ultra': return 14.53;  // Exactly 600 DPI
+            case 'high': return 10.90;   // Exactly 450 DPI
+            case 'medium': return 7.26;  // Exactly 300 DPI
+            default: return 14.53;
         }
     };
 
@@ -55,9 +60,7 @@ export const ExportPanel = ({ canvasRef, selectedPlayer, playerData, jerseyImage
     };
 
     const getSizeScaleFactor = (sizeStr: string): number => {
-        const size = parseInt(sizeStr, 10);
-        if (isNaN(size)) return 1.0;
-        return 1.0 + ((size - 30) * 0.0125);
+        return getSizeScaleFactorFromDim(sizeStr);
     };
 
     const generateFileName = (
@@ -563,9 +566,8 @@ export const ExportPanel = ({ canvasRef, selectedPlayer, playerData, jerseyImage
 
                         // --- Calculate multiplier with safety cap ---
                         let multiplier = getQualityMultiplier() * getSizeScaleFactor(player.size);
-                        if (view === 'leftSleeve' || view === 'rightSleeve') multiplier *= 0.7;
                         const maxDim = Math.max(bounds.width, bounds.height) * multiplier;
-                        if (maxDim > 7000) multiplier = 7000 / Math.max(bounds.width, bounds.height);
+                        if (maxDim > 12000) multiplier = 12000 / Math.max(bounds.width, bounds.height);
 
                         const dataURL = canvasRef.toDataURL({
                             format: 'png',

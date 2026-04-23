@@ -34,11 +34,12 @@ interface UserDashboardProps {
 
 export const UserDashboard = ({ onClose }: UserDashboardProps) => {
   const navigate = useNavigate()
-  const { user, profile, signOut, updateProfile, addPoints, loading: authLoading } = useAuth()
+  const { user, profile, signOut, updateProfile, addPoints, updatePassword, loading: authLoading } = useAuth()
   const [loading, setLoading] = useState(false)
   const [showPurchaseDialog, setShowPurchaseDialog] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [newName, setNewName] = useState(profile?.full_name || '')
+  const [newPassword, setNewPassword] = useState('')
 
   const handleSignOut = async () => {
     setLoading(true)
@@ -53,10 +54,32 @@ export const UserDashboard = ({ onClose }: UserDashboardProps) => {
       return
     }
     setLoading(true)
-    const { error } = await updateProfile({ full_name: newName.trim() })
-    if (!error) {
-      setShowSettings(false)
+
+    // Update Profile Name if changed
+    if (newName.trim() !== profile?.full_name) {
+      const { error: profileError } = await updateProfile({ full_name: newName.trim() })
+      if (profileError) {
+        setLoading(false)
+        return
+      }
     }
+
+    // Update Password if provided
+    if (newPassword.length > 0) {
+      if (newPassword.length < 6) {
+        toast.error('Password must be at least 6 characters')
+        setLoading(false)
+        return
+      }
+      const { error: passwordError } = await updatePassword(newPassword)
+      if (passwordError) {
+        setLoading(false)
+        return
+      }
+      setNewPassword('')
+    }
+
+    setShowSettings(false)
     setLoading(false)
   }
 
@@ -321,9 +344,17 @@ export const UserDashboard = ({ onClose }: UserDashboardProps) => {
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               placeholder="Your name"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black mb-2"
+            />
+            <p className="text-sm font-medium text-gray-700 mt-2">New Password (optional)</p>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Leave blank to keep current"
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black"
             />
-            <div className="flex gap-2">
+            <div className="flex gap-2 pt-2">
               <Button
                 size="sm"
                 onClick={handleSaveSettings}
@@ -341,9 +372,6 @@ export const UserDashboard = ({ onClose }: UserDashboardProps) => {
                 Cancel
               </Button>
             </div>
-            <p className="text-xs text-gray-500">
-              To change email or password, contact <a href="mailto:support@gxstudio.in" className="underline">support@gxstudio.in</a>
-            </p>
           </div>
         )}
 

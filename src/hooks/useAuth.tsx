@@ -13,6 +13,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>
   signOut: () => Promise<void>
   updateProfile: (updates: Partial<UserProfile>) => Promise<{ error: any }>
+  updatePassword: (password: string) => Promise<{ error: any }>
   checkPointsBalance: (pointsNeeded: number) => boolean
   deductPoints: (points: number, description: string) => Promise<{ success: boolean; error?: any }>
   addPoints: (points: number, description: string) => Promise<{ success: boolean; error?: any }>
@@ -65,9 +66,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setSession(session)
       setUser(session?.user ?? null)
 
-      // Clear the ugly #access_token hash from the URL after successful email confirmation
+      // Handle different email link types
       if (event === 'SIGNED_IN' && window.location.hash.includes('access_token=')) {
-        toast.success('Account successfully verified! You are now signed in.')
+        if (window.location.hash.includes('type=recovery')) {
+          toast.success('Secure link accepted! Please go to Account Settings to set a new password.')
+        } else {
+          toast.success('Account successfully verified! You are now signed in.')
+        }
+        window.history.replaceState(null, document.title, window.location.pathname + window.location.search)
+      } else if (event === 'PASSWORD_RECOVERY') {
+        toast.success('Secure link accepted! Please go to Account Settings to set a new password.')
         window.history.replaceState(null, document.title, window.location.pathname + window.location.search)
       }
 
@@ -324,6 +332,21 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   }
 
+  const updatePassword = async (password: string) => {
+    try {
+      const { error } = await supabase.auth.updateUser({ password })
+      if (error) {
+        toast.error('Failed to update password: ' + error.message)
+        return { error }
+      }
+      toast.success('Password updated successfully!')
+      return { error: null }
+    } catch (error) {
+      toast.error('An unexpected error occurred')
+      return { error }
+    }
+  }
+
   const checkPointsBalance = (pointsNeeded: number): boolean => {
     if (!profile) return false
     return profile.points_balance >= pointsNeeded
@@ -444,6 +467,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     signIn,
     signOut,
     updateProfile,
+    updatePassword,
     checkPointsBalance,
     deductPoints,
     addPoints,

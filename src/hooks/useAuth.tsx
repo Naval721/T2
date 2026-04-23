@@ -64,6 +64,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session)
       setUser(session?.user ?? null)
+
+      // Clear the ugly #access_token hash from the URL after successful email confirmation
+      if (event === 'SIGNED_IN' && window.location.hash.includes('access_token=')) {
+        toast.success('Account successfully verified! You are now signed in.')
+        window.history.replaceState(null, document.title, window.location.pathname + window.location.search)
+      }
+
       if (!session?.user) {
         setProfile(null)
         setLoading(false)

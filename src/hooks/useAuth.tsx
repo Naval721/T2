@@ -42,6 +42,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let mounted = true;
+
     // Check if Supabase is properly configured
     if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
       logger.warn('Supabase not configured - running in demo mode')
@@ -51,6 +53,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return;
       setSession(session)
       setUser(session?.user ?? null)
       if (session?.user) {
@@ -64,6 +67,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted || event === 'INITIAL_SESSION') return;
+
       setSession(session)
       setUser(session?.user ?? null)
 
@@ -75,7 +80,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      mounted = false;
+      subscription.unsubscribe()
+    }
   }, [])
 
   const fetchUserProfile = async (userId: string) => {
@@ -267,15 +275,22 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
 
       const { error } = await supabase.auth.signOut()
+
+      // Always clear local state on sign out attempt
+      setUser(null)
+      setProfile(null)
+
       if (error) {
-        toast.error(error.message)
+        // Log the error but don't prevent user from experiencing a sign-out locally
+        logger.warn('Sign out warning:', error.message)
+        toast.success('Signed out successfully')
       } else {
-        setUser(null)
-        setProfile(null)
         toast.success('Signed out successfully')
       }
     } catch (error) {
-      toast.error('An unexpected error occurred')
+      setUser(null)
+      setProfile(null)
+      toast.success('Signed out successfully')
     }
   }
 

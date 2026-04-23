@@ -36,7 +36,7 @@ const dataURLToBlob = (dataURL: string): Blob => {
 export const ExportPanel = ({ canvasRef, selectedPlayer, playerData, jerseyImages }: ExportPanelProps) => {
     const [exportQuality, setExportQuality] = useState<'ultra' | 'high' | 'medium'>('ultra');
     const [isExporting, setIsExporting] = useState(false);
-    const { user, profile, deductPoints, addPoints, currentPoints } = useAuth();
+    const { user, profile, deductPoints, addPoints, currentPoints, loading: authLoading } = useAuth();
 
     const getQualityMultiplier = () => {
         // Base canvas width for front/back is 640px.
@@ -652,8 +652,8 @@ export const ExportPanel = ({ canvasRef, selectedPlayer, playerData, jerseyImage
                     <Coins className="w-5 h-5" />
                     <span className="font-bold text-sm uppercase tracking-wider">Available Points</span>
                 </div>
-                <div className={`font-mono text-xl font-black ${currentPoints <= 0 ? 'text-red-600' : currentPoints < 5 ? 'text-yellow-600' : 'text-black'}`}>
-                    {currentPoints} pts
+                <div className={`font-mono text-xl font-black ${currentPoints <= 0 && !authLoading ? 'text-red-600' : currentPoints < 5 && !authLoading ? 'text-yellow-600' : 'text-black'}`}>
+                    {authLoading ? '...' : currentPoints} pts
                 </div>
             </div>
 
@@ -703,7 +703,7 @@ export const ExportPanel = ({ canvasRef, selectedPlayer, playerData, jerseyImage
 
                     <Button
                         onClick={exportCurrentDesign}
-                        disabled={!selectedPlayer || !canvasRef || isExporting || currentPoints < 1}
+                        disabled={!selectedPlayer || !canvasRef || isExporting || currentPoints < 1 || authLoading}
                         className="w-full h-12 bg-black text-white rounded-none border-2 border-black hover:bg-gray-800 transition-all uppercase font-bold text-xs tracking-widest shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[-1px]"
                     >
                         <Download className="w-4 h-4 mr-2" />
@@ -722,7 +722,7 @@ export const ExportPanel = ({ canvasRef, selectedPlayer, playerData, jerseyImage
                         onClick={() => exportIndividualSleeve('leftSleeve')}
                         variant="outline"
                         className="h-10 border-2 border-gray-300 hover:border-black rounded-none hover:bg-gray-50 transition-all uppercase text-[10px] font-bold tracking-wider"
-                        disabled={!selectedPlayer || !canvasRef || isExporting || currentPoints < 1}
+                        disabled={!selectedPlayer || !canvasRef || isExporting || currentPoints < 1 || authLoading}
                     >
                         Left Sleeve
                     </Button>
@@ -730,7 +730,7 @@ export const ExportPanel = ({ canvasRef, selectedPlayer, playerData, jerseyImage
                         onClick={() => exportIndividualSleeve('rightSleeve')}
                         variant="outline"
                         className="h-10 border-2 border-gray-300 hover:border-black rounded-none hover:bg-gray-50 transition-all uppercase text-[10px] font-bold tracking-wider"
-                        disabled={!selectedPlayer || !canvasRef || isExporting || currentPoints < 1}
+                        disabled={!selectedPlayer || !canvasRef || isExporting || currentPoints < 1 || authLoading}
                     >
                         Right Sleeve
                     </Button>
@@ -738,7 +738,7 @@ export const ExportPanel = ({ canvasRef, selectedPlayer, playerData, jerseyImage
                         onClick={exportCollar}
                         variant="outline"
                         className="h-10 border-2 border-gray-300 hover:border-black rounded-none hover:bg-gray-50 transition-all uppercase text-[10px] font-bold tracking-wider"
-                        disabled={!selectedPlayer || !canvasRef || isExporting || currentPoints < 1}
+                        disabled={!selectedPlayer || !canvasRef || isExporting || currentPoints < 1 || authLoading}
                     >
                         Collar
                     </Button>
@@ -757,7 +757,7 @@ export const ExportPanel = ({ canvasRef, selectedPlayer, playerData, jerseyImage
                 <div className="grid grid-cols-1 gap-3">
                     <Button
                         onClick={exportAllDesigns}
-                        disabled={playerData.length === 0 || !canvasRef || isExporting || currentPoints < playerData.length}
+                        disabled={playerData.length === 0 || !canvasRef || isExporting || currentPoints < playerData.length || authLoading}
                         variant="outline"
                         className="w-full h-12 border-2 border-black rounded-none transition-all uppercase font-bold text-xs tracking-widest"
                     >
@@ -771,7 +771,7 @@ export const ExportPanel = ({ canvasRef, selectedPlayer, playerData, jerseyImage
 
                     <Button
                         onClick={exportFullProductionPack}
-                        disabled={playerData.length === 0 || !canvasRef || isExporting || currentPoints < playerData.length * 5}
+                        disabled={playerData.length === 0 || !canvasRef || isExporting || currentPoints < playerData.length * 5 || authLoading}
                         className="w-full h-16 bg-black text-white rounded-none border-4 border-black hover:bg-gray-800 transition-all uppercase font-black tracking-widest shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[-2px] hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]"
                     >
                         <Archive className="w-6 h-6 mr-3" />

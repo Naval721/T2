@@ -42,8 +42,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    let mounted = true;
-
     // Check if Supabase is properly configured
     if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
       logger.warn('Supabase not configured - running in demo mode')
@@ -51,40 +49,39 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       return
     }
 
-    // Get initial session
+    // 1. Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!mounted) return;
       setSession(session)
       setUser(session?.user ?? null)
-      if (session?.user) {
-        fetchUserProfile(session.user.id)
-      } else {
+      if (!session?.user) {
         setLoading(false)
       }
     })
 
-    // Listen for auth changes
+    // 2. Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!mounted || event === 'INITIAL_SESSION') return;
-
+    } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session)
       setUser(session?.user ?? null)
-
-      if (session?.user) {
-        await fetchUserProfile(session.user.id)
-      } else {
+      if (!session?.user) {
         setProfile(null)
         setLoading(false)
       }
     })
 
     return () => {
-      mounted = false;
       subscription.unsubscribe()
     }
   }, [])
+
+  // 3. Keep profile strictly synced with the active user
+  useEffect(() => {
+    if (user) {
+      setLoading(true)
+      fetchUserProfile(user.id)
+    }
+  }, [user?.id])
 
   const fetchUserProfile = async (userId: string) => {
     try {

@@ -22,7 +22,8 @@ import {
   XCircle,
   ShoppingCart,
   TrendingUp,
-  Gift
+  Gift,
+  Loader2
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatPoints, formatCurrency, calculateExportsPossible } from '@/types/points'
@@ -33,7 +34,7 @@ interface UserDashboardProps {
 
 export const UserDashboard = ({ onClose }: UserDashboardProps) => {
   const navigate = useNavigate()
-  const { user, profile, signOut, updateProfile, addPoints } = useAuth()
+  const { user, profile, signOut, updateProfile, addPoints, loading: authLoading } = useAuth()
   const [loading, setLoading] = useState(false)
   const [showPurchaseDialog, setShowPurchaseDialog] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
@@ -91,6 +92,15 @@ export const UserDashboard = ({ onClose }: UserDashboardProps) => {
     } finally {
       setLoading(false)
     }
+  }
+
+  if (authLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 space-y-4">
+        <Loader2 className="w-8 h-8 animate-spin text-black" />
+        <p className="text-gray-500 font-medium">Loading profile and points...</p>
+      </div>
+    )
   }
 
   if (!profile && !user) return null

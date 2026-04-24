@@ -358,36 +358,58 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       return { success: false, error: 'Not authenticated' }
     }
 
+    const isRefund = points < 0;
+
     try {
-      const { data: success, error } = await supabase.rpc('deduct_points_from_user', {
-        user_uuid: user.id,
-        points_to_deduct: points,
-        transaction_description: description,
-        transaction_metadata: null
-      })
-
-      if (error) {
-        logger.error('Error deducting points:', error)
-        return { success: false, error }
-      }
-
-      if (!success) {
-        return { success: false, error: 'Insufficient points' }
-      }
-
-      // Sync local state completely from the confirmed DB truth
-      const { data: freshProfile } = await supabase
+      // Always fetch the live balance first to prevent stale-state race conditions
+      const { data: freshProfile, error: fetchError } = await supabase
         .from('user_profiles')
-        .select('*')
+        .select('points_balance, total_points_used')
         .eq('id', user.id)
         .single()
 
-      if (freshProfile) setProfile(freshProfile)
+      if (fetchError || !freshProfile) {
+        return { success: false, error: fetchError?.message || 'Could not fetch balance' }
+      }
+
+      // Block deduction if not enough points (skip check for refunds)
+      if (!isRefund && freshProfile.points_balance < points) {
+        setProfile(prev => prev ? { ...prev, points_balance: freshProfile.points_balance } : null)
+        return { success: false, error: `Insufficient points: have ${freshProfile.points_balance}, need ${points}` }
+      }
+
+      const newBalance = freshProfile.points_balance - points;
+      const newUsed = isRefund ? Math.max(0, freshProfile.total_points_used + points) : freshProfile.total_points_used + points;
+
+      const { error: updateError } = await supabase
+        .from('user_profiles')
+        .update({
+          points_balance: newBalance,
+          total_points_used: newUsed,
+          last_points_update: new Date().toISOString()
+        })
+        .eq('id', user.id)
+
+      if (updateError) {
+        logger.error('Error deducting points:', updateError)
+        return { success: false, error: updateError.message }
+      }
+
+      // Log the transaction
+      await supabase.from('points_transactions').insert({
+        user_id: user.id,
+        transaction_type: isRefund ? 'refund' : 'usage',
+        points_amount: -points,
+        description
+      }).then(({ error }) => { if (error) logger.warn('Transaction log failed:', error) })
+
+      // Sync local state with committed DB values
+      setProfile(prev => prev ? { ...prev, points_balance: newBalance, total_points_used: newUsed } : null)
 
       return { success: true }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error in deductPoints:', error)
-      return { success: false, error }
+      return { success: false, error: error?.message || error }
     }
   }
 
@@ -397,26 +419,44 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
 
     try {
-      const { error } = await supabase.rpc('add_points_to_user', {
-        user_uuid: user.id,
-        points_to_add: points,
-        transaction_description: description,
-        transaction_metadata: null
-      })
-
-      if (error) {
-        logger.error('Error in addPoints RPC:', error)
-        return { success: false, error }
-      }
-
-      // Sync local state completely from the confirmed DB truth
-      const { data: freshProfile } = await supabase
+      // Fetch live balance to avoid stale-state calculation
+      const { data: freshProfile, error: fetchError } = await supabase
         .from('user_profiles')
-        .select('*')
+        .select('points_balance, total_points_purchased')
         .eq('id', user.id)
         .single()
 
-      if (freshProfile) setProfile(freshProfile)
+      if (fetchError || !freshProfile) {
+        return { success: false, error: fetchError?.message || 'Could not fetch balance' }
+      }
+
+      const newBalance = freshProfile.points_balance + points;
+      const newPurchased = freshProfile.total_points_purchased + points;
+
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({
+          points_balance: newBalance,
+          total_points_purchased: newPurchased,
+          last_points_update: new Date().toISOString()
+        })
+        .eq('id', user.id)
+
+      if (error) {
+        logger.error('Error in addPoints:', error)
+        return { success: false, error: error.message }
+      }
+
+      // Log the transaction
+      await supabase.from('points_transactions').insert({
+        user_id: user.id,
+        transaction_type: 'purchase',
+        points_amount: points,
+        description
+      }).then(({ error }) => { if (error) logger.warn('Transaction log failed:', error) })
+
+      // Sync local state using the newly computed values (no re-fetch needed)
+      setProfile(prev => prev ? { ...prev, points_balance: newBalance, total_points_purchased: newPurchased } : null)
 
       return { success: true }
     } catch (error) {

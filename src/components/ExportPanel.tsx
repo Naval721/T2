@@ -109,7 +109,7 @@ export const ExportPanel = ({
 
         try {
             const result = await deductPoints(totalCost, `Export: ${type}`);
-            if (!result.success) throw new Error("Payment failed.");
+            if (!result.success) throw new Error(`Payment failed: ${result.error || 'unknown reason'}`);
             pointsDeducted = true;
 
             const zip = new JSZip();
@@ -146,13 +146,40 @@ export const ExportPanel = ({
                         canvasRef.clear();
                         canvasRef.backgroundColor = 'transparent';
 
-                        const bgImg = await FabricImage.fromURL(imgUrl);
+                        const bgImg = await FabricImage.fromURL(imgUrl, { crossOrigin: 'anonymous' }).catch(
+                            () => FabricImage.fromURL(imgUrl) // fallback without crossOrigin for blob: URLs
+                        );
+
+                        // Guard against zero/invalid image dimensions
+                        const imgW = bgImg.width ?? 0;
+                        const imgH = bgImg.height ?? 0;
+                        if (imgW <= 0 || imgH <= 0) {
+                            console.warn(`Export: image dimensions are 0 for view "${view}", skipping`);
+                            continue;
+                        }
+
                         const isCollar = view === 'collar';
-                        const maxW = isCollar ? 560 : 640;
-                        const maxH = isCollar ? 206 : 514;
-                        const scale = Math.min(maxW / bgImg.width!, maxH / bgImg.height!);
-                        bgImg.set({ scaleX: scale, scaleY: scale, originX: 'center', originY: isCollar ? 'top' : 'center', left: 480, top: isCollar ? 154 : 360, selectable: false });
-                        (bgImg as any).name = `jersey${view.charAt(0).toUpperCase() + view.slice(1)}`;
+                        const isSleeve = view === 'leftSleeve' || view === 'rightSleeve';
+                        const maxW = isCollar ? 560 : isSleeve ? 400 : 640;
+                        const maxH = isCollar ? 206 : isSleeve ? 400 : 514;
+                        const scale = Math.min(maxW / imgW, maxH / imgH);
+
+                        bgImg.set({
+                            scaleX: scale,
+                            scaleY: scale,
+                            originX: 'center',
+                            originY: isCollar ? 'top' : 'center',
+                            left: 480,
+                            top: isCollar ? 154 : 360,
+                            selectable: false,
+                        });
+
+                        // ⚠️ Use the EXACT names that getDesignBounds() checks for:
+                        //   jerseyFront, jerseyBack, leftSleeve, rightSleeve, collar
+                        const bgName = view === 'front' ? 'jerseyFront'
+                            : view === 'back' ? 'jerseyBack'
+                                : view; // 'leftSleeve' | 'rightSleeve' | 'collar'
+                        (bgImg as any).name = bgName;
                         canvasRef.add(bgImg);
                         canvasRef.sendObjectToBack(bgImg);
 
@@ -164,14 +191,14 @@ export const ExportPanel = ({
                             const nameText = new FabricText(player.playerName, {
                                 ...(np || {}), text: player.playerName,
                                 left: np?.left ?? backCX, top: np?.top ?? (br.top + br.height * 0.26),
-                                fontSize: np?.fontSize ?? 16, fontFamily: np?.fontFamily ?? 'Anton', fill: np?.fill ?? '#000000', originX: 'center', originY: 'center', selectable: false
+                                fontSize: np?.fontSize ?? 38, fontFamily: np?.fontFamily ?? 'Anton', fill: np?.fill ?? '#000000', originX: 'center', originY: 'center', selectable: false
                             });
                             (nameText as any).name = 'playerName'; canvasRef.add(nameText);
 
                             const numText = new FabricText(player.jerseyNumber, {
                                 ...(nump || {}), text: player.jerseyNumber,
                                 left: nump?.left ?? backCX, top: nump?.top ?? (br.top + br.height * 0.52),
-                                fontSize: nump?.fontSize ?? 48, fontFamily: nump?.fontFamily ?? 'Anton', fill: nump?.fill ?? '#000000', originX: 'center', originY: 'center', selectable: false
+                                fontSize: nump?.fontSize ?? 115, fontFamily: nump?.fontFamily ?? 'Anton', fill: nump?.fill ?? '#000000', originX: 'center', originY: 'center', selectable: false
                             });
                             (numText as any).name = 'jerseyNumber'; canvasRef.add(numText);
                         }
@@ -186,14 +213,31 @@ export const ExportPanel = ({
                                 const logoImg = await FabricImage.fromURL(cl.src);
                                 logoImg.set({ ...cl, selectable: false });
                                 (logoImg as any).name = 'customLogo'; canvasRef.add(logoImg);
-                            } catch (e) { }
+                            } catch (e) { console.warn('Logo load failed', e); }
                         }
 
                         canvasRef.requestRenderAll();
-                        await new Promise(r => setTimeout(r, 120));
+                        // Give the browser a frame to finish painting before capturing
+                        await new Promise(r => requestAnimationFrame(() => setTimeout(r, 80)));
 
                         const bounds = getDesignBounds(canvasRef);
-                        if (!bounds) continue;
+                        if (!bounds) {
+                            // Final fallback: use the bg image bounding rect directly
+                            const fallback = bgImg.getBoundingRect();
+                            if (!fallback || fallback.width <= 0 || fallback.height <= 0) {
+                                console.warn(`Export: no bounds for view "${view}", skipping`);
+                                continue;
+                            }
+                            // Use whole canvas if fallback is available
+                            Object.assign(fallback, {
+                                left: Math.max(0, fallback.left),
+                                top: Math.max(0, fallback.top),
+                            });
+                            const dataURL = canvasRef.toDataURL({ format: 'png', quality: 1.0, multiplier: 1, left: fallback.left, top: fallback.top, width: fallback.width, height: fallback.height });
+                            playerFolder?.file(`${view}.png`, dataURLToBlob(dataURL));
+                            exportedCount++;
+                            continue;
+                        }
 
                         let multiplier = getQualityMultiplier() * getSizeScaleFactorFromDim(player.size);
                         if (view === 'front' || view === 'back') {
@@ -203,7 +247,9 @@ export const ExportPanel = ({
                         const dataURL = canvasRef.toDataURL({ format: 'png', quality: 1.0, multiplier, left: bounds.left, top: bounds.top, width: bounds.width, height: bounds.height });
                         playerFolder?.file(`${view}.png`, dataURLToBlob(dataURL));
                         exportedCount++;
-                    } catch (e) { }
+                    } catch (e) {
+                        console.error('Export failed for view', view, e);
+                    }
                 }
                 toast.info(`Packing ${i + 1} / ${playersToExport.length}...`);
             }
@@ -217,8 +263,9 @@ export const ExportPanel = ({
             saveAs(zipBlob, `GxStudio_${type.toUpperCase()}_${Date.now()}.zip`);
             toast.success(`Pack ready! ${exportedCount} files exported (${totalCost} pts).`);
 
-        } catch (e) {
-            toast.error(pointsDeducted ? `Failed. ${totalCost} pts refunded.` : `Export Failed.`);
+        } catch (e: any) {
+            console.error('Outer Export Failed', e);
+            toast.error(pointsDeducted ? `Failed. ${totalCost} pts refunded.` : `Export Failed: ${e.message}`);
             if (pointsDeducted) { try { await deductPoints(-totalCost, "Refund"); } catch { } }
         } finally {
             (canvasRef as any).__isExporting = false;

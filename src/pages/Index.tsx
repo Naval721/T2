@@ -59,15 +59,20 @@ const Index = () => {
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
 
-  // Re-check for portal target when step changes
+  // Re-check for portal target when step changes with resilient polling
   useEffect(() => {
-    if (currentStep === 2 || currentStep === 3) {
-      // Small timeout to allow DOM to render the new step before searching
-      const timer = setTimeout(() => {
+    if (currentStep === 2 || currentStep === 3 || currentStep === 4) {
+      let attempts = 0;
+      const findTarget = () => {
         const target = document.getElementById('canvas-portal-target');
-        if (target) setPortalTarget(target);
-      }, 50);
-      return () => clearTimeout(timer);
+        if (target) {
+          setPortalTarget(target);
+        } else if (attempts < 10) {
+          attempts++;
+          setTimeout(findTarget, 50); // poll up to 500ms
+        }
+      };
+      findTarget();
     } else {
       setPortalTarget(null);
     }
@@ -199,9 +204,19 @@ const Index = () => {
           savedState.playerData[savedState.selectedPlayerIndex]
         ) {
           setSelectedPlayer(savedState.playerData[savedState.selectedPlayerIndex]);
+        } else if (savedState.playerData.length > 0) {
+          setSelectedPlayer(savedState.playerData[0]);
         }
       }
-      if (savedState.currentStep) setCurrentStep(savedState.currentStep);
+      
+      const isDataComplete = savedState.jerseyImages && Object.keys(savedState.jerseyImages).length > 0 &&
+                             savedState.playerData && savedState.playerData.length > 0;
+
+      if (savedState.currentStep && isDataComplete) {
+        setCurrentStep(savedState.currentStep);
+      } else {
+        setCurrentStep(1);
+      }
       setLastSaveTime(formatLastSaveTime());
       toast.success("Previous session restored!");
     }
@@ -378,6 +393,7 @@ const Index = () => {
                     selectedPlayer={selectedPlayer}
                     onCanvasReady={setCanvasRef}
                     defaultFont={defaultFont}
+                    defaultColor={defaultColor}
                     showTools={currentStep === 3}
                   />
                 </div>
@@ -481,7 +497,11 @@ const Index = () => {
       {/* Restore Session Dialog */}
       <ConfirmationDialog
         open={showRestoreDialog}
-        onOpenChange={setShowRestoreDialog}
+        onOpenChange={(open) => {
+          setShowRestoreDialog(open);
+          // When closed via cancel (X / "Start Fresh"), clear the stale saved session
+          if (!open) handleStartFresh();
+        }}
         onConfirm={handleRestoreSession}
         title="Restore Previous Session?"
         description={`You have unsaved work from ${formatLastSaveTime()}. Would you like to continue where you left off?`}

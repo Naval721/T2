@@ -16,6 +16,8 @@ export const checkEnvironment = () => {
   return true;
 };
 
-// Run on import
-checkEnvironment();
+// Run on import but only log in development
+if (import.meta.env.MODE === 'development') {
+  checkEnvironment();
+}
 

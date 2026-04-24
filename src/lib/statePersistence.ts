@@ -102,6 +102,9 @@ export const clearState = (): void => {
         }
         keysToRemove.forEach(key => localStorage.removeItem(key));
 
+        // Wipe the global designer template so custom logos/texts don't ghost onto new sessions
+        localStorage.removeItem('jerseyDesigner:globalTemplate');
+
     } catch (error) {
         console.error('Failed to clear state:', error);
     }

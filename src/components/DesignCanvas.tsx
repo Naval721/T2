@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Canvas as FabricCanvas, Image as FabricImage, IText as FabricText, TPointerEventInfo, Shadow, Pattern, Gradient } from "fabric";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { RotateCcw, ZoomIn, ZoomOut, Move, Download, Scissors } from "lucide-react";
+import { RotateCcw, ZoomIn, ZoomOut, Move, Download, Scissors, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import type { JerseyImages, PlayerData } from "@/pages/Index";
 import { logger } from "@/lib/logger";
@@ -183,6 +183,7 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
     // Persist text placements/styles across views and sessions globally
     const textRef = useRef<{ [view: string]: { name?: TextProps; number?: TextProps; customTexts?: TextProps[]; customLogos?: LogoProps[] } }>({});
     const currentViewRef = useRef<'front' | 'back' | 'leftSleeve' | 'rightSleeve' | 'collar'>('front');
+    const prevPlayerRef = useRef<PlayerData | null>(selectedPlayer);
     const { deductPoints, currentPoints } = useAuth();
     const isInitialized = useRef(false);
 
@@ -221,6 +222,15 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
             // Ignore storage errors
         }
     };
+
+    // Debounced version — max one write per 300 ms to prevent localStorage thrashing
+    const saveGlobalTemplateDebounced = (() => {
+        let timer: ReturnType<typeof setTimeout>;
+        return () => {
+            clearTimeout(timer);
+            timer = setTimeout(saveGlobalTemplate, 300);
+        };
+    })();
 
     useEffect(() => {
         currentViewRef.current = currentView;
@@ -293,6 +303,7 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
             originY: 'center',
         });
 
+        // Persist name and number globally
         if (nameObj && view === 'back') {
             textRef.current[view].name = pickProps(nameObj);
         }
@@ -300,12 +311,10 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
             textRef.current[view].number = pickProps(numberObj);
         }
 
-        if (customTexts.length > 0) {
-            textRef.current[view].customTexts = customTexts.map(pickProps);
-        }
-
-        if (customLogos.length > 0 && view === 'front') {
-            textRef.current[view].customLogos = customLogos.map(logo => ({
+        // Persist custom texts & logos PER PLAYER
+        const customElementsData = {
+            customTexts: customTexts.map(pickProps),
+            customLogos: customLogos.map(logo => ({
                 src: (logo as any).src || '',
                 left: logo.left ?? 0,
                 top: logo.top ?? 0,
@@ -314,20 +323,40 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
                 angle: logo.angle ?? 0,
                 originX: 'center',
                 originY: 'center',
-            }));
-        }
+            }))
+        };
 
-        saveGlobalTemplate();
+        const playerKey = `jerseyDesigner:playerElements_${selectedPlayer.playerName}_${selectedPlayer.jerseyNumber}`;
+        const existingDataStr = localStorage.getItem(playerKey);
+        const existingData = existingDataStr ? JSON.parse(existingDataStr) : {};
+        existingData[view] = customElementsData;
+        localStorage.setItem(playerKey, JSON.stringify(existingData));
+
+        saveGlobalTemplateDebounced();
     };
 
     // Track dragging/move to persist text positions live for all views
     useEffect(() => {
         if (!fabricCanvas) return;
 
+        let persistTimer: ReturnType<typeof setTimeout>;
+        const debouncedPersistState = () => {
+            clearTimeout(persistTimer);
+            persistTimer = setTimeout(() => {
+                persistState();
+            }, 100);
+        };
+
         const handler = (opt: any) => {
             if (!selectedPlayer || !fabricCanvas || !opt.target) return;
             if ((fabricCanvas as any).__isExporting) return;
             persistState();
+        };
+
+        const continuousHandler = (opt: any) => {
+            if (!selectedPlayer || !fabricCanvas || !opt.target) return;
+            if ((fabricCanvas as any).__isExporting) return;
+            debouncedPersistState();
         };
 
         const movingHandler = (opt: any) => {
@@ -348,10 +377,10 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
 
         fabricCanvas.on('object:added', handler);
         fabricCanvas.on('object:modified', handler);
-        fabricCanvas.on('object:moving', handler);
+        fabricCanvas.on('object:moving', continuousHandler);
         fabricCanvas.on('object:moving', movingHandler);
-        fabricCanvas.on('object:scaling', handler);
-        fabricCanvas.on('object:rotating', handler);
+        fabricCanvas.on('object:scaling', continuousHandler);
+        fabricCanvas.on('object:rotating', continuousHandler);
 
         return () => {
             fabricCanvas.off('object:added', handler);
@@ -409,11 +438,11 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
 
             if (nameObjPrev) textRef.current[prevView].name = pickTextProps(nameObjPrev);
             if (numberObjPrev) textRef.current[prevView].number = pickTextProps(numberObjPrev);
-            if (customTextsPrev.length > 0) {
-                textRef.current[prevView].customTexts = customTextsPrev.map(pickTextProps);
-            }
-            if (customLogosPrev.length > 0 && prevView === 'front') {
-                textRef.current[prevView].customLogos = customLogosPrev.map(logo => ({
+
+            // Persist the current view's custom elements to the local player store before clearing
+            const customElementsData = {
+                customTexts: customTextsPrev.map(pickTextProps),
+                customLogos: customLogosPrev.map(logo => ({
                     src: (logo as any).src || '',
                     left: logo.left ?? 0,
                     top: logo.top ?? 0,
@@ -422,9 +451,19 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
                     angle: logo.angle ?? 0,
                     originX: 'center',
                     originY: 'center',
-                }));
+                }))
+            };
+            const playerToSave = prevPlayerRef.current || selectedPlayer;
+            if (playerToSave) {
+                const playerKey = `jerseyDesigner:playerElements_${playerToSave.playerName}_${playerToSave.jerseyNumber}`;
+                const existingDataStr = localStorage.getItem(playerKey);
+                const existingData = existingDataStr ? JSON.parse(existingDataStr) : {};
+                existingData[prevView] = customElementsData;
+                localStorage.setItem(playerKey, JSON.stringify(existingData));
             }
-            saveGlobalTemplate();
+            prevPlayerRef.current = selectedPlayer;
+
+            saveGlobalTemplateDebounced();
         } catch { }
 
         // Preserve player text positions/styles (if already placed) before clearing
@@ -681,9 +720,15 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
                 }, 0);
             }
 
+            // Read per-player custom elements
+            const playerKey = `jerseyDesigner:playerElements_${selectedPlayer?.playerName}_${selectedPlayer?.jerseyNumber}`;
+            const playerElementsStr = localStorage.getItem(playerKey);
+            const playerElementsData = playerElementsStr ? JSON.parse(playerElementsStr) : {};
+            const viewPlayerElements = playerElementsData[activeView] || {};
+
             // Add custom texts for this view
-            const customTexts = viewTextData.customTexts || [];
-            const customTextObjects = customTexts.map(customTextProps => {
+            const customTexts = viewPlayerElements.customTexts || [];
+            const customTextObjects = customTexts.map((customTextProps: any) => {
                 const customText = new FabricText(customTextProps.text, {
                     ...customTextProps,
                 }) as ExtendedFabricText;
@@ -693,10 +738,10 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
                 return customText;
             });
 
-            // Add custom logos for this view (only on front)
-            if (activeView === 'front') {
-                const customLogos = viewTextData.customLogos || [];
-                const customLogoPromises = customLogos.map(async (logoProps) => {
+            // Load custom logos for ALL views
+            if (activeView === 'front' || activeView === 'back' || activeView === 'leftSleeve' || activeView === 'rightSleeve' || activeView === 'collar') {
+                const customLogos = viewPlayerElements.customLogos || [];
+                const customLogoPromises = customLogos.map(async (logoProps: any) => {
                     try {
                         if (logoProps.src) {
                             const logoImg = await FabricImage.fromURL(logoProps.src) as unknown as ExtendedFabricImage;
@@ -788,76 +833,83 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
         }
     };
 
-    const exportAllViews = async () => {
-        if (!fabricCanvas || !selectedPlayer) return;
+    // Note: export functions were removed to fix duplicate points logic and out-of-sync DPI configurations.
+    // All exports are now strictly handled by ExportPanel.tsx via Step 4.
 
-        if (currentPoints < 5) {
-            toast.error("Insufficient points! Exporting all views costs 5 points.");
+    const handleDeleteSelected = () => {
+        if (!fabricCanvas) return;
+        const activeObjects = fabricCanvas.getActiveObjects();
+
+        if (activeObjects.length > 0) {
+            let deletedCount = 0;
+            activeObjects.forEach((obj) => {
+                const extendedObj = obj as ExtendedFabricText | ExtendedFabricImage;
+                // Only allow deleting custom logos or custom text
+                if (extendedObj.name === 'customLogo' || extendedObj.name === 'customText') {
+                    fabricCanvas.remove(obj);
+                    deletedCount++;
+                }
+            });
+
+            if (deletedCount > 0) {
+                fabricCanvas.discardActiveObject();
+                fabricCanvas.requestRenderAll();
+                saveGlobalTemplateDebounced(); // Save global template
+                toast.success(`Removed ${deletedCount} item(s)`);
+            } else {
+                toast.error("Can only delete custom logos and text");
+            }
+        } else {
+            toast.info("Select a custom logo or text to delete");
+        }
+    };
+
+    const applyCustomElementsToAll = () => {
+        if (!selectedPlayer) return;
+        const playerKey = `jerseyDesigner:playerElements_${selectedPlayer.playerName}_${selectedPlayer.jerseyNumber}`;
+        const dataStr = localStorage.getItem(playerKey);
+
+        if (!dataStr) {
+            toast.info("No custom graphic/text elements placed on this player to apply.");
             return;
         }
 
-        const proceed = await deductPoints(5, `Canvas Export All - ${selectedPlayer.playerName}`);
-        if (!proceed.success) {
-            toast.error("Failed to deduct points.");
-            return;
+        const playersStr = localStorage.getItem('gxstudio_player_data');
+        if (playersStr) {
+            try {
+                const players: PlayerData[] = JSON.parse(playersStr);
+                players.forEach(p => {
+                    const pKey = `jerseyDesigner:playerElements_${p.playerName}_${p.jerseyNumber}`;
+                    localStorage.setItem(pKey, dataStr);
+                });
+                toast.success("Custom design successfully applied to all players!");
+            } catch (err) {
+                toast.error("Failed to parse players roster.");
+            }
         }
+    };
 
-        toast.info("Exporting all jersey views as PNG (500 DPI)...");
-        const views: typeof currentView[] = ['front', 'back', 'leftSleeve', 'rightSleeve', 'collar'];
+    // Listen for Delete key
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // Prevent triggering if user is typing in an input field (but let Fabric handle its own text editing)
+            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 
-        try {
-            for (const view of views) {
-                await loadJerseyView(view);
-                const dataURL = exportCleanJerseyDesign(fabricCanvas, selectedPlayer.size, 500);
-
-                if (dataURL) {
-                    const link = document.createElement('a');
-                    link.href = dataURL;
-                    link.download = `${selectedPlayer.playerName}_${selectedPlayer.jerseyNumber}_${view}.png`;
-                    link.click();
-                    await new Promise(resolve => setTimeout(resolve, 200));
+            if (e.key === 'Delete' || e.key === 'Backspace') {
+                if (fabricCanvas && fabricCanvas.getActiveObject()) {
+                    // Only trigger if a fabric text isn't actively being edited
+                    const activeObj = fabricCanvas.getActiveObject() as FabricText;
+                    if (!activeObj.isEditing) {
+                        e.preventDefault();
+                        handleDeleteSelected();
+                    }
                 }
             }
-            await loadJerseyView();
-            toast.success("All views exported successfully! (-5 pts)");
-        } catch (error) {
-            toast.error("Failed to export some views");
-            logger.error('Export error:', error);
-            try { await loadJerseyView(); } catch (e) { }
-        }
-    };
+        };
 
-    const exportCurrentView = async () => {
-        if (!fabricCanvas || !selectedPlayer) return;
-
-        if (currentPoints < 1) {
-            toast.error("Insufficient points! This export costs 1 point.");
-            return;
-        }
-
-        const proceed = await deductPoints(1, `Canvas Export Current - ${selectedPlayer.playerName}`);
-        if (!proceed.success) {
-            toast.error("Failed to deduct points.");
-            return;
-        }
-
-        try {
-            const dataURL = exportCleanJerseyDesign(fabricCanvas, selectedPlayer.size, 500);
-            if (!dataURL) {
-                toast.error("No design content to export");
-                return;
-            }
-
-            const link = document.createElement('a');
-            link.href = dataURL;
-            link.download = `${selectedPlayer.playerName}_${selectedPlayer.jerseyNumber}_${currentView}.png`;
-            link.click();
-            toast.success(`Current view exported successfully! (-1 pt)`);
-        } catch (error) {
-            toast.error("Failed to export current view");
-            logger.error('Export error:', error);
-        }
-    };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [fabricCanvas]);
 
     const handleZoomIn = () => {
         if (!fabricCanvas) return;
@@ -1206,27 +1258,21 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
                     >
                         Auto Center
                     </Button>
+                    {showTools && (
+                        <Button
+                            variant="default"
+                            size="sm"
+                            onClick={applyCustomElementsToAll}
+                            className="bg-black text-white ml-2 shadow-[2px_2px_0px_0px_rgba(100,100,100,1)]"
+                            title="Copy this player's custom text and logos to ALL players"
+                        >
+                            Apply Customizations to All
+                        </Button>
+                    )}
 
                     {showTools && (
                         <>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={exportCurrentView}
-                                title="Export current view as PNG (500 DPI)"
-                            >
-                                <Download className="w-4 h-4 mr-2" />
-                                Export Current
-                            </Button>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={exportAllViews}
-                                title="Export all views as PNG (500 DPI)"
-                            >
-                                <Download className="w-4 h-4 mr-2" />
-                                Export All
-                            </Button>
+                            {/* Export functionality moved to Step 4. */}
                         </>
                     )}
                 </div>
@@ -1245,8 +1291,11 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
                             <Button variant="outline" size="sm" onClick={enablePanMode}>
                                 <Move className="w-4 h-4" />
                             </Button>
-                            <Button variant="outline" size="sm" onClick={handleResetView}>
+                            <Button variant="outline" size="sm" onClick={handleResetView} title="Reset View">
                                 <RotateCcw className="w-4 h-4" />
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={handleDeleteSelected} title="Delete Selected Layer (Del)">
+                                <Trash2 className="w-4 h-4 text-red-500" />
                             </Button>
                             <Button
                                 variant={showCuttingOutline ? "default" : "outline"}
@@ -1273,7 +1322,7 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
 
             <div className="mt-4 text-xs text-muted-foreground text-center">
                 {showTools
-                    ? "Use the customization tools to add logos, adjust text, and personalize the design. All exports are in PNG format at 500 DPI for professional printing quality."
+                    ? "Use the customization tools to add logos, adjust text, and personalize the design. Proceed to the next step for high-res exports."
                     : "Review your designs and switch between views. Click 'Continue to Customization' to proceed."}
             </div>
         </Card>

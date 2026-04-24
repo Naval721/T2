@@ -194,6 +194,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         return { error: null, needsEmailConfirmation: false }
       }
 
+      const redirectTo = `${window.location.origin}/design`
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -201,7 +202,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           data: {
             full_name: fullName,
           },
-          emailRedirectTo: window.location.origin,
+          emailRedirectTo: redirectTo,
         },
       })
 
@@ -353,50 +354,35 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }
 
   const deductPoints = async (points: number, description: string): Promise<{ success: boolean; error?: any }> => {
-    if (!user || !profile) {
+    if (!user) {
       return { success: false, error: 'Not authenticated' }
     }
 
-    if (profile.points_balance < points) {
-      return { success: false, error: 'Insufficient points' }
-    }
-
     try {
-      // Update profile
-      const { error: updateError } = await supabase
+      const { data: success, error } = await supabase.rpc('deduct_points_from_user', {
+        user_uuid: user.id,
+        points_to_deduct: points,
+        transaction_description: description,
+        transaction_metadata: null
+      })
+
+      if (error) {
+        logger.error('Error deducting points:', error)
+        return { success: false, error }
+      }
+
+      if (!success) {
+        return { success: false, error: 'Insufficient points' }
+      }
+
+      // Sync local state completely from the confirmed DB truth
+      const { data: freshProfile } = await supabase
         .from('user_profiles')
-        .update({
-          points_balance: profile.points_balance - points,
-          total_points_used: profile.total_points_used + points,
-          last_points_update: new Date().toISOString()
-        })
+        .select('*')
         .eq('id', user.id)
+        .single()
 
-      if (updateError) {
-        logger.error('Error deducting points:', updateError)
-        return { success: false, error: updateError }
-      }
-
-      // Create transaction record
-      const { error: transactionError } = await supabase
-        .from('points_transactions')
-        .insert({
-          user_id: user.id,
-          transaction_type: 'usage',
-          points_amount: -points,
-          description
-        })
-
-      if (transactionError) {
-        logger.error('Error creating transaction:', transactionError)
-      }
-
-      // Update local state
-      setProfile(prev => prev ? {
-        ...prev,
-        points_balance: prev.points_balance - points,
-        total_points_used: prev.total_points_used + points
-      } : null)
+      if (freshProfile) setProfile(freshProfile)
 
       return { success: true }
     } catch (error) {
@@ -406,46 +392,31 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }
 
   const addPoints = async (points: number, description: string): Promise<{ success: boolean; error?: any }> => {
-    if (!user || !profile) {
+    if (!user) {
       return { success: false, error: 'Not authenticated' }
     }
 
     try {
-      // Update profile
-      const { error: updateError } = await supabase
+      const { error } = await supabase.rpc('add_points_to_user', {
+        user_uuid: user.id,
+        points_to_add: points,
+        transaction_description: description,
+        transaction_metadata: null
+      })
+
+      if (error) {
+        logger.error('Error in addPoints RPC:', error)
+        return { success: false, error }
+      }
+
+      // Sync local state completely from the confirmed DB truth
+      const { data: freshProfile } = await supabase
         .from('user_profiles')
-        .update({
-          points_balance: profile.points_balance + points,
-          total_points_purchased: profile.total_points_purchased + points,
-          last_points_update: new Date().toISOString()
-        })
+        .select('*')
         .eq('id', user.id)
+        .single()
 
-      if (updateError) {
-        logger.error('Error adding points:', updateError)
-        return { success: false, error: updateError }
-      }
-
-      // Create transaction record
-      const { error: transactionError } = await supabase
-        .from('points_transactions')
-        .insert({
-          user_id: user.id,
-          transaction_type: 'purchase',
-          points_amount: points,
-          description
-        })
-
-      if (transactionError) {
-        logger.error('Error creating transaction:', transactionError)
-      }
-
-      // Update local state
-      setProfile(prev => prev ? {
-        ...prev,
-        points_balance: prev.points_balance + points,
-        total_points_purchased: prev.total_points_purchased + points
-      } : null)
+      if (freshProfile) setProfile(freshProfile)
 
       return { success: true }
     } catch (error) {

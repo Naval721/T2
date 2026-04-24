@@ -35,11 +35,11 @@ export interface UserPoints {
 // Point costs for different exports
 export const POINT_COSTS = {
   FRONT_IMAGE: 1,
-  BACK_IMAGE: 2,
+  BACK_IMAGE: 1,
   SLEEVE: 1, // per sleeve
   COLLAR: 1,
-  FULL_JERSEY: 4, // front + back + 2 sleeves
-  FULL_JERSEY_WITH_COLLAR: 5, // front + back + 2 sleeves + collar
+  FULL_JERSEY: 4, // front + back + left + right
+  FULL_JERSEY_WITH_COLLAR: 5, // front + back + left + right + collar
 } as const
 
 // Points packages

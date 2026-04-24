@@ -9,7 +9,7 @@ import { Link } from "react-router-dom";
 import { GxLogo } from "@/components/ui/GxLogo";
 
 export const Header = () => {
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, signOut, loading: authLoading } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showUserDashboard, setShowUserDashboard] = useState(false);
 
@@ -42,7 +42,12 @@ export const Header = () => {
 
           {/* Auth Section */}
           <div className="flex items-center gap-3">
-            {user ? (
+            {authLoading ? (
+              <Button disabled variant="ghost" className="text-gray-400">
+                <div className="w-4 h-4 mr-2 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                Loading...
+              </Button>
+            ) : user ? (
               <>
                 <Button
                   variant="ghost"
@@ -56,7 +61,7 @@ export const Header = () => {
                   variant="ghost"
                   size="sm"
                   onClick={handleSignOut}
-                  className="text-gray-600 hover:text-black hover:bg-gray-50"
+                  className="text-gray-600 hover:text-black hover:bg-gray-50 mb-[2px]"
                 >
                   <LogOut className="w-4 h-4" />
                 </Button>

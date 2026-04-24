@@ -28,8 +28,9 @@ export const AuthModal = ({ isOpen, onClose, defaultMode = 'signin', onSuccess }
   useEffect(() => {
     if (isOpen) {
       resetForm()
+      setMode(defaultMode)
     }
-  }, [isOpen])
+  }, [isOpen, defaultMode])
 
   const validateEmail = (email: string) => {
     if (!email) return 'Email is required'

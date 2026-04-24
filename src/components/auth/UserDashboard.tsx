@@ -41,6 +41,13 @@ export const UserDashboard = ({ onClose }: UserDashboardProps) => {
   const [newName, setNewName] = useState(profile?.full_name || '')
   const [newPassword, setNewPassword] = useState('')
 
+  // Sync the newName state when profile finishes loading
+  useEffect(() => {
+    if (profile?.full_name) {
+      setNewName(profile.full_name)
+    }
+  }, [profile?.full_name])
+
   const handleSignOut = async () => {
     setLoading(true)
     await signOut()
@@ -269,7 +276,7 @@ export const UserDashboard = ({ onClose }: UserDashboardProps) => {
             </div>
             <div className="flex items-center justify-between p-3 bg-gray-50 border rounded-xl">
               <span className="text-sm font-medium">Back Image</span>
-              <Badge variant="outline" className="font-bold bg-white text-black border-gray-200">2 points</Badge>
+              <Badge variant="outline" className="font-bold bg-white text-black border-gray-200">1 point</Badge>
             </div>
             <div className="flex items-center justify-between p-3 bg-gray-50 border rounded-xl">
               <span className="text-sm font-medium">Per Sleeve</span>

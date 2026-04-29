@@ -1,3 +1,8 @@
+// ─── GxStudio Security Shield — MUST be first import ──────────────────────
+import { initSecurityShield } from "./lib/security";
+initSecurityShield();
+// ───────────────────────────────────────────────────────────────────────────
+
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";

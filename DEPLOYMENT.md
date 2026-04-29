@@ -1,4 +1,4 @@
-# 🚀 Deployment Checklist for GxStudio
+# 🚀 Deployment Checklist for GxDrip
 
 Use this checklist to ensure your application is ready for production deployment.
 
@@ -66,7 +66,7 @@ git add .
 git commit -m "Ready for production deployment"
 
 # Add remote repository
-git remote add origin https://github.com/yourusername/GxStudio.git
+git remote add origin https://github.com/yourusername/GxDrip.git
 
 # Push to GitHub
 git push -u origin main

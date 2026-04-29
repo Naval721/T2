@@ -1,5 +1,5 @@
 // ─── Jersey Size Dimensions (W×L in inches) ──────────────────────────────────
-// Source: Official GxStudio size chart
+// Source: Official GxDrip size chart
 
 export interface JerseySizeDim {
     size: string;

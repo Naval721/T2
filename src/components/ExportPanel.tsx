@@ -113,7 +113,7 @@ export const ExportPanel = ({
             pointsDeducted = true;
 
             const zip = new JSZip();
-            const rootFolder = type === 'teamPack' ? zip.folder(`GxStudio_ROSTER_${Date.now()}`) : zip;
+            const rootFolder = type === 'teamPack' ? zip.folder(`GxDrip_ROSTER_${Date.now()}`) : zip;
             let exportedCount = 0;
 
             const originalVT = canvasRef.viewportTransform?.slice();
@@ -260,7 +260,7 @@ export const ExportPanel = ({
             if (exportedCount === 0) throw new Error("No views exported.");
 
             const zipBlob = await zip.generateAsync({ type: "blob" });
-            saveAs(zipBlob, `GxStudio_${type.toUpperCase()}_${Date.now()}.zip`);
+            saveAs(zipBlob, `GxDrip_${type.toUpperCase()}_${Date.now()}.zip`);
             toast.success(`Pack ready! ${exportedCount} files exported (${totalCost} pts).`);
 
         } catch (e: any) {

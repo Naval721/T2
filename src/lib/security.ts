@@ -1,20 +1,20 @@
 /**
  * ╔══════════════════════════════════════════════════════════════════╗
- * ║          GxStudio — PROPRIETARY SECURITY SHIELD v2.2            ║
+ * ║          GxDrip — PROPRIETARY SECURITY SHIELD v2.2            ║
  * ║  Unauthorized copying, reverse engineering, or redistribution   ║
  * ║  of this software is strictly prohibited.                       ║
- * ║  © 2024 GxStudio. All Rights Reserved.                          ║
+ * ║  © 2024 GxDrip. All Rights Reserved.                          ║
  * ╚══════════════════════════════════════════════════════════════════╝
  */
 
 /* ─── Constants ─────────────────────────────────────────────── */
-const _0xA1 = '\u00A9 2024 GxStudio. All rights reserved.';
+const _0xA1 = '\u00A9 2024 GxDrip. All rights reserved.';
 const _SHIELD_KEY = 'gxs_shield_active';
 
 // ── Allowed domains — add your real custom domain to this list ───────────────
 const _ALLOWED_DOMAINS: string[] = [
     'vercel.app',     // covers ALL *.vercel.app preview & production deployments
-    'gxstudio.app',   // your custom domain — replace with your actual domain
+    'gxdrip.app',   // your custom domain — replace with your actual domain
     'localhost',
     '127.0.0.1',
     '',               // file:// protocol in local dev
@@ -30,7 +30,7 @@ function _domainLock(): void {
         );
         if (!allowed) {
             // Warn only — do not wipe the page so legitimate sub-domains still load
-            console.warn('[GxStudio Security] Domain not in allowlist:', host);
+            console.warn('[GxDrip Security] Domain not in allowlist:', host);
         }
     } catch {
         // Never crash the app due to domain check — fail open
@@ -111,7 +111,7 @@ function _showDevToolsOverlay(): void {
       <h1 style="color:#ff3b3b;font-size:1.4rem;margin-bottom:0.75rem;letter-spacing:0.05em;">SECURITY ALERT</h1>
       <p style="color:#ccc;font-size:0.9rem;line-height:1.6;margin-bottom:1.5rem;">
         Developer tools have been detected.<br/>
-        This application is protected by GxStudio Security Shield.<br/>
+        This application is protected by GxDrip Security Shield.<br/>
         Unauthorized inspection is prohibited.
       </p>
       <p style="color:#666;font-size:0.7rem;">${_0xA1}</p>
@@ -171,7 +171,7 @@ function _addWatermark(): void {
         'color:rgba(255,255,255,0.15)', 'user-select:none',
         'letter-spacing:0.05em',
     ].join(';');
-    wm.textContent = '\u00A9 GxStudio \u2013 Protected';
+    wm.textContent = '\u00A9 GxDrip \u2013 Protected';
     document.body.appendChild(wm);
 }
 

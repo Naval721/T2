@@ -95,7 +95,7 @@ export const HomePage = ({ onStart }: HomePageProps) => {
               <div className="w-10 h-10 bg-black flex items-center justify-center transition-transform group-hover:scale-105 border-2 border-black shadow-[2px_2px_0px_0px_rgba(100,100,100,1)]">
                 <GxLogo className="w-6 h-6 text-white" />
               </div>
-              <span className="text-2xl font-black uppercase tracking-widest text-black" style={{ fontFamily: "'Inter', sans-serif" }}>GxStudio</span>
+              <span className="text-2xl font-black uppercase tracking-widest text-black" style={{ fontFamily: "'Inter', sans-serif" }}>GxDrip</span>
             </div>
             <div className="hidden md:flex items-center space-x-8">
               <button onClick={() => scrollTo('features')} className="text-gray-600 hover:text-black transition-colors">Home</button>

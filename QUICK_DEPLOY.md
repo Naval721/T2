@@ -25,7 +25,7 @@ git commit -m "Ready for deployment"
 
 Create a new repository on GitHub, then:
 ```bash
-git remote add origin https://github.com/YOUR_USERNAME/GxStudio.git
+git remote add origin https://github.com/YOUR_USERNAME/GxDrip.git
 git branch -M main
 git push -u origin main
 ```

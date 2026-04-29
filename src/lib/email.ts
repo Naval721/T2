@@ -15,7 +15,7 @@ export const sendOTPEmail = async (email: string, otpCode: string): Promise<bool
 
     const emailOptions: EmailOptions = {
       to: email,
-      subject: 'Verify Your Email - GxStudio',
+      subject: 'Verify Your Email - GxDrip',
       html: generateOTPEmailHTML(otpCode),
       text: generateOTPEmailText(otpCode)
     }
@@ -47,14 +47,14 @@ const generateOTPEmailHTML = (otpCode: string): string => {
     </head>
     <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
       <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-        <h1 style="color: white; margin: 0;">GxStudio</h1>
+        <h1 style="color: white; margin: 0;">GxDrip</h1>
         <p style="color: white; margin: 10px 0 0 0;">Email Verification</p>
       </div>
       
       <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
         <h2 style="color: #333; margin-top: 0;">Verify Your Email Address</h2>
         
-        <p>Thank you for signing up with GxStudio! To complete your registration, please verify your email address using the code below:</p>
+        <p>Thank you for signing up with GxDrip! To complete your registration, please verify your email address using the code below:</p>
         
         <div style="background: white; border: 2px solid #667eea; border-radius: 8px; padding: 20px; text-align: center; margin: 30px 0;">
           <div style="font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #667eea; font-family: 'Courier New', monospace;">
@@ -73,7 +73,7 @@ const generateOTPEmailHTML = (otpCode: string): string => {
         <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
         
         <p style="color: #999; font-size: 12px; text-align: center;">
-          © 2025 GxStudio. All rights reserved.
+          © 2025 GxDrip. All rights reserved.
         </p>
       </div>
     </body>
@@ -83,9 +83,9 @@ const generateOTPEmailHTML = (otpCode: string): string => {
 
 const generateOTPEmailText = (otpCode: string): string => {
   return `
-Verify Your Email - GxStudio
+Verify Your Email - GxDrip
 
-Thank you for signing up with GxStudio!
+Thank you for signing up with GxDrip!
 
 Your verification code is: ${otpCode}
 
@@ -93,7 +93,7 @@ This code will expire in 10 minutes.
 
 If you didn't request this code, you can safely ignore this email.
 
-© 2025 GxStudio. All rights reserved.
+© 2025 GxDrip. All rights reserved.
   `
 }
 

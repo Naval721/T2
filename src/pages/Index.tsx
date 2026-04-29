@@ -411,12 +411,12 @@ const Index = () => {
                   <div className="absolute inset-0 bg-black/60 mix-blend-multiply flex items-center justify-center z-10" />
                   <img
                     src={heroImage}
-                    alt="GxStudio Interface"
+                    alt="GxDrip Interface"
                     className="w-full h-64 object-cover grayscale"
                   />
                   <div className="absolute inset-0 flex items-center justify-center z-20">
                     <div className="text-center text-white border-4 border-white p-6 bg-black/40 backdrop-blur-sm shadow-2xl">
-                      <h2 className="text-4xl font-black uppercase tracking-widest mb-2">GxStudio</h2>
+                      <h2 className="text-4xl font-black uppercase tracking-widest mb-2">GxDrip</h2>
                       <p className="text-white/90 text-lg uppercase font-mono tracking-wider">
                         Professional Customization
                       </p>

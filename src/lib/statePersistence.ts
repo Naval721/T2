@@ -2,12 +2,12 @@ import { JerseyImages, PlayerData } from '@/pages/Index';
 import { toast } from 'sonner';
 
 const STORAGE_KEYS = {
-    JERSEY_IMAGES: 'gxstudio_jersey_images',
-    PLAYER_DATA: 'gxstudio_player_data',
-    CURRENT_STEP: 'gxstudio_current_step',
-    SELECTED_PLAYER_INDEX: 'gxstudio_selected_player',
-    SESSION_ID: 'gxstudio_session_id',
-    LAST_SAVE: 'gxstudio_last_save'
+    JERSEY_IMAGES: 'gxdrip_jersey_images',
+    PLAYER_DATA: 'gxdrip_player_data',
+    CURRENT_STEP: 'gxdrip_current_step',
+    SELECTED_PLAYER_INDEX: 'gxdrip_selected_player',
+    SESSION_ID: 'gxdrip_session_id',
+    LAST_SAVE: 'gxdrip_last_save'
 } as const;
 
 export interface PersistedState {
@@ -96,7 +96,7 @@ export const clearState = (): void => {
         const keysToRemove: string[] = [];
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
-            if (key && key.startsWith('gxstudio_canvas_')) {
+            if (key && key.startsWith('gxdrip_canvas_')) {
                 keysToRemove.push(key);
             }
         }

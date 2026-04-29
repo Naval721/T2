@@ -1,6 +1,6 @@
-# 🎨 GxStudio Stitch - Professional Print Studio Engine
+# 🎨 GxDrip Stitch - Professional Print Studio Engine
 
-GxStudio Stitch is an enterprise-grade web application built to streamline the design, bulk-customization, and ultra-high-resolution (up to 600 DPI) export of 36-inch sports jerseys. Built specifically for modern print/sublimation shops, it combines an interactive Fabric.js canvas with an automated Point-based economy structure.
+GxDrip Stitch is an enterprise-grade web application built to streamline the design, bulk-customization, and ultra-high-resolution (up to 600 DPI) export of 36-inch sports jerseys. Built specifically for modern print/sublimation shops, it combines an interactive Fabric.js canvas with an automated Point-based economy structure.
 
 ## ✨ Core Features & Capabilities
 
@@ -33,8 +33,8 @@ GxStudio Stitch is an enterprise-grade web application built to streamline the d
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/GxStudioStitch.git
-cd GxStudioStitch
+git clone https://github.com/your-org/GxDripStitch.git
+cd GxDripStitch
 
 # Install all workspace dependencies
 npm install
@@ -60,7 +60,7 @@ Visit `http://localhost:5173` locally.
 
 ## 🗄️ Database Architecture (Supabase)
 
-To link GxStudio to a live production database, the following tables must be executed via the Supabase SQL Editor to map to the hooks:
+To link GxDrip to a live production database, the following tables must be executed via the Supabase SQL Editor to map to the hooks:
 
 1. `user_profiles`
    - Maps to Auth `id` directly.
@@ -77,7 +77,7 @@ Ensure `user_profiles` uses strict user-bound select filters `(auth.uid() = id)`
 ## � Security Posture Note
 
 All export functions inside `ExportPanel.tsx` enforce a **Strict Server Deduct Before Download** policy. 
-Unlike standard applications that deduct currencies upon asynchronous local loops, GxStudio securely awaits Supabase transaction verifications upfront, shutting off memory-leaking bulk arrays and infinite-point UI layer exploits. 
+Unlike standard applications that deduct currencies upon asynchronous local loops, GxDrip securely awaits Supabase transaction verifications upfront, shutting off memory-leaking bulk arrays and infinite-point UI layer exploits. 
 
 The Canvas module natively disposes RAM chunks intelligently on component unmounting during intense Studio transitions, guarding long-running print-shop tabs from browser crashing.
 
@@ -92,4 +92,4 @@ All UI structures, points economies, and login systems are completely wired and 
 - [ ] **Mobile Restriction**: Application remains heavily tailored to Desktop workflows; mobile routing remains heavily suppressed to encourage accurate mouse-mapped Canvas interactions. 
 
 ---
-**Prepared and Engineered by the GxStudio Development Team**
+**Prepared and Engineered by the GxDrip Development Team**

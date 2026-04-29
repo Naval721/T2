@@ -11,7 +11,7 @@ const Footer = () => {
             <div className="w-8 h-8 bg-black rounded-xl flex items-center justify-center">
               <Shirt className="w-5 h-5 text-white" strokeWidth={2.5} />
             </div>
-            <span className="text-xl font-bold text-black tracking-tight">GxStudio</span>
+            <span className="text-xl font-bold text-black tracking-tight">GxDrip</span>
           </div>
           <p className="text-slate-600">Professional sports customization platform.</p>
         </div>
@@ -42,7 +42,7 @@ const Footer = () => {
       </div>
       <div className="border-t">
         <div className="max-w-7xl mx-auto px-6 py-6 flex flex-col md:flex-row items-center justify-between text-sm text-slate-600">
-          <div>© {currentYear} GxStudio. All rights reserved.</div>
+          <div>© {currentYear} GxDrip. All rights reserved.</div>
           <div>
             Design and copyrights by <span className="font-semibold">Gx developer</span>.
           </div>

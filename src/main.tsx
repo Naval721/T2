@@ -1,4 +1,4 @@
-// ─── GxStudio Security Shield — MUST be first import ──────────────────────
+// ─── GxDrip Security Shield — MUST be first import ──────────────────────
 import { initSecurityShield } from "./lib/security";
 initSecurityShield();
 // ───────────────────────────────────────────────────────────────────────────

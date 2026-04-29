@@ -135,7 +135,7 @@ export const OnboardingPage = () => {
               <div className="mx-auto w-16 h-16 bg-black rounded-xl flex items-center justify-center mb-4">
                 <User className="w-8 h-8 text-white" />
               </div>
-              <CardTitle className="text-3xl tracking-tight">Welcome to GxStudio</CardTitle>
+              <CardTitle className="text-3xl tracking-tight">Welcome to GxDrip</CardTitle>
               <CardDescription className="text-lg">
                 Create an account to start designing amazing jerseys
               </CardDescription>

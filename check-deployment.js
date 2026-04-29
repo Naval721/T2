@@ -31,7 +31,7 @@ const REQUIRED_SQL_SCHEMAS = [
 let hasErrors = false;
 let hasWarnings = false;
 
-console.log('\n🔍 GxStudio Deployment Readiness Check\n');
+console.log('\n🔍 GxDrip Deployment Readiness Check\n');
 console.log('='.repeat(50));
 
 // Check 1: Required Files

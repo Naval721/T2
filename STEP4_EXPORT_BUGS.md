@@ -1,7 +1,7 @@
 # STEP 4 EXPORT - BUG ANALYSIS REPORT
 
 ## Overview
-Step 4 is the final export/download stage in the GxStudioStitch application. Users select players and export jersey designs in various formats (PNG) at different quality levels. Here are all identified bugs and issues:
+Step 4 is the final export/download stage in the GxDrip application. Users select players and export jersey designs in various formats (PNG) at different quality levels. Here are all identified bugs and issues:
 
 ---
 

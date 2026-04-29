@@ -13,7 +13,7 @@ const Shipping = () => {
             <section>
               <h2 className="text-2xl font-semibold text-black mb-3">1. Digital Delivery Only</h2>
               <p className="text-gray-700 leading-relaxed">
-                GxStudio is an entirely digital platform. All products — including exported jersey design files — are delivered electronically as direct downloads to your device. There is no physical shipping involved.
+                GxDrip is an entirely digital platform. All products — including exported jersey design files — are delivered electronically as direct downloads to your device. There is no physical shipping involved.
               </p>
             </section>
 
@@ -34,7 +34,7 @@ const Shipping = () => {
             <section>
               <h2 className="text-2xl font-semibold text-black mb-3">4. Contact</h2>
               <p className="text-gray-700 leading-relaxed">
-                If you experience any issues receiving your downloaded files, contact us at <a href="mailto:support@gxstudio.in" className="text-black underline">support@gxstudio.in</a>.
+                If you experience any issues receiving your downloaded files, contact us at <a href="mailto:support@gxdrip.in" className="text-black underline">support@gxdrip.in</a>.
               </p>
             </section>
           </div>

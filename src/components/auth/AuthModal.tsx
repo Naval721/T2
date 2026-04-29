@@ -120,7 +120,7 @@ export const AuthModal = ({ isOpen, onClose, defaultMode = 'signin', onSuccess }
             <Mail className="w-16 h-16 text-black mx-auto mb-4" />
             <p className="text-gray-600 text-base">
               We've sent a confirmation link to <strong>{email}</strong>.
-              Please check your email and click the link to activate your GxStudio account.
+              Please check your email and click the link to activate your GxDrip account.
             </p>
             <Button
               onClick={onClose}

@@ -874,7 +874,7 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
             return;
         }
 
-        const playersStr = localStorage.getItem('gxstudio_player_data');
+        const playersStr = localStorage.getItem('gxdrip_player_data');
         if (playersStr) {
             try {
                 const players: PlayerData[] = JSON.parse(playersStr);

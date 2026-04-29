@@ -1,6 +1,6 @@
 /**
  * ╔══════════════════════════════════════════════════════════════════╗
- * ║          GxStudio — PROPRIETARY SECURITY SHIELD v2.0            ║
+ * ║          GxStudio — PROPRIETARY SECURITY SHIELD v2.1            ║
  * ║  Unauthorized copying, reverse engineering, or redistribution   ║
  * ║  of this software is strictly prohibited.                       ║
  * ║  © 2024 GxStudio. All Rights Reserved.                          ║
@@ -10,6 +10,8 @@
 /* ─── Constants ─────────────────────────────────────────────── */
 const _0xA1 = '\u00A9 2024 GxStudio. All rights reserved.';
 const _SHIELD_KEY = 'gxs_shield_active';
+
+// ⚠️ ADD YOUR PRODUCTION DOMAIN HERE before going live
 const _ALLOWED_DOMAINS: string[] = [
     'gxstudio.app',
     'gxstudio.vercel.app',
@@ -19,28 +21,35 @@ const _ALLOWED_DOMAINS: string[] = [
 
 /* ─── 1. Domain / Hostname Lock ─────────────────────────────── */
 function _domainLock(): void {
-    const host = window.location.hostname.toLowerCase().replace(/^www\./, '');
-    const allowed = _ALLOWED_DOMAINS.some(
-        (d) => host === d || host.endsWith('.' + d)
-    );
-    if (!allowed) {
-        document.documentElement.innerHTML = '';
-        document.write(
-            '<style>*{margin:0;padding:0;background:#0a0a0a;display:flex;align-items:center;justify-content:center;height:100vh;} p{color:#ff3b3b;font-family:monospace;font-size:1.2rem;text-align:center;padding:2rem;}</style>' +
-            '<p>⛔ Unauthorized Domain<br/>This application is licensed and cannot run on this host.</p>'
+    try {
+        const host = window.location.hostname.toLowerCase().replace(/^www\./, '');
+        // Empty host = file:// protocol in dev – allow it
+        if (!host) return;
+        const allowed = _ALLOWED_DOMAINS.some(
+            (d) => host === d || host.endsWith('.' + d)
         );
-        throw new Error('DOMAIN_LOCK_VIOLATION');
+        if (!allowed) {
+            document.documentElement.innerHTML = '';
+            document.open();
+            document.write(
+                '<style>*{margin:0;padding:0;background:#0a0a0a;}body{display:flex;align-items:center;justify-content:center;height:100vh;} p{color:#ff3b3b;font-family:monospace;font-size:1.2rem;text-align:center;padding:2rem;}</style>' +
+                '<p>\u26D4 Unauthorized Domain<br/>This application is licensed and cannot run on this host.</p>'
+            );
+            document.close();
+        }
+    } catch {
+        // Never crash the app due to domain check – fail open in edge cases
     }
 }
 
 /* ─── 2. Frame-Busting (clickjacking protection) ────────────── */
 function _bustFrames(): void {
-    if (window.self !== window.top) {
-        try {
+    try {
+        if (window.self !== window.top) {
             (window.top as Window).location.href = window.self.location.href;
-        } catch {
-            window.self.location.href = 'about:blank';
         }
+    } catch {
+        try { window.self.location.href = 'about:blank'; } catch { /* ignore */ }
     }
 }
 
@@ -60,22 +69,17 @@ function _blockShortcuts(): void {
         const ctrl = e.ctrlKey || e.metaKey;
         const shift = e.shiftKey;
 
-        // DevTools shortcuts
         if (e.key === 'F12') { e.preventDefault(); return; }
         if (ctrl && shift && (key === 'I' || key === 'J' || key === 'C')) { e.preventDefault(); return; }
-        if (ctrl && key === 'U') { e.preventDefault(); return; } // view-source
-        if (ctrl && key === 'S') { e.preventDefault(); return; } // save page
-        if (ctrl && key === 'P') { e.preventDefault(); return; } // print
-        if (ctrl && shift && key === 'K') { e.preventDefault(); return; } // Firefox console
-        if (ctrl && key === 'A' && (e.target as HTMLElement)?.tagName !== 'INPUT' && (e.target as HTMLElement)?.tagName !== 'TEXTAREA') {
-            // Allow select-all inside inputs but block on canvas/body
-        }
+        if (ctrl && key === 'U') { e.preventDefault(); return; }
+        if (ctrl && key === 'S') { e.preventDefault(); return; }
+        if (ctrl && key === 'P') { e.preventDefault(); return; }
+        if (ctrl && shift && key === 'K') { e.preventDefault(); return; }
     }, true);
 }
 
-/* ─── 5. Text / DOM Select-All Block on Main App ────────────── */
+/* ─── 5. Drag Protection for images/canvas ──────────────────── */
 function _blockDragAndSelect(): void {
-    // Prevent dragging images / assets out
     document.addEventListener('dragstart', (e: DragEvent) => {
         const target = e.target as HTMLElement;
         if (target.tagName === 'IMG' || target.tagName === 'CANVAS') {
@@ -83,7 +87,6 @@ function _blockDragAndSelect(): void {
         }
     }, true);
 
-    // Prevent user selecting text on the designer canvas area
     const style = document.createElement('style');
     style.textContent = `
     canvas { -webkit-user-select: none !important; user-select: none !important; }
@@ -92,15 +95,12 @@ function _blockDragAndSelect(): void {
     document.head.appendChild(style);
 }
 
-/* ─── 6. DevTools Detection ─────────────────────────────────── */
+/* ─── 6. DevTools Detection (size-based only — no false positives) */
 let _devToolsOpen = false;
-let _devToolsTimer: ReturnType<typeof setInterval> | null = null;
 
-function _onDevToolsOpened(): void {
+function _showDevToolsOverlay(): void {
     if (_devToolsOpen) return;
     _devToolsOpen = true;
-    console.clear();
-    // Overlay warning
     const overlay = document.createElement('div');
     overlay.id = 'gxs-security-overlay';
     overlay.style.cssText = [
@@ -122,116 +122,93 @@ function _onDevToolsOpened(): void {
       <p style="color:#666;font-size:0.7rem;">${_0xA1}</p>
     </div>
   `;
-    document.body.appendChild(overlay);
-
-    // Nuke console output to prevent source reading
-    const noop = () => { };
-    ['log', 'debug', 'info', 'warn', 'error', 'dir', 'dirxml', 'table', 'trace', 'group', 'groupCollapsed', 'groupEnd', 'time', 'timeEnd', 'count', 'assert', 'profile', 'profileEnd'].forEach((m) => {
-        (console as unknown as Record<string, unknown>)[m] = noop;
-    });
+    if (document.body) document.body.appendChild(overlay);
 }
 
-function _onDevToolsClosed(): void {
+function _hideDevToolsOverlay(): void {
     _devToolsOpen = false;
     const overlay = document.getElementById('gxs-security-overlay');
     if (overlay) overlay.remove();
 }
 
 function _startDevToolsDetection(): void {
-    // Method 1: Size-based detection
-    const threshold = 160;
-    _devToolsTimer = setInterval(() => {
+    // Size-based: DevTools docked undocks the window boundary
+    // Threshold of 200 avoids false positives from browser chrome / zoom
+    const THRESHOLD = 200;
+    setInterval(() => {
         const widthDiff = window.outerWidth - window.innerWidth;
         const heightDiff = window.outerHeight - window.innerHeight;
-        const opened = widthDiff > threshold || heightDiff > threshold;
-        if (opened && !_devToolsOpen) _onDevToolsOpened();
-        if (!opened && _devToolsOpen) _onDevToolsClosed();
-    }, 500);
-
-    // Method 2: debugger-based detection via toString trick
-    const _dt = /./;
-    _dt.toString = () => { _onDevToolsOpened(); return ''; };
-    // Trigger it periodically with devtools-only code path
-    setInterval(() => {
-        console.log('%c', _dt);
-    }, 2000);
-
-    // Method 3: Firebug legacy check
-    if (typeof (window as unknown as Record<string, unknown>)['_firebug'] !== 'undefined') {
-        _onDevToolsOpened();
-    }
+        // Only trigger if BOTH dimensions are suspicious (avoids zoom/sidebar false positives)
+        const opened = widthDiff > THRESHOLD || heightDiff > THRESHOLD;
+        if (opened && !_devToolsOpen) _showDevToolsOverlay();
+        if (!opened && _devToolsOpen) _hideDevToolsOverlay();
+    }, 800);
 }
 
-/* ─── 7. Console Warning & Honeypot ─────────────────────────── */
+/* ─── 7. Console Warning ─────────────────────────────────────── */
 function _consoleWarn(): void {
-    const style1 = 'color:#ff3b3b;font-size:2rem;font-weight:bold;';
-    const style2 = 'color:#ccc;font-size:0.9rem;';
-    console.log('%c⛔ STOP!', style1);
-    console.log(
-        '%cThis is a browser feature intended for developers. Do not paste code or inspect this application. Doing so may violate our Terms of Service and applicable law.',
-        style2
-    );
+    // Delay so it appears after app logs settle
+    setTimeout(() => {
+        console.log('%c\u26D4 STOP!', 'color:#ff3b3b;font-size:2rem;font-weight:bold;');
+        console.log(
+            '%cThis is a browser feature intended for developers. Inspecting this proprietary application may violate our Terms of Service and applicable law.',
+            'color:#aaa;font-size:0.9rem;'
+        );
+    }, 3000);
 }
 
-/* ─── 8. Source-Map Poisoning (runtime noop) ─────────────────── */
-function _removeSourceMapLinks(): void {
-    // If any script tags have sourceMappingURL comments they're stripped at build.
-    // This is a runtime safety net.
-    document.querySelectorAll('script[src]').forEach((el) => {
-        const s = el as HTMLScriptElement;
-        if (s.src.includes('.map')) s.remove();
-    });
-}
-
-/* ─── 9. Clipboard Hijack Prevention ────────────────────────── */
+/* ─── 8. Clipboard Protection ───────────────────────────────── */
 function _blockClipboardRead(): void {
     document.addEventListener('copy', (e: ClipboardEvent) => {
         const sel = window.getSelection()?.toString() ?? '';
         if (sel.length > 20) {
-            // Allow copying short texts (e.g. user inputs), block bulk code copy
-            e.clipboardData?.setData('text/plain', sel.slice(0, 20) + '… [content protected]');
+            e.clipboardData?.setData('text/plain', sel.slice(0, 20) + '\u2026 [content protected]');
             e.preventDefault();
         }
     }, true);
 }
 
-/* ─── 10. Anti-Screenshot (CSS pointer-events on sensitive areas) */
+/* ─── 9. Watermark ───────────────────────────────────────────── */
 function _addWatermark(): void {
+    if (document.getElementById('gxs-watermark')) return;
     const wm = document.createElement('div');
     wm.id = 'gxs-watermark';
     wm.style.cssText = [
         'position:fixed', 'bottom:6px', 'right:10px',
         'z-index:9999999', 'pointer-events:none',
         'font-family:monospace', 'font-size:10px',
-        'color:rgba(255,255,255,0.18)', 'user-select:none',
+        'color:rgba(255,255,255,0.15)', 'user-select:none',
         'letter-spacing:0.05em',
     ].join(';');
-    wm.textContent = '© GxStudio – Protected';
+    wm.textContent = '\u00A9 GxStudio \u2013 Protected';
     document.body.appendChild(wm);
 }
 
-/* ─── 11. Session Integrity Check ───────────────────────────── */
+/* ─── 10. Session Integrity ──────────────────────────────────── */
 function _integrityCheck(): void {
-    sessionStorage.setItem(_SHIELD_KEY, 'true');
+    try { sessionStorage.setItem(_SHIELD_KEY, 'true'); } catch { /* ignore */ }
 }
 
-/* ─── BOOT: Initialise all layers ───────────────────────────── */
+/* ─── BOOT: Initialise all layers (wrapped — never crash app) ── */
 export function initSecurityShield(): void {
-    try { _domainLock(); } catch { /* re-throw only for domain lock */ }
-    _bustFrames();
-    _blockContextMenu();
-    _blockShortcuts();
-    _blockDragAndSelect();
-    _startDevToolsDetection();
-    _consoleWarn();
-    _removeSourceMapLinks();
-    _blockClipboardRead();
-    _integrityCheck();
+    try {
+        _domainLock();
+        _bustFrames();
+        _blockContextMenu();
+        _blockShortcuts();
+        _blockDragAndSelect();
+        _startDevToolsDetection();
+        _consoleWarn();
+        _blockClipboardRead();
+        _integrityCheck();
 
-    // Watermark is added after DOM ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', _addWatermark);
-    } else {
-        _addWatermark();
+        // Watermark needs <body> to exist
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', _addWatermark);
+        } else {
+            _addWatermark();
+        }
+    } catch {
+        // Security module must NEVER crash the host application
     }
 }

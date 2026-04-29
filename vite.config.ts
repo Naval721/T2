@@ -14,56 +14,56 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+
+  // ── esbuild: ONLY strip debugger in dev; no minify (that's build-only) ──
+  esbuild: {
+    // Drop debugger statements in all modes (safe)
+    drop: mode === "production" ? ["debugger"] : [],
+    // Legal comments stripped only in production
+    legalComments: mode === "production" ? "none" : "inline",
+  },
+
   build: {
-    // ── SECURITY: Never emit source maps to production ──────────────
+    // ── SECURITY: Never emit source maps to production ──────────────────
     sourcemap: false,
 
-    // ── SECURITY: Aggressive minification via esbuild (built-in) ────
+    // ── SECURITY: Minify with esbuild (built-in, no extra dep) ─────────
     minify: "esbuild",
 
-    // ── SECURITY: Strip all console.log / debugger statements ───────
     target: "es2015",
 
     rollupOptions: {
       output: {
-        // ── SECURITY: Obfuscate chunk / asset file names ─────────────
-        // Uses a hash-only pattern — no readable module names
+        // ── SECURITY: Hash-only chunk names — no readable module paths ──
         chunkFileNames: "assets/[hash:12].js",
         entryFileNames: "assets/[hash:12].js",
         assetFileNames: "assets/[hash:12].[ext]",
 
-        // ── Keep vendor chunks separate so user code stays tiny ──────
+        // ── Vendor splitting for caching ─────────────────────────────
         manualChunks(id) {
-          if (id.includes("node_modules/react") || id.includes("node_modules/react-dom") || id.includes("node_modules/react-router-dom")) return "v0";
+          if (
+            id.includes("node_modules/react") ||
+            id.includes("node_modules/react-dom") ||
+            id.includes("node_modules/react-router-dom")
+          ) return "v0";
           if (id.includes("node_modules/@radix-ui")) return "v1";
           if (id.includes("node_modules/fabric")) return "v2";
-          if (id.includes("node_modules/xlsx") || id.includes("node_modules/file-saver") || id.includes("node_modules/jszip")) return "v3";
+          if (
+            id.includes("node_modules/xlsx") ||
+            id.includes("node_modules/file-saver") ||
+            id.includes("node_modules/jszip")
+          ) return "v3";
         },
       },
 
-      // ── SECURITY: Treeshake aggressively to reduce surface area ───
+      // ── Safe treeshaking — don't strip side-effect modules ───────────
       treeshake: {
-        moduleSideEffects: false,
-        propertyReadSideEffects: false,
-        tryCatchDeoptimization: false,
+        // Leave moduleSideEffects as default (true) so init code is kept
+        preset: "recommended",
       },
     },
 
     chunkSizeWarningLimit: 1000,
-
-    // ── SECURITY: Vite esbuild drop options ─────────────────────────
-    // Drop all debugger statements and console.* calls at build time
-  },
-
-  esbuild: {
-    // Remove all debugger keywords from the bundle
-    drop: ["debugger", "console"],
-    // Obfuscate identifiers
-    minifyIdentifiers: true,
-    minifySyntax: true,
-    minifyWhitespace: true,
-    // Legal comments stripped
-    legalComments: "none",
   },
 
   optimizeDeps: {

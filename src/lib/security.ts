@@ -1,6 +1,6 @@
 /**
  * ╔══════════════════════════════════════════════════════════════════╗
- * ║          GxStudio — PROPRIETARY SECURITY SHIELD v2.1            ║
+ * ║          GxStudio — PROPRIETARY SECURITY SHIELD v2.2            ║
  * ║  Unauthorized copying, reverse engineering, or redistribution   ║
  * ║  of this software is strictly prohibited.                       ║
  * ║  © 2024 GxStudio. All Rights Reserved.                          ║
@@ -11,34 +11,29 @@
 const _0xA1 = '\u00A9 2024 GxStudio. All rights reserved.';
 const _SHIELD_KEY = 'gxs_shield_active';
 
-// ⚠️ ADD YOUR PRODUCTION DOMAIN HERE before going live
+// ── Allowed domains — add your real custom domain to this list ───────────────
 const _ALLOWED_DOMAINS: string[] = [
-    'gxstudio.app',
-    'gxstudio.vercel.app',
+    'vercel.app',     // covers ALL *.vercel.app preview & production deployments
+    'gxstudio.app',   // your custom domain — replace with your actual domain
     'localhost',
     '127.0.0.1',
+    '',               // file:// protocol in local dev
 ];
 
 /* ─── 1. Domain / Hostname Lock ─────────────────────────────── */
 function _domainLock(): void {
     try {
         const host = window.location.hostname.toLowerCase().replace(/^www\./, '');
-        // Empty host = file:// protocol in dev – allow it
-        if (!host) return;
+        if (!host) return; // empty = file:// protocol, allow
         const allowed = _ALLOWED_DOMAINS.some(
             (d) => host === d || host.endsWith('.' + d)
         );
         if (!allowed) {
-            document.documentElement.innerHTML = '';
-            document.open();
-            document.write(
-                '<style>*{margin:0;padding:0;background:#0a0a0a;}body{display:flex;align-items:center;justify-content:center;height:100vh;} p{color:#ff3b3b;font-family:monospace;font-size:1.2rem;text-align:center;padding:2rem;}</style>' +
-                '<p>\u26D4 Unauthorized Domain<br/>This application is licensed and cannot run on this host.</p>'
-            );
-            document.close();
+            // Warn only — do not wipe the page so legitimate sub-domains still load
+            console.warn('[GxStudio Security] Domain not in allowlist:', host);
         }
     } catch {
-        // Never crash the app due to domain check – fail open in edge cases
+        // Never crash the app due to domain check — fail open
     }
 }
 
@@ -95,7 +90,7 @@ function _blockDragAndSelect(): void {
     document.head.appendChild(style);
 }
 
-/* ─── 6. DevTools Detection (size-based only — no false positives) */
+/* ─── 6. DevTools Detection (size-based — no false positives) ── */
 let _devToolsOpen = false;
 
 function _showDevToolsOverlay(): void {
@@ -132,13 +127,10 @@ function _hideDevToolsOverlay(): void {
 }
 
 function _startDevToolsDetection(): void {
-    // Size-based: DevTools docked undocks the window boundary
-    // Threshold of 200 avoids false positives from browser chrome / zoom
     const THRESHOLD = 200;
     setInterval(() => {
         const widthDiff = window.outerWidth - window.innerWidth;
         const heightDiff = window.outerHeight - window.innerHeight;
-        // Only trigger if BOTH dimensions are suspicious (avoids zoom/sidebar false positives)
         const opened = widthDiff > THRESHOLD || heightDiff > THRESHOLD;
         if (opened && !_devToolsOpen) _showDevToolsOverlay();
         if (!opened && _devToolsOpen) _hideDevToolsOverlay();
@@ -147,7 +139,6 @@ function _startDevToolsDetection(): void {
 
 /* ─── 7. Console Warning ─────────────────────────────────────── */
 function _consoleWarn(): void {
-    // Delay so it appears after app logs settle
     setTimeout(() => {
         console.log('%c\u26D4 STOP!', 'color:#ff3b3b;font-size:2rem;font-weight:bold;');
         console.log(
@@ -189,7 +180,7 @@ function _integrityCheck(): void {
     try { sessionStorage.setItem(_SHIELD_KEY, 'true'); } catch { /* ignore */ }
 }
 
-/* ─── BOOT: Initialise all layers (wrapped — never crash app) ── */
+/* ─── BOOT: Initialise all layers (wrapped — never crashes app) */
 export function initSecurityShield(): void {
     try {
         _domainLock();
@@ -202,7 +193,6 @@ export function initSecurityShield(): void {
         _blockClipboardRead();
         _integrityCheck();
 
-        // Watermark needs <body> to exist
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', _addWatermark);
         } else {

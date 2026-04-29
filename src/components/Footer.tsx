@@ -7,13 +7,13 @@ const Footer = () => {
     <footer className="border-t bg-white">
       <div className="max-w-7xl mx-auto px-6 py-10 grid grid-cols-1 md:grid-cols-4 gap-8">
         <div>
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-8 h-8 bg-black rounded-xl flex items-center justify-center">
-              <Shirt className="w-5 h-5 text-white" strokeWidth={2.5} />
+          <Link to="/" className="flex items-center gap-3 group mb-4">
+            <div className="w-9 h-9 bg-black flex items-center justify-center shadow-[3px_3px_0px_0px_#9ca3af]">
+              <span className="text-white text-sm" style={{ fontFamily: "'Press Start 2P', monospace", paddingTop: '3px', paddingLeft: '1px' }}>GX</span>
             </div>
-            <span className="text-xl font-bold text-black tracking-tight">GxDrip</span>
-          </div>
-          <p className="text-slate-600">Professional sports customization platform.</p>
+            <span className="text-lg text-black" style={{ fontFamily: "'Press Start 2P', monospace", paddingTop: '4px' }}>GXDRIP</span>
+          </Link>
+          <p className="text-slate-600 mt-2">Professional sports customization platform.</p>
         </div>
         <div>
           <div className="font-semibold mb-3">Product</div>

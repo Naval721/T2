@@ -23,11 +23,11 @@ export const Header = () => {
       <div className="max-w-7xl mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 bg-black flex items-center justify-center transition-transform group-hover:scale-105 border-2 border-black shadow-[2px_2px_0px_0px_rgba(100,100,100,1)]">
-              <GxLogo className="w-6 h-6 text-white" />
+          <Link to="/" className="flex items-center gap-4 group">
+            <div className="w-11 h-11 bg-black flex items-center justify-center transition-transform group-hover:scale-105 shadow-[4px_4px_0px_0px_#9ca3af]">
+              <span className="text-white text-base" style={{ fontFamily: "'Press Start 2P', monospace", paddingTop: '4px', paddingLeft: '2px' }}>GX</span>
             </div>
-            <span className="text-xl font-bold text-black tracking-tight">GxDrip</span>
+            <span className="text-[22px] text-black" style={{ fontFamily: "'Press Start 2P', monospace", paddingTop: '6px' }}>GXDRIP</span>
           </Link>
 
           {/* Navigation */}

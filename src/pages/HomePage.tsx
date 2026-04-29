@@ -91,11 +91,11 @@ export const HomePage = ({ onStart }: HomePageProps) => {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3 group cursor-pointer" onClick={() => navigate('/')}>
-              <div className="w-10 h-10 bg-black flex items-center justify-center transition-transform group-hover:scale-105 border-2 border-black shadow-[2px_2px_0px_0px_rgba(100,100,100,1)]">
-                <GxLogo className="w-6 h-6 text-white" />
+            <div className="flex items-center gap-4 group cursor-pointer" onClick={() => navigate('/')}>
+              <div className="w-11 h-11 bg-black flex items-center justify-center transition-transform group-hover:scale-105 shadow-[4px_4px_0px_0px_#9ca3af]">
+                <span className="text-white text-base" style={{ fontFamily: "'Press Start 2P', monospace", paddingTop: '4px', paddingLeft: '2px' }}>GX</span>
               </div>
-              <span className="text-2xl font-black uppercase tracking-widest text-black" style={{ fontFamily: "'Inter', sans-serif" }}>GxDrip</span>
+              <span className="text-[22px] text-black" style={{ fontFamily: "'Press Start 2P', monospace", paddingTop: '6px' }}>GXDRIP</span>
             </div>
             <div className="hidden md:flex items-center space-x-8">
               <button onClick={() => scrollTo('features')} className="text-gray-600 hover:text-black transition-colors">Home</button>

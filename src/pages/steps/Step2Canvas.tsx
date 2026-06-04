@@ -1,4 +1,3 @@
-import { DesignCanvas } from "@/components/DesignCanvas";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FontSelector } from "@/components/FontSelector";
@@ -49,13 +48,14 @@ export const Step2Canvas = ({
           <Card className="p-4">
             <h3 className="font-semibold mb-3">Imported Players ({playerData.length})</h3>
             <div className="space-y-2 max-h-60 overflow-y-auto">
-              {playerData.map((player, index) => (
+              {playerData.map((player) => (
                 <button
-                  key={index}
+                  key={`${player.playerName}_${player.jerseyNumber}`}
                   onClick={() => onPlayerSelect(player)}
-                  className={`w-full p-3 text-left rounded-lg transition-smooth ${selectedPlayer === player
-                    ? 'bg-accent text-accent-foreground'
-                    : 'bg-secondary hover:bg-muted'
+                  className={`w-full p-3 text-left rounded-lg transition-smooth ${
+                    selectedPlayer?.playerName === player.playerName && selectedPlayer?.jerseyNumber === player.jerseyNumber
+                      ? 'bg-accent text-accent-foreground'
+                      : 'bg-secondary hover:bg-muted'
                     }`}
                 >
                   <div className="font-medium">{player.playerName}</div>

@@ -1,12 +1,9 @@
-import { DesignCanvas } from "@/components/DesignCanvas";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, ArrowLeft, Settings2, Users, Paintbrush } from "lucide-react";
 import { Canvas as FabricCanvas, IText as FabricText, Image as FabricImage } from "fabric";
 import type { JerseyImages, PlayerData } from "@/pages/Index";
 import { CustomizationTools } from "@/components/CustomizationTools";
 import { FontSelector } from "@/components/FontSelector";
-
 interface Step3CustomizeProps {
   jerseyImages: JerseyImages;
   playerData: PlayerData[];
@@ -49,8 +46,10 @@ export const Step3Customize = ({
       strokeWidth,
       originX: 'center',
       originY: 'center',
-      textAlign: 'center'
+      textAlign: 'center',
+      objectCaching: false
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (textObj as any).name = 'customText';
     canvasRef.add(textObj);
     canvasRef.setActiveObject(textObj);
@@ -70,7 +69,9 @@ export const Step3Customize = ({
       if (logoImg.width && logoImg.width > 300) {
         logoImg.scaleToWidth(300);
       }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (logoImg as any).name = 'customLogo';
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (logoImg as any).src = logoUrl;
       canvasRef.add(logoImg);
       canvasRef.setActiveObject(logoImg);
@@ -98,13 +99,14 @@ export const Step3Customize = ({
               <h3 className="font-bold uppercase tracking-widest text-sm">Select Player</h3>
             </div>
             <div className="p-4 space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
-              {playerData.map((player, index) => (
+              {playerData.map((player) => (
                 <button
-                  key={index}
+                  key={`${player.playerName}_${player.jerseyNumber}`}
                   onClick={() => onPlayerSelect(player)}
-                  className={`w-full p-3 text-left transition-all border-2 border-transparent uppercase font-bold text-sm leading-tight flex justify-between items-center ${selectedPlayer === player
-                    ? 'bg-black text-white translate-x-1 shadow-[4px_4px_0px_0px_rgba(200,200,200,1)]'
-                    : 'bg-gray-100 text-black hover:border-black'
+                  className={`w-full p-3 text-left transition-all border-2 border-transparent uppercase font-bold text-sm leading-tight flex justify-between items-center ${
+                    selectedPlayer?.playerName === player.playerName && selectedPlayer?.jerseyNumber === player.jerseyNumber
+                      ? 'bg-black text-white translate-x-1 shadow-[4px_4px_0px_0px_rgba(200,200,200,1)]'
+                      : 'bg-gray-100 text-black hover:border-black'
                     }`}
                 >
                   <span className="truncate pr-2">{player.playerName}</span>
@@ -146,6 +148,7 @@ export const Step3Customize = ({
                 <CustomizationTools
                   onAddText={handleAddText}
                   onAddLogo={handleAddLogo}
+                  canvasRef={canvasRef}
                 />
               </div>
             </div>

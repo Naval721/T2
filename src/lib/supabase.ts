@@ -3,18 +3,25 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-// Always throw error if missing, even in development, to prevent silent failures
+// Warn but don't crash — useAuth has demo-mode fallbacks when these are missing
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are required.')
+  console.warn(
+    '[GxDrip] Supabase env vars missing (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY). Running in demo mode.'
+  )
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true
+// Use real values or dummy placeholders so createClient never throws
+export const supabase = createClient(
+  supabaseUrl || 'https://placeholder.supabase.co',
+  supabaseAnonKey || 'placeholder-anon-key',
+  {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true
+    }
   }
-})
+)
 
 // Database types
 export interface UserProfile {

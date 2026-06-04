@@ -9,7 +9,6 @@ import {
   Lock,
   Star,
   Rocket,
-  Lock as LockIcon,
   Download,
   CheckCircle,
   Users,
@@ -132,7 +131,7 @@ export const PremiumGate = ({ children, feature, description }: PremiumGateProps
           </div>
           <div className="space-y-3">
             <div className="w-12 h-12 bg-gray-100 border-2 border-black flex items-center justify-center mx-auto">
-              <LockIcon className="w-6 h-6 stroke-[3]" />
+              <Lock className="w-6 h-6 stroke-[3]" />
             </div>
             <h3 className="font-bold uppercase tracking-wider text-sm">Secure Storage</h3>
           </div>

@@ -56,9 +56,9 @@ export const OnboardingPage = () => {
 
   const handleAuthSuccess = () => {
     setShowAuthModal(false)
-    // After successful auth, show ready screen with free trial
-    setCurrentStep('ready')
-    toast.success('Welcome! You got 5 free exports to start.')
+    // After auth, the useEffect will auto-advance based on user/points state
+    // Show a generic welcome — the exact points will be shown on the ready screen
+    toast.success('Welcome to GxDrip!')
   }
 
   const handlePointsPurchase = async (packageId: string) => {
@@ -71,22 +71,24 @@ export const OnboardingPage = () => {
 
     setLoading(true)
     try {
-      const pointsMap: Record<string, number> = {
-        'basic': 700,
-        'professional': 2000,
+      // Use the canonical plan data instead of a hardcoded map
+      const { getPointsPlanById, calculateTotalPoints } = await import('@/types/points')
+      const plan = getPointsPlanById(packageId)
+      if (!plan) {
+        toast.error('Unknown package selected.')
+        return
       }
-
-      const points = pointsMap[packageId]
-      if (points && points > 0) {
-        await addPoints(points, `Purchased ${packageId} package`)
-        toast.success(`${formatPoints(points)} points added to your account!`)
+      const totalPoints = calculateTotalPoints(plan)
+      if (totalPoints > 0) {
+        await addPoints(totalPoints, `Purchased ${plan.name}`)
+        toast.success(`${formatPoints(totalPoints)} points added to your account!`)
         setShowPointsModal(false)
         setCurrentStep('ready')
         setTimeout(() => {
           navigate('/design')
         }, 1500)
       } else {
-        toast.error('Unknown package selected.')
+        toast.info('Please contact us for enterprise pricing.')
       }
     } catch (error) {
       toast.error('Failed to add points. Please try again.')
@@ -125,41 +127,16 @@ export const OnboardingPage = () => {
     )
   }
 
-  // Show auth modal if needed
+  // Show auth modal if needed — AuthModal is a Dialog, render it directly (not inside a Card)
   if (showAuthModal) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-        <div className="w-full max-w-2xl">
-          <Card className="border shadow-sm bg-white">
-            <CardHeader className="text-center pb-4">
-              <div className="mx-auto w-16 h-16 bg-black rounded-xl flex items-center justify-center mb-4">
-                <User className="w-8 h-8 text-white" />
-              </div>
-              <CardTitle className="text-3xl tracking-tight">Welcome to GxDrip</CardTitle>
-              <CardDescription className="text-lg">
-                Create an account to start designing amazing jerseys
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <AuthModal
-                isOpen={showAuthModal}
-                onClose={handleBackToHome}
-                onSuccess={handleAuthSuccess}
-                defaultMode="signup"
-              />
-              <div className="mt-6 text-center">
-                <Button
-                  variant="ghost"
-                  onClick={handleBackToHome}
-                  className="text-gray-600 hover:text-black hover:bg-gray-100"
-                >
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back to Home
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <AuthModal
+          isOpen={showAuthModal}
+          onClose={handleBackToHome}
+          onSuccess={handleAuthSuccess}
+          defaultMode="signup"
+        />
       </div>
     )
   }

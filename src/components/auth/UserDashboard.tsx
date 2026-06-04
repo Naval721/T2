@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -93,6 +93,8 @@ export const UserDashboard = ({ onClose }: UserDashboardProps) => {
   const currentPoints = profile?.points_balance || 0
   const totalPurchased = profile?.total_points_purchased || 0
   const totalUsed = profile?.total_points_used || 0
+  // Free trial: only started with the 5-point bonus and never bought more
+  const isFreeTrial = totalPurchased === 5 && totalUsed === 0
 
   const exportsPossible = calculateExportsPossible(currentPoints)
 
@@ -168,7 +170,7 @@ export const UserDashboard = ({ onClose }: UserDashboardProps) => {
       </Card>
 
       {/* Free Trial Banner */}
-      {currentPoints === 5 && (
+      {isFreeTrial && (
         <Alert className="bg-gray-50 border-gray-200">
           <Gift className="h-5 w-5 text-black" />
           <AlertDescription>
@@ -186,7 +188,7 @@ export const UserDashboard = ({ onClose }: UserDashboardProps) => {
           <CardTitle className="flex items-center space-x-2">
             <Coins className="w-5 h-5 text-black" />
             <span>Points Balance</span>
-            {currentPoints === 5 && (
+            {isFreeTrial && (
               <Badge variant="outline" className="ml-2 bg-white text-black border-gray-200">
                 <Gift className="w-3 h-3 mr-1" />
                 Free Trial
@@ -201,7 +203,7 @@ export const UserDashboard = ({ onClose }: UserDashboardProps) => {
           <div className="text-center p-6 bg-white rounded-xl border shadow-sm">
             <p className="text-sm text-gray-500 mb-2 font-medium">Available Points</p>
             <p className="text-5xl font-bold text-black">{formatPoints(currentPoints)}</p>
-            {currentPoints === 5 && (
+            {isFreeTrial && (
               <p className="text-xs text-gray-500 mt-2 flex items-center justify-center gap-1">
                 <Gift className="w-3 h-3" /> Free trial - 5 free exports
               </p>

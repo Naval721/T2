@@ -13,6 +13,7 @@ interface ConfirmationDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     onConfirm: () => void;
+    onCancel?: () => void;
     title: string;
     description: string;
     confirmText?: string;
@@ -28,10 +29,16 @@ export const ConfirmationDialog = ({
     description,
     confirmText = "Continue",
     cancelText = "Cancel",
-    destructive = false
+    destructive = false,
+    onCancel
 }: ConfirmationDialogProps) => {
     const handleConfirm = () => {
         onConfirm();
+        onOpenChange(false);
+    };
+
+    const handleCancel = () => {
+        if (onCancel) onCancel();
         onOpenChange(false);
     };
 
@@ -43,7 +50,7 @@ export const ConfirmationDialog = ({
                     <AlertDialogDescription>{description}</AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                    <AlertDialogCancel>{cancelText}</AlertDialogCancel>
+                    <AlertDialogCancel onClick={handleCancel}>{cancelText}</AlertDialogCancel>
                     <AlertDialogAction
                         onClick={handleConfirm}
                         className={destructive ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""}

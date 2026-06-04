@@ -8,6 +8,7 @@ import type { JerseyImages, PlayerData } from "@/pages/Index";
 import { logger } from "@/lib/logger";
 import { getSizeScaleFactorFromDim, computeExportMultiplier } from '@/lib/sizes';
 import { useAuth } from "@/hooks/useAuth";
+import localforage from 'localforage';
 
 type TextProps = {
     text: string;
@@ -24,6 +25,8 @@ type TextProps = {
     height?: number;
     originX: 'center';
     originY: 'center';
+    scaleX?: number;
+    scaleY?: number;
 };
 
 type LogoProps = {
@@ -47,6 +50,7 @@ interface ExtendedFabricImage extends FabricImage {
 
 interface DesignCanvasProps {
     jerseyImages: JerseyImages;
+    playerData?: PlayerData[];
     selectedPlayer: PlayerData | null;
     onCanvasReady: (canvas: FabricCanvas | null) => void;
     defaultFont?: string;
@@ -64,6 +68,25 @@ type CanvasBounds = {
     width: number;
     height: number;
 };
+
+const pickTextProps = (t: ExtendedFabricText): TextProps => ({
+    text: t.text || '',
+    left: t.left ?? 0,
+    top: t.top ?? 0,
+    fontSize: t.fontSize ?? 38,
+    fontFamily: t.fontFamily ?? 'Anton',
+    fill: (t.fill as string) ?? '#000000',
+    stroke: (t.stroke as string) ?? '',
+    strokeWidth: t.strokeWidth ?? 0,
+    angle: t.angle ?? 0,
+    textAlign: t.textAlign ?? 'center',
+    width: t.width,
+    height: t.height,
+    originX: 'center',
+    originY: 'center',
+    scaleX: t.scaleX ?? 1,
+    scaleY: t.scaleY ?? 1,
+});
 
 const getVisibleContentBounds = (canvas: FabricCanvas): CanvasBounds | null => {
     // Filter to only include jersey design elements (exclude UI labels)
@@ -174,16 +197,23 @@ export const exportCleanJerseyDesign = (
     } as any);
 };
 
-export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defaultFont = 'Anton', defaultColor = '#000000', showTools = false }: DesignCanvasProps) => {
+export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, onCanvasReady, defaultFont = 'Anton', defaultColor = '#000000', showTools = false }: DesignCanvasProps) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [fabricCanvas, setFabricCanvas] = useState<FabricCanvas | null>(null);
     const [currentView, setCurrentView] = useState<'front' | 'back' | 'leftSleeve' | 'rightSleeve' | 'collar'>('front');
     const [zoom, setZoom] = useState(1);
+    const [isPanMode, setIsPanMode] = useState(false);
     const [showCuttingOutline, setShowCuttingOutline] = useState(false);
     // Persist text placements/styles across views and sessions globally
     const textRef = useRef<{ [view: string]: { name?: TextProps; number?: TextProps; customTexts?: TextProps[]; customLogos?: LogoProps[] } }>({});
+    const loadedViewRef = useRef<'front' | 'back' | 'leftSleeve' | 'rightSleeve' | 'collar'>('front');
     const currentViewRef = useRef<'front' | 'back' | 'leftSleeve' | 'rightSleeve' | 'collar'>('front');
-    const prevPlayerRef = useRef<PlayerData | null>(selectedPlayer);
+    const loadedPlayerRef = useRef<PlayerData | null>(selectedPlayer);
+    const isCanvasInitializedRef = useRef(false);
+    // Always-current ref so event-handler closures never read a stale selectedPlayer
+    const selectedPlayerRef = useRef<PlayerData | null>(selectedPlayer);
+    // Flag to suppress persistState while loadJerseyView is rebuilding the canvas
+    const isLoadingViewRef = useRef(false);
     const { deductPoints, currentPoints } = useAuth();
     const isInitialized = useRef(false);
 
@@ -197,14 +227,11 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
 
     // --- Global Template System (positions apply to ALL players) ---
     // Instead of saving per-player, we save a global template
-    const loadGlobalTemplate = () => {
+    const loadGlobalTemplate = async () => {
         try {
-            const raw = localStorage.getItem('jerseyDesigner:globalTemplate');
-            if (raw) {
-                const parsed = JSON.parse(raw);
-                if (parsed && typeof parsed === 'object') {
-                    textRef.current = parsed;
-                }
+            const parsed = await localforage.getItem('jerseyDesigner:globalTemplate');
+            if (parsed && typeof parsed === 'object') {
+                textRef.current = parsed as any;
             }
         } catch (e) {
             // Ignore storage errors
@@ -214,10 +241,9 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
     const saveGlobalTemplate = () => {
         try {
             const dataToSave = {
-                ...textRef.current,
-                lastModified: Date.now()
+                ...textRef.current
             };
-            localStorage.setItem('jerseyDesigner:globalTemplate', JSON.stringify(dataToSave));
+            localforage.setItem('jerseyDesigner:globalTemplate', dataToSave).catch(() => {});
         } catch (e) {
             // Ignore storage errors
         }
@@ -232,6 +258,12 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
         };
     })();
 
+    // Keep selectedPlayerRef always in sync
+    useEffect(() => {
+        selectedPlayerRef.current = selectedPlayer;
+    }, [selectedPlayer]);
+
+    // Keep currentViewRef always in sync with state
     useEffect(() => {
         currentViewRef.current = currentView;
     }, [currentView]);
@@ -261,21 +293,29 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
             canvas.dispose();
             isInitialized.current = false;
         };
-    }, [onCanvasReady]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    useEffect(() => {
+        const handleForceReload = () => {
+            loadJerseyView().catch(e => logger.error("Failed to reload view:", e));
+        };
+        window.addEventListener('jerseyDesigner:forceReloadView', handleForceReload);
+        return () => window.removeEventListener('jerseyDesigner:forceReloadView', handleForceReload);
+    }, []);
 
     useEffect(() => {
         if (!fabricCanvas || !jerseyImages) return;
-
-        // Batch canvas updates for better performance
-        fabricCanvas.renderOnAddRemove = false;
         loadJerseyView().catch(err => logger.error("Failed to load jersey view:", err));
-        fabricCanvas.renderAll();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [fabricCanvas, jerseyImages, currentView, selectedPlayer, showCuttingOutline]);
 
     const persistState = () => {
-        if (!selectedPlayer || !fabricCanvas) return;
+        // Use ref so this always reads the CURRENT player, even inside stale event-handler closures
+        const currentPlayer = selectedPlayerRef.current;
+        if (!currentPlayer || !fabricCanvas || isLoadingViewRef.current) return;
 
-        const view = currentViewRef.current;
+        const view = loadedViewRef.current;
         const objects = fabricCanvas.getObjects();
         const nameObj = objects.find(o => (o as ExtendedFabricText).name === 'playerName') as ExtendedFabricText | undefined;
         const numberObj = objects.find(o => (o as ExtendedFabricText).name === 'jerseyNumber') as ExtendedFabricText | undefined;
@@ -286,36 +326,39 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
             textRef.current[view] = {};
         }
 
-        const pickProps = (t: ExtendedFabricText): TextProps => ({
-            text: t.text || '',
-            left: t.left ?? 0,
-            top: t.top ?? 0,
-            fontSize: t.fontSize ?? 38,
-            fontFamily: t.fontFamily ?? 'Anton',
-            fill: (t.fill as string) ?? '#000000',
-            stroke: (t.stroke as string) ?? '',
-            strokeWidth: t.strokeWidth ?? 0,
-            angle: t.angle ?? 0,
-            textAlign: t.textAlign ?? 'center',
-            width: t.width,
-            height: t.height,
-            originX: 'center',
-            originY: 'center',
-        });
-
         // Persist name and number globally
         if (nameObj && view === 'back') {
-            textRef.current[view].name = pickProps(nameObj);
+            textRef.current[view].name = pickTextProps(nameObj);
         }
         if (numberObj && view === 'back') {
-            textRef.current[view].number = pickProps(numberObj);
+            textRef.current[view].number = pickTextProps(numberObj);
         }
 
-        // Persist custom texts & logos PER PLAYER
+        // Persist custom texts & logos into the global template too,
+        // so they act as defaults for players without per-player overrides.
+        const pickLogoSrc = (logo: ExtendedFabricImage): string => {
+            // Use custom property first, fall back to Fabric's getSrc()
+            const custom = (logo as any).src || '';
+            if (custom) return custom;
+            if (typeof (logo as any).getSrc === 'function') return (logo as any).getSrc() || '';
+            return '';
+        };
+
+        textRef.current[view].customTexts = customTexts.map(pickTextProps);
+        textRef.current[view].customLogos = customLogos.map(logo => ({
+            src: pickLogoSrc(logo),
+            left: logo.left ?? 0,
+            top: logo.top ?? 0,
+            scaleX: logo.scaleX ?? 1,
+            scaleY: logo.scaleY ?? 1,
+            angle: logo.angle ?? 0,
+            originX: 'center' as const,
+            originY: 'center' as const,
+        }));
         const customElementsData = {
-            customTexts: customTexts.map(pickProps),
+            customTexts: customTexts.map(pickTextProps),
             customLogos: customLogos.map(logo => ({
-                src: (logo as any).src || '',
+                src: pickLogoSrc(logo),
                 left: logo.left ?? 0,
                 top: logo.top ?? 0,
                 scaleX: logo.scaleX ?? 1,
@@ -326,11 +369,25 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
             }))
         };
 
-        const playerKey = `jerseyDesigner:playerElements_${selectedPlayer.playerName}_${selectedPlayer.jerseyNumber}`;
-        const existingDataStr = localStorage.getItem(playerKey);
-        const existingData = existingDataStr ? JSON.parse(existingDataStr) : {};
-        existingData[view] = customElementsData;
-        localStorage.setItem(playerKey, JSON.stringify(existingData));
+        const playerKey = `jerseyDesigner:playerElements_${currentPlayer.playerName}_${currentPlayer.jerseyNumber}`;
+        
+        localforage.getItem<any>(playerKey).then(existingData => {
+            const data = existingData || {};
+            data[view] = customElementsData;
+            
+            // Check approximate size to avoid hitting storage limits silently (though IndexedDB limit is high)
+            const dataToSave = JSON.stringify(data);
+            if (dataToSave.length > 50 * 1024 * 1024) { // 50MB warning
+                logger.error('Data exceeds safe limits');
+                toast.error('Logos are extremely large. Performance may degrade.');
+            }
+            
+            localforage.setItem(playerKey, data).catch(e => {
+                logger.error('persistState: failed to save to localforage:', e);
+            });
+        }).catch(e => {
+            logger.error('persistState: failed to read localforage:', e);
+        });
 
         saveGlobalTemplateDebounced();
     };
@@ -350,6 +407,9 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
         const handler = (opt: any) => {
             if (!selectedPlayer || !fabricCanvas || !opt.target) return;
             if ((fabricCanvas as any).__isExporting) return;
+            // Suppress during view loading — avoids overwriting saved logos with an empty list
+            // when jersey/structural images are added to the canvas before logos are restored.
+            if (isLoadingViewRef.current) return;
             persistState();
         };
 
@@ -364,7 +424,7 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
             if (!obj || !fabricCanvas || (fabricCanvas as any).__isExporting) return;
 
             const name = (obj as any).name;
-            if ((name === 'playerName' || name === 'jerseyNumber') && currentViewRef.current === 'back') {
+            if ((name === 'playerName' || name === 'jerseyNumber') && loadedViewRef.current === 'back') {
                 const backImg = fabricCanvas.getObjects().find(o => (o as any).name === 'jerseyBack');
                 if (backImg) {
                     const rect = backImg.getBoundingRect();
@@ -376,6 +436,7 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
         };
 
         fabricCanvas.on('object:added', handler);
+        fabricCanvas.on('object:removed', handler);
         fabricCanvas.on('object:modified', handler);
         fabricCanvas.on('object:moving', continuousHandler);
         fabricCanvas.on('object:moving', movingHandler);
@@ -384,11 +445,12 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
 
         return () => {
             fabricCanvas.off('object:added', handler);
+            fabricCanvas.off('object:removed', handler);
             fabricCanvas.off('object:modified', handler);
-            fabricCanvas.off('object:moving', handler);
+            fabricCanvas.off('object:moving', continuousHandler);
             fabricCanvas.off('object:moving', movingHandler);
-            fabricCanvas.off('object:scaling', handler);
-            fabricCanvas.off('object:rotating', handler);
+            fabricCanvas.off('object:scaling', continuousHandler);
+            fabricCanvas.off('object:rotating', continuousHandler);
         };
     }, [fabricCanvas, selectedPlayer]);
 
@@ -401,93 +463,74 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
     const loadTokenRef = useRef(0);
     const loadJerseyView = async (view?: typeof currentView) => {
         if (!fabricCanvas) return;
+        
+        // Cache the loading state before we set it to true
+        const wasLoading = isLoadingViewRef.current;
+        
         loadTokenRef.current++;
         const myToken = loadTokenRef.current;
+        // Block object:added → persistState during the entire async load so that
+        // adding the jersey image does NOT wipe out stored logo data.
+        isLoadingViewRef.current = true;
 
         const activeView = view || currentView;
 
         // Persist current view objects before clearing (to keep manual placements)
-        try {
-            const prevView = currentViewRef.current;
-            const objs = fabricCanvas.getObjects();
-            const nameObjPrev = objs.find(o => (o as ExtendedFabricText).name === 'playerName') as ExtendedFabricText | undefined;
-            const numberObjPrev = objs.find(o => (o as ExtendedFabricText).name === 'jerseyNumber') as ExtendedFabricText | undefined;
-            const customTextsPrev = objs.filter(o => (o as ExtendedFabricText).name === 'customText') as ExtendedFabricText[];
-            const customLogosPrev = objs.filter(o => (o as ExtendedFabricImage).name === 'customLogo') as ExtendedFabricImage[];
+        // Guard: Do not save if we were ALREADY in the middle of loading a view (prevents race conditions)
+        if (isCanvasInitializedRef.current && !wasLoading) {
+            try {
+                const prevView = loadedViewRef.current;
+                const prevPlayer = loadedPlayerRef.current;
+                const objs = fabricCanvas.getObjects();
+                const nameObjPrev = objs.find(o => (o as ExtendedFabricText).name === 'playerName') as ExtendedFabricText | undefined;
+                const numberObjPrev = objs.find(o => (o as ExtendedFabricText).name === 'jerseyNumber') as ExtendedFabricText | undefined;
+                const customTextsPrev = objs.filter(o => (o as ExtendedFabricText).name === 'customText') as ExtendedFabricText[];
+                const customLogosPrev = objs.filter(o => (o as ExtendedFabricImage).name === 'customLogo') as ExtendedFabricImage[];
 
-            if (!textRef.current[prevView]) {
-                textRef.current[prevView] = {};
-            }
+                if (!textRef.current[prevView]) {
+                    textRef.current[prevView] = {};
+                }
 
-            const pickTextProps = (t: ExtendedFabricText): TextProps => ({
-                text: t.text || '',
-                left: t.left ?? 0,
-                top: t.top ?? 0,
-                fontSize: t.fontSize ?? 38,
-                fontFamily: t.fontFamily ?? 'Anton',
-                fill: (t.fill as string) ?? '#000000',
-                stroke: (t.stroke as string) ?? '',
-                strokeWidth: t.strokeWidth ?? 0,
-                angle: t.angle ?? 0,
-                textAlign: t.textAlign ?? 'center',
-                width: t.width,
-                height: t.height,
-                originX: 'center',
-                originY: 'center',
-            });
+                if (nameObjPrev) textRef.current[prevView].name = pickTextProps(nameObjPrev);
+                if (numberObjPrev) textRef.current[prevView].number = pickTextProps(numberObjPrev);
 
-            if (nameObjPrev) textRef.current[prevView].name = pickTextProps(nameObjPrev);
-            if (numberObjPrev) textRef.current[prevView].number = pickTextProps(numberObjPrev);
+                // Persist the current view's custom elements to the local player store before clearing
+                const customElementsData = {
+                    customTexts: customTextsPrev.map(pickTextProps),
+                    customLogos: customLogosPrev.map(logo => ({
+                        src: (logo as any).src || ((logo as any).getSrc?.() ?? '') || '',
+                        left: logo.left ?? 0,
+                        top: logo.top ?? 0,
+                        scaleX: logo.scaleX ?? 1,
+                        scaleY: logo.scaleY ?? 1,
+                        angle: logo.angle ?? 0,
+                        originX: 'center',
+                        originY: 'center',
+                    }))
+                };
 
-            // Persist the current view's custom elements to the local player store before clearing
-            const customElementsData = {
-                customTexts: customTextsPrev.map(pickTextProps),
-                customLogos: customLogosPrev.map(logo => ({
-                    src: (logo as any).src || '',
-                    left: logo.left ?? 0,
-                    top: logo.top ?? 0,
-                    scaleX: logo.scaleX ?? 1,
-                    scaleY: logo.scaleY ?? 1,
-                    angle: logo.angle ?? 0,
-                    originX: 'center',
-                    originY: 'center',
-                }))
-            };
-            const playerToSave = prevPlayerRef.current || selectedPlayer;
-            if (playerToSave) {
-                const playerKey = `jerseyDesigner:playerElements_${playerToSave.playerName}_${playerToSave.jerseyNumber}`;
-                const existingDataStr = localStorage.getItem(playerKey);
-                const existingData = existingDataStr ? JSON.parse(existingDataStr) : {};
-                existingData[prevView] = customElementsData;
-                localStorage.setItem(playerKey, JSON.stringify(existingData));
-            }
-            prevPlayerRef.current = selectedPlayer;
+                // Also update global template ref so logos propagate to all players
+                textRef.current[prevView].customTexts = customElementsData.customTexts;
+                textRef.current[prevView].customLogos = customElementsData.customLogos as any;
 
-            saveGlobalTemplateDebounced();
-        } catch { }
+                if (prevPlayer) {
+                    const playerKey = `jerseyDesigner:playerElements_${prevPlayer.playerName}_${prevPlayer.jerseyNumber}`;
+                    try {
+                        const existingData: any = await localforage.getItem(playerKey) || {};
+                        existingData[prevView] = customElementsData;
+                        await localforage.setItem(playerKey, existingData);
+                    } catch (e) {
+                        logger.error('loadJerseyView: failed to save player elements:', e);
+                    }
+                }
 
-        // Preserve player text positions/styles (if already placed) before clearing
-        const pickTextProps = (t: ExtendedFabricText): TextProps => ({
-            text: t.text || '',
-            left: t.left ?? 0,
-            top: t.top ?? 0,
-            fontSize: t.fontSize ?? 38,
-            fontFamily: t.fontFamily ?? 'Anton',
-            fill: (t.fill as string) ?? '#000000',
-            stroke: (t.stroke as string) ?? '',
-            strokeWidth: t.strokeWidth ?? 0,
-            angle: t.angle ?? 0,
-            textAlign: t.textAlign ?? 'center',
-            width: t.width,
-            height: t.height,
-            originX: 'center' as const,
-            originY: 'center' as const,
-        });
-
-        const existingNameObj = fabricCanvas.getObjects().find(o => (o as ExtendedFabricText).name === 'playerName') as ExtendedFabricText | undefined;
-        const existingNumberObj = fabricCanvas.getObjects().find(o => (o as ExtendedFabricText).name === 'jerseyNumber') as ExtendedFabricText | undefined;
+                saveGlobalTemplateDebounced();
+            } catch { }
+        }
 
         // Get persisted text for current view globally
+        const existingNameObj = fabricCanvas.getObjects().find(o => (o as ExtendedFabricText).name === 'playerName') as ExtendedFabricText | undefined;
+        const existingNumberObj = fabricCanvas.getObjects().find(o => (o as ExtendedFabricText).name === 'jerseyNumber') as ExtendedFabricText | undefined;
         const viewTextData = textRef.current[activeView] || {};
         const prevNameProps = viewTextData.name ?? (existingNameObj ? pickTextProps(existingNameObj) : null);
         const prevNumberProps = viewTextData.number ?? (existingNumberObj ? pickTextProps(existingNumberObj) : null);
@@ -656,8 +699,8 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
                     left: fabricCanvas.width! / 2,
                     top: defaultNameTop,
                     fontSize: 38,
-                    fontFamily: 'Anton',
-                    fill: '#000000',
+                    fontFamily: defaultFont,
+                    fill: defaultColor,
                     textAlign: 'center' as const,
                     width: 960,
                     originX: 'center' as const,
@@ -665,9 +708,10 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
                 };
                 const nameText = new FabricText(selectedPlayer.playerName, {
                     ...nameProps,
+                    objectCaching: false,
                 }) as ExtendedFabricText;
                 nameText.name = 'playerName';
-                nameText.set({ fontWeight: 'bold', fill: defaultColor, selectable: true });
+                nameText.set({ fontWeight: 'bold', selectable: true });
                 fabricCanvas.add(nameText);
 
                 // Jersey number (preserve previous placement/style if existed)
@@ -686,9 +730,10 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
                 };
                 const numberText = new FabricText(selectedPlayer.jerseyNumber, {
                     ...numberProps,
+                    objectCaching: false,
                 }) as ExtendedFabricText;
                 numberText.name = 'jerseyNumber';
-                numberText.set({ fontWeight: 'bold', fill: defaultColor, selectable: true });
+                numberText.set({ fontWeight: 'bold', selectable: true });
                 fabricCanvas.add(numberText);
 
                 // Auto-center only if no previous saved placement
@@ -722,15 +767,27 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
 
             // Read per-player custom elements
             const playerKey = `jerseyDesigner:playerElements_${selectedPlayer?.playerName}_${selectedPlayer?.jerseyNumber}`;
-            const playerElementsStr = localStorage.getItem(playerKey);
-            const playerElementsData = playerElementsStr ? JSON.parse(playerElementsStr) : {};
-            const viewPlayerElements = playerElementsData[activeView] || {};
+            const playerElementsData: any = await localforage.getItem(playerKey) || {};
+
+            const rawPlayerView = playerElementsData[activeView] || {};
+            const globalTemplateView = textRef.current[activeView] || {};
+
+            // Fallback to globalTemplate if player has no custom overrides for this view
+            const viewPlayerElements = {
+                customTexts: (rawPlayerView.customTexts !== undefined)
+                    ? rawPlayerView.customTexts
+                    : (globalTemplateView.customTexts || []),
+                customLogos: (rawPlayerView.customLogos !== undefined)
+                    ? rawPlayerView.customLogos
+                    : (globalTemplateView.customLogos || []),
+            };
 
             // Add custom texts for this view
             const customTexts = viewPlayerElements.customTexts || [];
             const customTextObjects = customTexts.map((customTextProps: any) => {
                 const customText = new FabricText(customTextProps.text, {
                     ...customTextProps,
+                    objectCaching: false,
                 }) as ExtendedFabricText;
                 customText.name = 'customText';
                 customText.set({ selectable: true });
@@ -745,6 +802,9 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
                     try {
                         if (logoProps.src) {
                             const logoImg = await FabricImage.fromURL(logoProps.src) as unknown as ExtendedFabricImage;
+                            // Guard: if another loadJerseyView started while we were awaiting,
+                            // discard this result to avoid adding logos to the wrong player's canvas.
+                            if (myToken !== loadTokenRef.current) return null;
                             logoImg.set({
                                 left: logoProps.left,
                                 top: logoProps.top,
@@ -813,6 +873,7 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
                     evented: false,
                     originX,
                     originY,
+                    objectCaching: false,
                 });
 
                 playerLabel.shadow = new Shadow({
@@ -826,10 +887,16 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
             }
 
             if (myToken !== loadTokenRef.current) return;
+            loadedViewRef.current = activeView;
+            loadedPlayerRef.current = selectedPlayer;
+            isCanvasInitializedRef.current = true;
             fabricCanvas.renderAll();
         } catch (error) {
             // Silent failure to avoid noisy notifications; log only for debugging
             logger.error('Canvas loading error:', error);
+        } finally {
+            // Always re-enable user-driven persistState once loading is done
+            isLoadingViewRef.current = false;
         }
     };
 
@@ -864,28 +931,37 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
         }
     };
 
-    const applyCustomElementsToAll = () => {
+    const applyCustomElementsToAll = async () => {
         if (!selectedPlayer) return;
         const playerKey = `jerseyDesigner:playerElements_${selectedPlayer.playerName}_${selectedPlayer.jerseyNumber}`;
-        const dataStr = localStorage.getItem(playerKey);
+        const parsedData: any = await localforage.getItem(playerKey);
 
-        if (!dataStr) {
+        if (!parsedData) {
             toast.info("No custom graphic/text elements placed on this player to apply.");
             return;
         }
 
-        const playersStr = localStorage.getItem('gxdrip_player_data');
-        if (playersStr) {
-            try {
-                const players: PlayerData[] = JSON.parse(playersStr);
-                players.forEach(p => {
-                    const pKey = `jerseyDesigner:playerElements_${p.playerName}_${p.jerseyNumber}`;
-                    localStorage.setItem(pKey, dataStr);
-                });
-                toast.success("Custom design successfully applied to all players!");
-            } catch (err) {
-                toast.error("Failed to parse players roster.");
-            }
+        if (playerData.length === 0) {
+            toast.error("No players found to apply customizations.");
+            return;
+        }
+
+        try {
+            // 1. Save to the global template ref and localforage
+            textRef.current = parsedData;
+            await localforage.setItem('jerseyDesigner:globalTemplate', parsedData);
+
+            // 2. Remove all player-specific overrides for all other players
+            // to ensure they fall back to the global template and don't take up duplicate space.
+            await Promise.all(playerData.map(p => {
+                const pKey = `jerseyDesigner:playerElements_${p.playerName}_${p.jerseyNumber}`;
+                return localforage.removeItem(pKey);
+            }));
+
+            toast.success(`Custom design applied to all ${playerData.length} players!`);
+        } catch (e) {
+            logger.error("Failed to apply custom elements to all:", e);
+            toast.error("Failed to apply customizations to all players.");
         }
     };
 
@@ -932,53 +1008,52 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
         setZoom(1);
     };
 
-    const enablePanMode = () => {
+    const togglePanMode = () => {
         if (!fabricCanvas) return;
 
+        if (isPanMode) {
+            // Disable pan mode
+            fabricCanvas.selection = true;
+            fabricCanvas.off('mouse:down');
+            fabricCanvas.off('mouse:move');
+            fabricCanvas.off('mouse:up');
+            setIsPanMode(false);
+            toast.info("Pan mode disabled");
+            return;
+        }
+
+        // Enable pan mode
+        setIsPanMode(true);
+        fabricCanvas.selection = false;
         let isDragging = false;
         let lastPosX = 0;
         let lastPosY = 0;
 
-        fabricCanvas.selection = false;
-
         const mouseDownHandler = (opt: any) => {
-            const evt = opt.e;
             isDragging = true;
-            fabricCanvas.selection = false;
-            lastPosX = evt.clientX;
-            lastPosY = evt.clientY;
+            lastPosX = opt.e.clientX;
+            lastPosY = opt.e.clientY;
         };
 
         const mouseMoveHandler = (opt: any) => {
-            if (isDragging) {
-                const evt = opt.e;
-                const vpt = fabricCanvas.viewportTransform!;
-                vpt[4] += evt.clientX - lastPosX;
-                vpt[5] += evt.clientY - lastPosY;
-                fabricCanvas.requestRenderAll();
-                lastPosX = evt.clientX;
-                lastPosY = evt.clientY;
-            }
+            if (!isDragging) return;
+            const vpt = fabricCanvas.viewportTransform!;
+            vpt[4] += opt.e.clientX - lastPosX;
+            vpt[5] += opt.e.clientY - lastPosY;
+            fabricCanvas.requestRenderAll();
+            lastPosX = opt.e.clientX;
+            lastPosY = opt.e.clientY;
         };
 
-        const mouseUpHandler = (opt: any) => {
-            fabricCanvas.setViewportTransform(fabricCanvas.viewportTransform!);
+        const mouseUpHandler = () => {
             isDragging = false;
-            fabricCanvas.selection = true;
-
-            // Clean up event listeners after pan operation
-            fabricCanvas.off('mouse:down', mouseDownHandler);
-            fabricCanvas.off('mouse:move', mouseMoveHandler);
-            fabricCanvas.off('mouse:up', mouseUpHandler);
-
-            toast.success("Pan mode disabled - canvas controls restored");
+            fabricCanvas.setViewportTransform(fabricCanvas.viewportTransform!);
         };
 
         fabricCanvas.on('mouse:down', mouseDownHandler);
         fabricCanvas.on('mouse:move', mouseMoveHandler);
         fabricCanvas.on('mouse:up', mouseUpHandler);
-
-        toast.success("Pan mode enabled - drag to move canvas");
+        toast.info("Pan mode enabled — drag to pan, click again to disable");
     };
 
     // Center-fit player's name and number over the back image (improved positioning)
@@ -1045,25 +1120,8 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
         const view = currentViewRef.current;
         if (!textRef.current[view]) textRef.current[view] = {};
 
-        const pickProps = (t: ExtendedFabricText): TextProps => ({
-            text: t.text || '',
-            left: t.left ?? 0,
-            top: t.top ?? 0,
-            fontSize: t.fontSize ?? 38,
-            fontFamily: t.fontFamily ?? 'Anton',
-            fill: (t.fill as string) ?? '#000000',
-            stroke: (t.stroke as string) ?? '',
-            strokeWidth: t.strokeWidth ?? 0,
-            angle: t.angle ?? 0,
-            textAlign: t.textAlign ?? 'center',
-            width: t.width,
-            height: t.height,
-            originX: 'center',
-            originY: 'center',
-        });
-
-        if (nameObj) textRef.current[view].name = pickProps(nameObj);
-        if (numberObj) textRef.current[view].number = pickProps(numberObj);
+        if (nameObj) textRef.current[view].name = pickTextProps(nameObj);
+        if (numberObj) textRef.current[view].number = pickTextProps(numberObj);
 
         saveGlobalTemplate();
 
@@ -1071,58 +1129,6 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
         toast.success("Name and number positioned perfectly!");
     };
 
-    // Auto-center name and number when loading back view (like example positioning)
-    const autoCenterNameNumber = () => {
-        if (!fabricCanvas || currentView !== 'back') return;
-
-        const backImg = fabricCanvas.getObjects().find(o => (o as ExtendedFabricImage).name === 'jerseyBack') as ExtendedFabricImage | undefined;
-        const nameObj = fabricCanvas.getObjects().find(o => (o as ExtendedFabricText).name === 'playerName') as ExtendedFabricText | undefined;
-        const numberObj = fabricCanvas.getObjects().find(o => (o as ExtendedFabricText).name === 'jerseyNumber') as ExtendedFabricText | undefined;
-
-        if (backImg) {
-            const rect = backImg.getBoundingRect();
-            const backLeft = rect.left;
-            const backTop = rect.top;
-            const backWidth = rect.width;
-            const backHeight = rect.height;
-            const centerX = backLeft + backWidth / 2; // center to jersey back
-
-            // Auto-position like example: name in upper area, number centered
-            const nameTop = backTop + backHeight * 0.28;
-            const numberTop = backTop + backHeight * 0.56;
-
-            const nameFont = Math.max(16, Math.round(backHeight * 0.05)); // Example baseline ratio
-            const numberFont = Math.max(48, Math.round(backHeight * 0.12)); // Example baseline ratio
-
-            if (nameObj) {
-                nameObj.set({
-                    left: centerX,
-                    top: nameTop,
-                    originX: 'center',
-                    originY: 'center',
-                    textAlign: 'center',
-                    fontSize: nameFont,
-                });
-                const maxTextWidth = backWidth * 0.7;
-                while (nameObj.getScaledWidth() > maxTextWidth && nameObj.fontSize! > 12) {
-                    nameObj.set({ fontSize: nameObj.fontSize! - 1 });
-                }
-            }
-
-            if (numberObj) {
-                numberObj.set({
-                    left: centerX,
-                    top: numberTop,
-                    originX: 'center',
-                    originY: 'center',
-                    textAlign: 'center',
-                    fontSize: numberFont,
-                });
-            }
-
-            fabricCanvas.requestRenderAll();
-        }
-    };
 
     // React to font changes immediately: Update existing canvas objects & stored refs
     useEffect(() => {
@@ -1245,6 +1251,7 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
                         variant={currentView === 'collar' ? 'default' : 'outline'}
                         size="sm"
                         onClick={() => setCurrentView('collar')}
+                        disabled={!jerseyImages.collar}
                     >
                         Collar
                     </Button>
@@ -1270,11 +1277,7 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
                         </Button>
                     )}
 
-                    {showTools && (
-                        <>
-                            {/* Export functionality moved to Step 4. */}
-                        </>
-                    )}
+
                 </div>
             </div>
 
@@ -1288,7 +1291,12 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
                             <Button variant="outline" size="sm" onClick={handleZoomOut}>
                                 <ZoomOut className="w-4 h-4" />
                             </Button>
-                            <Button variant="outline" size="sm" onClick={enablePanMode}>
+                            <Button
+                                variant={isPanMode ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={togglePanMode}
+                                title={isPanMode ? 'Click to exit pan mode' : 'Pan mode — drag to move canvas'}
+                            >
                                 <Move className="w-4 h-4" />
                             </Button>
                             <Button variant="outline" size="sm" onClick={handleResetView} title="Reset View">
@@ -1307,7 +1315,7 @@ export const DesignCanvas = ({ jerseyImages, selectedPlayer, onCanvasReady, defa
                             </Button>
                         </div>
                         <div className="text-sm text-muted-foreground">
-                            Zoom: {Math.round(zoom * 100)}% | Export: PNG (500 DPI)
+                            Zoom: {Math.round(zoom * 100)}% | Export: PNG (450 DPI)
                         </div>
                     </div>
                 )}

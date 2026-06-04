@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -7,14 +7,16 @@ import { StepNavigation } from "@/components/StepNavigation";
 import { Step1Upload } from "@/pages/steps/Step1Upload";
 import { Step2Canvas } from "@/pages/steps/Step2Canvas";
 import { Step3Customize } from "@/pages/steps/Step3Customize";
-import { Step4Export } from "@/pages/steps/Step4Export";
+import { Step4Preview } from "@/pages/steps/Step4Preview";
+import { Step5Export } from "@/pages/steps/Step5Export";
 import { DesignCanvas } from "@/components/DesignCanvas";
 import { HomePage } from "@/pages/HomePage";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
+import Footer from "@/components/Footer";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import heroImage from "@/assets/hero-jersey-designer.jpg";
+import heroImage from "@/assets/hero-jersey-designer.jpg"; // file exists at src/assets/hero-jersey-designer.jpg
 import { Canvas as FabricCanvas } from "fabric";
 import { toast } from "sonner";
 import { Save, AlertCircle, RotateCcw, ImageIcon, Users, Paintbrush, Package } from "lucide-react";
@@ -45,7 +47,7 @@ export interface PlayerData {
 
 const Index = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [jerseyImages, setJerseyImages] = useState<JerseyImages>({});
   const [playerData, setPlayerData] = useState<PlayerData[]>([]);
@@ -58,54 +60,95 @@ const Index = () => {
   const [lastSaveTime, setLastSaveTime] = useState<string>('Never');
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
+  const [fallbackTarget, setFallbackTarget] = useState<HTMLElement | null>(null);
+
+  // An isolated, stable DOM container that React never destroys
+  const persistentCanvasContainer = useMemo(() => {
+    const el = document.createElement('div');
+    el.id = 'truly-persistent-canvas-host';
+    el.className = 'w-full h-full relative z-10';
+    return el;
+  }, []);
+
+  // Manually move the stable container to the correct place in the DOM
+  useEffect(() => {
+    if (portalTarget) {
+      portalTarget.appendChild(persistentCanvasContainer);
+      // Force a full Fabric.js render/rebuild after DOM reparenting to guarantee graphics memory integrity
+      setTimeout(() => {
+        window.dispatchEvent(new Event('jerseyDesigner:forceReloadView'));
+      }, 100);
+    } else if (fallbackTarget) {
+      fallbackTarget.appendChild(persistentCanvasContainer);
+    }
+  }, [portalTarget, fallbackTarget, persistentCanvasContainer]);
+
+  // Stable canvas ref setter — must NOT change on every render or it destroys the canvas
+  const stableSetCanvasRef = useCallback((canvas: FabricCanvas | null) => {
+    setCanvasRef(canvas);
+  }, []);
 
   // Re-check for portal target when step changes with resilient polling
   useEffect(() => {
-    if (currentStep === 2 || currentStep === 3 || currentStep === 4) {
+    // Always clear the old target first so the canvas detaches cleanly
+    setPortalTarget(null);
+
+    if (currentStep >= 2 && currentStep <= 5) {
       let attempts = 0;
+      let cancelled = false;
       const findTarget = () => {
+        if (cancelled) return;
         const target = document.getElementById('canvas-portal-target');
         if (target) {
           setPortalTarget(target);
-        } else if (attempts < 10) {
+        } else if (attempts < 20) {
           attempts++;
-          setTimeout(findTarget, 50); // poll up to 500ms
+          setTimeout(findTarget, 50); // poll up to 1000ms
         }
       };
-      findTarget();
-    } else {
-      setPortalTarget(null);
+      // Brief delay to allow the new step's DOM to mount
+      setTimeout(findTarget, 30);
+      return () => { cancelled = true; };
     }
   }, [currentStep]);
 
   // Check for saved session on mount
   useEffect(() => {
-    if (hasSavedSession()) {
-      setShowRestoreDialog(true);
-    }
-    setLastSaveTime(formatLastSaveTime());
+    const checkSession = async () => {
+      if (await hasSavedSession()) {
+        setShowRestoreDialog(true);
+      }
+      setLastSaveTime(await formatLastSaveTime());
+    };
+    checkSession();
   }, []);
 
   // Protect route — OnboardingPage lives at '/'
+  // Wait until auth is done loading before deciding to redirect
   useEffect(() => {
-    if (user === null) {
+    if (!authLoading && user === null) {
       navigate('/');
     }
-  }, [user, navigate]);
+  }, [user, authLoading, navigate]);
 
   // Auto-save state when it changes
   useEffect(() => {
     if (autoSaveEnabled && (Object.keys(jerseyImages).length > 0 || playerData.length > 0)) {
       const selectedIndex = selectedPlayer
-        ? playerData.findIndex(p => p === selectedPlayer)
+        ? playerData.findIndex(p => p.playerName === selectedPlayer.playerName && p.jerseyNumber === selectedPlayer.jerseyNumber)
         : 0;
 
-      const saved = saveState(jerseyImages, playerData, currentStep, selectedIndex);
-      if (saved) {
-        setLastSaveTime(formatLastSaveTime());
-      }
+      const timerId = setTimeout(() => {
+        saveState(jerseyImages, playerData, currentStep, selectedIndex, defaultFont, defaultColor).then(async (saved) => {
+          if (saved) {
+            setLastSaveTime(await formatLastSaveTime());
+          }
+        });
+      }, 1000); // Debounce by 1 second
+
+      return () => clearTimeout(timerId);
     }
-  }, [jerseyImages, playerData, currentStep, selectedPlayer, autoSaveEnabled]);
+  }, [jerseyImages, playerData, currentStep, selectedPlayer, defaultFont, defaultColor, autoSaveEnabled]);
 
   // Sync selectedPlayer when playerData changes
   useEffect(() => {
@@ -137,17 +180,21 @@ const Index = () => {
     },
     {
       id: 4,
+      title: "Preview Output",
+      description: "Review all players",
+      completed: currentStep > 4,
+    },
+    {
+      id: 5,
       title: "Export & Download",
       description: "Final production files",
-      completed: currentStep > 4,
+      completed: currentStep > 5,
     },
   ];
 
   const canGoToStep = (step: number): boolean => {
     if (step === 1) return true;
-    if (step === 2) return hasRequiredData;
-    if (step === 3) return hasRequiredData;
-    if (step === 4) return hasRequiredData;
+    if (step >= 2 && step <= 5) return hasRequiredData;
     return false;
   };
 
@@ -180,7 +227,7 @@ const Index = () => {
     setShowClearDialog(true);
   };
 
-  const handleConfirmClear = () => {
+  const handleConfirmClear = async () => {
     // Clear all state
     setCurrentStep(1);
     navigate("/");
@@ -188,15 +235,17 @@ const Index = () => {
     setPlayerData([]);
     setSelectedPlayer(null);
     setCanvasRef(null);
-    clearState();
+    await clearState();
     setLastSaveTime('Never');
     toast.success("Project cleared. Ready to start fresh!");
   };
 
-  const handleRestoreSession = () => {
-    const savedState = loadState();
+  const handleRestoreSession = async () => {
+    const savedState = await loadState();
     if (savedState) {
       if (savedState.jerseyImages) setJerseyImages(savedState.jerseyImages);
+      if (savedState.defaultFont) setDefaultFont(savedState.defaultFont);
+      if (savedState.defaultColor) setDefaultColor(savedState.defaultColor);
       if (savedState.playerData) {
         setPlayerData(savedState.playerData);
         if (
@@ -208,22 +257,22 @@ const Index = () => {
           setSelectedPlayer(savedState.playerData[0]);
         }
       }
-      
+
       const isDataComplete = savedState.jerseyImages && Object.keys(savedState.jerseyImages).length > 0 &&
-                             savedState.playerData && savedState.playerData.length > 0;
+        savedState.playerData && savedState.playerData.length > 0;
 
       if (savedState.currentStep && isDataComplete) {
         setCurrentStep(savedState.currentStep);
       } else {
         setCurrentStep(1);
       }
-      setLastSaveTime(formatLastSaveTime());
+      setLastSaveTime(await formatLastSaveTime());
       toast.success("Previous session restored!");
     }
   };
 
-  const handleStartFresh = () => {
-    clearState();
+  const handleStartFresh = async () => {
+    await clearState();
     setLastSaveTime('Never');
     toast.info("Starting fresh project");
   };
@@ -297,7 +346,18 @@ const Index = () => {
           );
         case 4:
           return (
-            <Step4Export
+            <Step4Preview
+              playerData={playerData}
+              jerseyImages={jerseyImages}
+              onNext={handleNext}
+              onPrev={handlePrev}
+              defaultFont={defaultFont}
+              defaultColor={defaultColor}
+            />
+          );
+        case 5:
+          return (
+            <Step5Export
               canvasRef={canvasRef}
               selectedPlayer={selectedPlayer || (playerData.length > 0 ? playerData[0] : null)}
               playerData={playerData}
@@ -305,6 +365,8 @@ const Index = () => {
               onPrev={handlePrev}
               onComplete={handleComplete}
               onPlayerSelect={setSelectedPlayer}
+              defaultFont={defaultFont}
+              defaultColor={defaultColor}
             />
           );
         default:
@@ -362,42 +424,30 @@ const Index = () => {
               canGoToStep={canGoToStep}
             />
 
-            {/*
-              PERSISTENT CANVAS: DesignCanvas stays mounted for steps 2-4.
-              - Uses React Portal to inject itself into the Step2/Step3 layout DOM tree exactly when they are rendered.
-              - In Step 4 (or if portal is missing), it remains hidden off-screen to keep Fabric context alive.
+            {/* 
+              PERSISTENT CANVAS HOST & PORTAL
+              - We use a fallback target div that is always rendered but hidden.
+              - We render DesignCanvas into a stable, in-memory container (persistentCanvasContainer).
+              - Since the portal target NEVER changes identity, React never unmounts the canvas.
+              - A useEffect manually moves persistentCanvasContainer between fallbackTarget and the active step's portalTarget.
             */}
-            {currentStep >= 2 && (
-              portalTarget ? (
-                createPortal(
-                  <div className="w-full h-full relative z-10">
-                    <DesignCanvas
-                      jerseyImages={jerseyImages}
-                      selectedPlayer={selectedPlayer}
-                      onCanvasReady={setCanvasRef}
-                      defaultFont={defaultFont}
-                      defaultColor={defaultColor}
-                      showTools={currentStep === 3}
-                    />
-                  </div>,
-                  portalTarget
-                )
-              ) : (
-                <div
-                  id="persistent-canvas-host"
-                  aria-hidden={currentStep === 4}
-                  className={currentStep === 4 ? "fixed -top-[9999px] -left-[9999px] opacity-0 pointer-events-none" : "hidden"}
-                >
-                  <DesignCanvas
-                    jerseyImages={jerseyImages}
-                    selectedPlayer={selectedPlayer}
-                    onCanvasReady={setCanvasRef}
-                    defaultFont={defaultFont}
-                    defaultColor={defaultColor}
-                    showTools={currentStep === 3}
-                  />
-                </div>
-              )
+            <div 
+               ref={setFallbackTarget}
+               id="persistent-canvas-fallback"
+               className={currentStep >= 4 ? "fixed -top-[9999px] -left-[9999px] opacity-0 pointer-events-none" : "hidden"}
+            />
+
+            {currentStep >= 2 && createPortal(
+              <DesignCanvas
+                jerseyImages={jerseyImages}
+                playerData={playerData}
+                selectedPlayer={selectedPlayer}
+                onCanvasReady={stableSetCanvasRef}
+                defaultFont={defaultFont}
+                defaultColor={defaultColor}
+                showTools={currentStep === 3}
+              />,
+              persistentCanvasContainer
             )}
 
             {renderCurrentStep()}
@@ -462,7 +512,16 @@ const Index = () => {
                       <div className="w-12 h-12 bg-black text-white flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                         <Package className="w-6 h-6" />
                       </div>
-                      <h4 className="font-bold text-lg mb-2 uppercase tracking-wide">Step 4: Export & Share</h4>
+                      <h4 className="font-bold text-lg mb-2 uppercase tracking-wide">Step 4: Preview Output</h4>
+                      <p className="text-gray-500 font-mono text-sm leading-relaxed">
+                        Verify all players in a unified grid view before export
+                      </p>
+                    </div>
+                    <div className="p-6 bg-gray-50 border-2 border-gray-200 hover:border-black transition-colors text-left group">
+                      <div className="w-12 h-12 bg-black text-white flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <Package className="w-6 h-6" />
+                      </div>
+                      <h4 className="font-bold text-lg mb-2 uppercase tracking-wide">Step 5: Export & Share</h4>
                       <p className="text-gray-500 font-mono text-sm leading-relaxed">
                         Download individual designs or export all jerseys as a ZIP file for production
                       </p>
@@ -497,18 +556,16 @@ const Index = () => {
       {/* Restore Session Dialog */}
       <ConfirmationDialog
         open={showRestoreDialog}
-        onOpenChange={(open) => {
-          setShowRestoreDialog(open);
-          // When closed via cancel (X / "Start Fresh"), clear the stale saved session
-          if (!open) handleStartFresh();
-        }}
+        onOpenChange={setShowRestoreDialog}
+        onCancel={handleStartFresh}
         onConfirm={handleRestoreSession}
         title="Restore Previous Session?"
-        description={`You have unsaved work from ${formatLastSaveTime()}. Would you like to continue where you left off?`}
+        description={`You have unsaved work from ${lastSaveTime}. Would you like to continue where you left off?`}
         confirmText="Restore Session"
         cancelText="Start Fresh"
         destructive={false}
       />
+      {currentStep === 1 && <Footer />}
     </div>
   );
 };

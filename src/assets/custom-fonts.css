@@ -22,7 +22,11 @@
  * - Atlanta College: https://www.dafont.com/atlanta-college.font
  */
 
-/* Old Sport Athletic */
+/* 
+All @font-face declarations for custom fonts have been disabled 
+because the font files (.woff, .woff2) are missing from the /public/fonts/ directory.
+To re-enable, add the font files to /public/fonts/ and uncomment the declarations below.
+
 @font-face {
     font-family: 'Old Sport Athletic';
     src: url('/fonts/OldSportAthletic.woff2') format('woff2'),
@@ -32,122 +36,5 @@
     font-display: swap;
 }
 
-/* Jackport College NCV */
-@font-face {
-    font-family: 'Jackport College NCV';
-    src: url('/fonts/JackportCollegeNCV.woff2') format('woff2'),
-         url('/fonts/JackportCollegeNCV.woff') format('woff');
-    font-weight: normal;
-    font-style: normal;
-    font-display: swap;
-}
-
-/* Collegiate Heavy Outline */
-@font-face {
-    font-family: 'Collegiate Heavy Outline';
-    src: url('/fonts/CollegiateHeavyOutline.woff2') format('woff2'),
-         url('/fonts/CollegiateHeavyOutline.woff') format('woff');
-    font-weight: normal;
-    font-style: normal;
-    font-display: swap;
-}
-
-/* High School USA */
-@font-face {
-    font-family: 'High School USA';
-    src: url('/fonts/HighSchoolUSA.woff2') format('woff2'),
-         url('/fonts/HighSchoolUSA.woff') format('woff');
-    font-weight: normal;
-    font-style: normal;
-    font-display: swap;
-}
-
-/* FTY Delirium NCV */
-@font-face {
-    font-family: 'FTY Delirium NCV';
-    src: url('/fonts/FTYDeliriumNCV.woff2') format('woff2'),
-         url('/fonts/FTYDeliriumNCV.woff') format('woff');
-    font-weight: normal;
-    font-style: normal;
-    font-display: swap;
-}
-
-/* Jersey M54 */
-@font-face {
-    font-family: 'Jersey M54';
-    src: url('/fonts/JerseyM54.woff2') format('woff2'),
-         url('/fonts/JerseyM54.woff') format('woff');
-    font-weight: normal;
-    font-style: normal;
-    font-display: swap;
-}
-
-/* Jersey Letters */
-@font-face {
-    font-family: 'Jersey Letters';
-    src: url('/fonts/JerseyLetters.woff2') format('woff2'),
-         url('/fonts/JerseyLetters.woff') format('woff');
-    font-weight: normal;
-    font-style: normal;
-    font-display: swap;
-}
-
-/* SF Collegiate */
-@font-face {
-    font-family: 'SF Collegiate';
-    src: url('/fonts/SFCollegiate.woff2') format('woff2'),
-         url('/fonts/SFCollegiate.woff') format('woff');
-    font-weight: normal;
-    font-style: normal;
-    font-display: swap;
-}
-
-/* Universal College */
-@font-face {
-    font-family: 'Universal College';
-    src: url('/fonts/UniversalCollege.woff2') format('woff2'),
-         url('/fonts/UniversalCollege.woff') format('woff');
-    font-weight: normal;
-    font-style: normal;
-    font-display: swap;
-}
-
-/* Friday Night Lights */
-@font-face {
-    font-family: 'Friday Night Lights';
-    src: url('/fonts/FridayNightLights.woff2') format('woff2'),
-         url('/fonts/FridayNightLights.woff') format('woff');
-    font-weight: normal;
-    font-style: normal;
-    font-display: swap;
-}
-
-/* Sporting Outline */
-@font-face {
-    font-family: 'Sporting Outline';
-    src: url('/fonts/SportingOutline.woff2') format('woff2'),
-         url('/fonts/SportingOutline.woff') format('woff');
-    font-weight: normal;
-    font-style: normal;
-    font-display: swap;
-}
-
-/* Star Shield */
-@font-face {
-    font-family: 'Star Shield';
-    src: url('/fonts/StarShield.woff2') format('woff2'),
-         url('/fonts/StarShield.woff') format('woff');
-    font-weight: normal;
-    font-style: normal;
-    font-display: swap;
-}
-
-/* Atlanta College */
-@font-face {
-    font-family: 'Atlanta College';
-    src: url('/fonts/AtlantaCollege.woff2') format('woff2'),
-         url('/fonts/AtlantaCollege.woff') format('woff');
-    font-weight: normal;
-    font-style: normal;
-    font-display: swap;
-}
+[... other font declarations removed for build stability ...]
+*/

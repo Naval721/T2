@@ -1,5 +1,13 @@
 import { JerseyImages, PlayerData } from '@/pages/Index';
 import { toast } from 'sonner';
+import localforage from 'localforage';
+
+// Configure localforage to use IndexedDB explicitly if possible
+localforage.config({
+    name: 'GxStudioStitch',
+    storeName: 'gxdrip_store',
+    description: 'Storage for GxDrip Session Data'
+});
 
 const STORAGE_KEYS = {
     JERSEY_IMAGES: 'gxdrip_jersey_images',
@@ -15,64 +23,81 @@ export interface PersistedState {
     playerData: PlayerData[];
     currentStep: number;
     selectedPlayerIndex: number;
+    defaultFont?: string;
+    defaultColor?: string;
     sessionId: string;
     lastSave: string;
 }
 
+export interface CanvasObject {
+    type: 'text' | 'image';
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    data: any;
+    name?: string;
+    src?: string;
+}
+
+export interface PlayerCanvasData {
+    playerIdentifier: string;
+    objects: CanvasObject[];
+    timestamp: string;
+}
+
 /**
- * Save the current state to localStorage
+ * Save the current state to localforage
  */
-export const saveState = (
+export const saveState = async (
     jerseyImages: JerseyImages,
     playerData: PlayerData[],
     currentStep: number,
-    selectedPlayerIndex: number
-): boolean => {
+    selectedPlayerIndex: number,
+    defaultFont?: string,
+    defaultColor?: string
+): Promise<boolean> => {
     try {
         const sessionId = getSessionId();
-        const state: PersistedState = {
-            jerseyImages,
-            playerData,
-            currentStep,
-            selectedPlayerIndex,
-            sessionId,
-            lastSave: new Date().toISOString()
-        };
+        const lastSave = new Date().toISOString();
 
-        localStorage.setItem(STORAGE_KEYS.JERSEY_IMAGES, JSON.stringify(jerseyImages));
-        localStorage.setItem(STORAGE_KEYS.PLAYER_DATA, JSON.stringify(playerData));
-        localStorage.setItem(STORAGE_KEYS.CURRENT_STEP, currentStep.toString());
-        localStorage.setItem(STORAGE_KEYS.SELECTED_PLAYER_INDEX, selectedPlayerIndex.toString());
-        localStorage.setItem(STORAGE_KEYS.LAST_SAVE, state.lastSave);
+        await localforage.setItem(STORAGE_KEYS.JERSEY_IMAGES, jerseyImages);
+        await localforage.setItem(STORAGE_KEYS.PLAYER_DATA, playerData);
+        await localforage.setItem(STORAGE_KEYS.CURRENT_STEP, currentStep);
+        await localforage.setItem(STORAGE_KEYS.SELECTED_PLAYER_INDEX, selectedPlayerIndex);
+        if (defaultFont) await localforage.setItem('gxdrip_default_font', defaultFont);
+        if (defaultColor) await localforage.setItem('gxdrip_default_color', defaultColor);
+        await localforage.setItem(STORAGE_KEYS.LAST_SAVE, lastSave);
 
         return true;
     } catch (error) {
         console.error('Failed to save state:', error);
-        toast.error('Failed to save progress. Storage may be full.');
+        toast.error('Failed to save progress. Storage error.');
         return false;
     }
 };
 
 /**
- * Load the persisted state from localStorage
+ * Load the persisted state from localforage
  */
-export const loadState = (): Partial<PersistedState> | null => {
+export const loadState = async (): Promise<Partial<PersistedState> | null> => {
     try {
-        const jerseyImagesStr = localStorage.getItem(STORAGE_KEYS.JERSEY_IMAGES);
-        const playerDataStr = localStorage.getItem(STORAGE_KEYS.PLAYER_DATA);
-        const currentStepStr = localStorage.getItem(STORAGE_KEYS.CURRENT_STEP);
-        const selectedPlayerIndexStr = localStorage.getItem(STORAGE_KEYS.SELECTED_PLAYER_INDEX);
-        const lastSave = localStorage.getItem(STORAGE_KEYS.LAST_SAVE);
+        const jerseyImages = await localforage.getItem<JerseyImages>(STORAGE_KEYS.JERSEY_IMAGES);
+        const playerData = await localforage.getItem<PlayerData[]>(STORAGE_KEYS.PLAYER_DATA);
+        const currentStep = await localforage.getItem<number>(STORAGE_KEYS.CURRENT_STEP);
+        const selectedPlayerIndex = await localforage.getItem<number>(STORAGE_KEYS.SELECTED_PLAYER_INDEX);
+        const defaultFont = await localforage.getItem<string>('gxdrip_default_font');
+        const defaultColor = await localforage.getItem<string>('gxdrip_default_color');
+        const lastSave = await localforage.getItem<string>(STORAGE_KEYS.LAST_SAVE);
 
-        if (!jerseyImagesStr && !playerDataStr) {
+        if (!jerseyImages && (!playerData || playerData.length === 0)) {
             return null; // No saved state
         }
 
         return {
-            jerseyImages: jerseyImagesStr ? JSON.parse(jerseyImagesStr) : {},
-            playerData: playerDataStr ? JSON.parse(playerDataStr) : [],
-            currentStep: currentStepStr ? parseInt(currentStepStr, 10) : 1,
-            selectedPlayerIndex: selectedPlayerIndexStr ? parseInt(selectedPlayerIndexStr, 10) : 0,
+            jerseyImages: jerseyImages || {},
+            playerData: playerData || [],
+            currentStep: currentStep || 1,
+            selectedPlayerIndex: selectedPlayerIndex || 0,
+            defaultFont: defaultFont || undefined,
+            defaultColor: defaultColor || undefined,
             sessionId: getSessionId(),
             lastSave: lastSave || undefined
         };
@@ -86,24 +111,25 @@ export const loadState = (): Partial<PersistedState> | null => {
 /**
  * Clear all persisted state
  */
-export const clearState = (): void => {
+export const clearState = async (): Promise<void> => {
     try {
-        Object.values(STORAGE_KEYS).forEach(key => {
-            localStorage.removeItem(key);
-        });
+        await Promise.all(
+            Object.values(STORAGE_KEYS).map(key => localforage.removeItem(key))
+        );
+        await localforage.removeItem('gxdrip_default_font');
+        await localforage.removeItem('gxdrip_default_color');
 
         // Also clear canvas persistence data for all players
-        const keysToRemove: string[] = [];
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key && key.startsWith('gxdrip_canvas_')) {
-                keysToRemove.push(key);
-            }
-        }
-        keysToRemove.forEach(key => localStorage.removeItem(key));
+        const keys = await localforage.keys();
+        const keysToRemove = keys.filter(key => 
+            key.startsWith('gxdrip_canvas_') || 
+            key.startsWith('jerseyDesigner:playerElements_')
+        );
+        
+        await Promise.all(keysToRemove.map(key => localforage.removeItem(key)));
 
         // Wipe the global designer template so custom logos/texts don't ghost onto new sessions
-        localStorage.removeItem('jerseyDesigner:globalTemplate');
+        await localforage.removeItem('jerseyDesigner:globalTemplate');
 
     } catch (error) {
         console.error('Failed to clear state:', error);
@@ -112,6 +138,7 @@ export const clearState = (): void => {
 
 /**
  * Get or create a session ID
+ * Note: keeping this synchronous using localStorage is fine since it's just a tiny string
  */
 export const getSessionId = (): string => {
     let sessionId = localStorage.getItem(STORAGE_KEYS.SESSION_ID);
@@ -125,25 +152,25 @@ export const getSessionId = (): string => {
 /**
  * Check if there's a saved session
  */
-export const hasSavedSession = (): boolean => {
-    const jerseyImages = localStorage.getItem(STORAGE_KEYS.JERSEY_IMAGES);
-    const playerData = localStorage.getItem(STORAGE_KEYS.PLAYER_DATA);
-    return !!(jerseyImages || playerData);
+export const hasSavedSession = async (): Promise<boolean> => {
+    const jerseyImages = await localforage.getItem(STORAGE_KEYS.JERSEY_IMAGES);
+    const playerData = await localforage.getItem<any[]>(STORAGE_KEYS.PLAYER_DATA);
+    return !!(jerseyImages || (playerData && playerData.length > 0));
 };
 
 /**
  * Get the last save timestamp
  */
-export const getLastSaveTime = (): Date | null => {
-    const lastSave = localStorage.getItem(STORAGE_KEYS.LAST_SAVE);
+export const getLastSaveTime = async (): Promise<Date | null> => {
+    const lastSave = await localforage.getItem<string>(STORAGE_KEYS.LAST_SAVE);
     return lastSave ? new Date(lastSave) : null;
 };
 
 /**
  * Format the last save time for display
  */
-export const formatLastSaveTime = (): string => {
-    const lastSave = getLastSaveTime();
+export const formatLastSaveTime = async (): Promise<string> => {
+    const lastSave = await getLastSaveTime();
     if (!lastSave) return 'Never';
 
     const now = new Date();
@@ -156,4 +183,72 @@ export const formatLastSaveTime = (): string => {
     if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
     if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
     return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+};
+
+/**
+ * Generate a unique player identifier from player name and jersey number
+ */
+const getPlayerIdentifier = (playerName: string, jerseyNumber: string): string => {
+    return `${playerName}_${jerseyNumber}`.replace(/\s+/g, '_');
+};
+
+/**
+ * Save canvas objects for a specific player
+ */
+export const savePlayerCanvasObjects = async (
+    playerName: string,
+    jerseyNumber: string,
+    objects: CanvasObject[]
+): Promise<boolean> => {
+    try {
+        const playerIdentifier = getPlayerIdentifier(playerName, jerseyNumber);
+        const key = `gxdrip_canvas_${playerIdentifier}`;
+
+        const data: PlayerCanvasData = {
+            playerIdentifier,
+            objects,
+            timestamp: new Date().toISOString()
+        };
+
+        await localforage.setItem(key, data);
+        return true;
+    } catch (error) {
+        console.error('Failed to save player canvas objects:', error);
+        return false;
+    }
+};
+
+/**
+ * Load canvas objects for a specific player
+ */
+export const loadPlayerCanvasObjects = async (
+    playerName: string,
+    jerseyNumber: string
+): Promise<CanvasObject[]> => {
+    try {
+        const playerIdentifier = getPlayerIdentifier(playerName, jerseyNumber);
+        const key = `gxdrip_canvas_${playerIdentifier}`;
+
+        const data = await localforage.getItem<PlayerCanvasData>(key);
+        return data?.objects || [];
+    } catch (error) {
+        console.error('Failed to load player canvas objects:', error);
+        return [];
+    }
+};
+
+/**
+ * Clear canvas objects for a specific player
+ */
+export const clearPlayerCanvasObjects = async (
+    playerName: string,
+    jerseyNumber: string
+): Promise<void> => {
+    try {
+        const playerIdentifier = getPlayerIdentifier(playerName, jerseyNumber);
+        const key = `gxdrip_canvas_${playerIdentifier}`;
+        await localforage.removeItem(key);
+    } catch (error) {
+        console.error('Failed to clear player canvas objects:', error);
+    }
 };

@@ -21,24 +21,9 @@ export const JERSEY_FONTS = [
     { value: 'Barlow Condensed', label: 'Barlow Condensed - Team', category: 'Collegiate' },
     { value: 'Staatliches', label: 'Staatliches - Retro', category: 'Collegiate' },
 
-    // Athletic & Varsity Fonts (New)
-    { value: 'Old Sport Athletic', label: 'Old Sport Athletic - Classic Varsity', category: 'Collegiate' },
-    { value: 'Jackport College NCV', label: 'Jackport College - Bold Varsity', category: 'Collegiate' },
-    { value: 'Collegiate Heavy Outline', label: 'Collegiate Heavy Outline - Traditional', category: 'Collegiate' },
-    { value: 'High School USA', label: 'High School USA - Sports Vibe', category: 'Collegiate' },
-    { value: 'SF Collegiate', label: 'SF Collegiate - Varsity Style', category: 'Collegiate' },
-    { value: 'Universal College', label: 'Universal College - School Theme', category: 'Collegiate' },
-    { value: 'Atlanta College', label: 'Atlanta College - Block Font', category: 'Collegiate' },
-
-    // Jersey-Specific Fonts (New)
-    { value: 'Jersey M54', label: 'Jersey M54 - Blocky Letters', category: 'Classic' },
-    { value: 'Jersey Letters', label: 'Jersey Letters - Athletic Block', category: 'Classic' },
-    { value: 'Star Shield', label: 'Star Shield - Bold Numbers', category: 'Bold' },
-
-    // Stylized Athletic (New)
-    { value: 'FTY Delirium NCV', label: 'FTY Delirium - Stylized Athletic', category: 'Display' },
-    { value: 'Friday Night Lights', label: 'Friday Night Lights - Sports Theme', category: 'Display' },
-    { value: 'Sporting Outline', label: 'Sporting Outline - Jersey Style', category: 'Display' },
+    // Note: Custom local fonts (Old Sport Athletic, Jersey M54, etc.) 
+    // require actual font files. They have been removed until files are provided.
+    // Users can still upload their own TTF/WOFF files via the font selector UI.
 
     // Modern & Futuristic
     { value: 'Orbitron', label: 'Orbitron - Futuristic', category: 'Modern' },

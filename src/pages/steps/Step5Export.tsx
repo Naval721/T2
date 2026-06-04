@@ -5,7 +5,7 @@ import { ArrowLeft, CheckSquare } from "lucide-react";
 import { Canvas as FabricCanvas } from "fabric";
 import type { PlayerData, JerseyImages } from "@/pages/Index";
 
-interface Step4ExportProps {
+interface Step5ExportProps {
     canvasRef: FabricCanvas | null;
     selectedPlayer: PlayerData | null;
     playerData: PlayerData[];
@@ -13,16 +13,20 @@ interface Step4ExportProps {
     onPrev: () => void;
     onComplete: () => void;
     onPlayerSelect?: (player: PlayerData) => void;
+    defaultFont?: string;
+    defaultColor?: string;
 }
 
-export const Step4Export = ({
+export const Step5Export = ({
     canvasRef,
     selectedPlayer,
     playerData,
     jerseyImages,
     onPrev,
     onComplete,
-}: Step4ExportProps) => {
+    defaultFont,
+    defaultColor,
+}: Step5ExportProps) => {
     return (
         <div className="min-h-screen bg-white text-black font-sans selection:bg-black selection:text-white flex flex-col items-center py-20 px-4">
             <div className="max-w-4xl w-full space-y-12 animate-fadeIn text-center">
@@ -51,6 +55,8 @@ export const Step4Export = ({
                             selectedPlayer={selectedPlayer || (playerData.length > 0 ? playerData[0] : null)}
                             playerData={playerData}
                             jerseyImages={jerseyImages}
+                            defaultFont={defaultFont}
+                            defaultColor={defaultColor}
                         />
                     </PremiumGate>
                 </div>

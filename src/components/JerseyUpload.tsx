@@ -1,8 +1,9 @@
 import { useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Upload, Image, X, CheckCircle } from "lucide-react";
+import { Upload, Image as ImageIcon, X, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
+import imageCompression from 'browser-image-compression';
 import type { JerseyImages } from "@/pages/Index";
 
 interface JerseyUploadProps {
@@ -36,6 +37,15 @@ export const JerseyUpload = ({ jerseyImages, onImagesChange }: JerseyUploadProps
     setUploadingPart(part);
 
     try {
+      // Compress the image before storing to prevent memory leaks and UI lag on canvas
+      const options = {
+        maxSizeMB: 2,          // Max file size
+        maxWidthOrHeight: 2048, // Good balance for 4K downscaling
+        useWebWorker: true,
+      };
+      
+      const compressedFile = await imageCompression(file, options);
+
       const reader = new FileReader();
       reader.onload = (e) => {
         const imageUrl = e.target?.result as string;
@@ -46,7 +56,7 @@ export const JerseyUpload = ({ jerseyImages, onImagesChange }: JerseyUploadProps
         toast.success(`${jerseyParts.find(p => p.key === part)?.label} uploaded successfully`);
         setUploadingPart(null);
       };
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(compressedFile);
     } catch (error) {
       toast.error("Failed to upload image");
       setUploadingPart(null);
@@ -67,7 +77,7 @@ export const JerseyUpload = ({ jerseyImages, onImagesChange }: JerseyUploadProps
   return (
     <Card className="p-6">
       <div className="flex items-center gap-3 mb-6">
-        <Image className="w-6 h-6 text-accent" />
+        <ImageIcon className="w-6 h-6 text-accent" />
         <div>
           <h2 className="text-xl font-semibold">Jersey Images</h2>
           <p className="text-muted-foreground text-sm">Upload individual jersey components</p>

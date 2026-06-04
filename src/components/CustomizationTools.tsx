@@ -4,15 +4,17 @@ import { Label } from "@/components/ui/label";
 import { FontSelector } from "@/components/FontSelector";
 import { Slider } from "@/components/ui/slider";
 import { Upload, Type } from "lucide-react";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
+import { Canvas as FabricCanvas, IText as FabricText } from "fabric";
 
 interface CustomizationToolsProps {
   onAddText?: (text: string, fontFamily: string, fontSize: number, fill: string, stroke: string, strokeWidth: number) => void;
   onAddLogo?: (logoUrl: string) => void;
+  canvasRef?: FabricCanvas | null;
 }
 
-export const CustomizationTools = ({ onAddText, onAddLogo }: CustomizationToolsProps) => {
+export const CustomizationTools = ({ onAddText, onAddLogo, canvasRef }: CustomizationToolsProps) => {
   const [customText, setCustomText] = useState("");
   const [selectedFont, setSelectedFont] = useState("Anton");
   const [fontSize, setFontSize] = useState(60);
@@ -20,6 +22,47 @@ export const CustomizationTools = ({ onAddText, onAddLogo }: CustomizationToolsP
   const [strokeColor, setStrokeColor] = useState("#000000");
   const [strokeWidth, setStrokeWidth] = useState(2);
   const logoInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!canvasRef) return;
+
+    const handleSelection = () => {
+      const activeObject = canvasRef.getActiveObject();
+      if (activeObject && (activeObject as any).text) {
+        const textObj = activeObject as FabricText;
+        if (textObj.fontSize) {
+          const effectiveSize = Math.round(textObj.fontSize * (textObj.scaleY || 1));
+          setFontSize(effectiveSize);
+        }
+        if (textObj.fontFamily) setSelectedFont(textObj.fontFamily);
+        if (textObj.fill) setTextColor(textObj.fill as string);
+        if (textObj.stroke) setStrokeColor(textObj.stroke as string);
+        if (textObj.strokeWidth !== undefined) setStrokeWidth(textObj.strokeWidth);
+      }
+    };
+
+    canvasRef.on('selection:created', handleSelection);
+    canvasRef.on('selection:updated', handleSelection);
+    
+    return () => {
+      canvasRef.off('selection:created', handleSelection);
+      canvasRef.off('selection:updated', handleSelection);
+    };
+  }, [canvasRef]);
+
+  const updateActiveText = (key: string, value: any) => {
+    if (!canvasRef) return;
+    const activeObject = canvasRef.getActiveObject();
+    if (activeObject && (activeObject as any).text) {
+      if (key === 'fontSize') {
+        activeObject.set({ fontSize: value, scaleX: 1, scaleY: 1 });
+      } else {
+        activeObject.set(key, value);
+      }
+      canvasRef.requestRenderAll();
+      canvasRef.fire('object:modified', { target: activeObject } as any);
+    }
+  };
 
   const handleAddText = () => {
     if (!customText.trim()) {
@@ -40,6 +83,12 @@ export const CustomizationTools = ({ onAddText, onAddLogo }: CustomizationToolsP
       return;
     }
 
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Image is too large (max 10 MB). Please resize it first.");
+      if (logoInputRef.current) logoInputRef.current.value = '';
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = (event) => {
       const logoUrl = event.target?.result as string;
@@ -47,6 +96,8 @@ export const CustomizationTools = ({ onAddText, onAddLogo }: CustomizationToolsP
       toast.success("Logo added to canvas");
     };
     reader.readAsDataURL(file);
+    // Reset so the same file can be re-uploaded
+    if (logoInputRef.current) logoInputRef.current.value = '';
   };
 
   return (
@@ -72,7 +123,10 @@ export const CustomizationTools = ({ onAddText, onAddLogo }: CustomizationToolsP
       {/* Font Selector */}
       <FontSelector
         value={selectedFont}
-        onChange={setSelectedFont}
+        onChange={(val) => {
+          setSelectedFont(val);
+          updateActiveText('fontFamily', val);
+        }}
         label="Font Style"
         showPreview={true}
       />
@@ -82,7 +136,10 @@ export const CustomizationTools = ({ onAddText, onAddLogo }: CustomizationToolsP
         <Label className="mb-2 block uppercase text-xs font-bold tracking-widest text-gray-500">Font Size: {fontSize}px</Label>
         <Slider
           value={[fontSize]}
-          onValueChange={(value) => setFontSize(value[0])}
+          onValueChange={(value) => {
+            setFontSize(value[0]);
+            updateActiveText('fontSize', value[0]);
+          }}
           min={20}
           max={200}
           step={5}
@@ -98,14 +155,20 @@ export const CustomizationTools = ({ onAddText, onAddLogo }: CustomizationToolsP
             <Input
               type="color"
               value={textColor}
-              onChange={(e) => setTextColor(e.target.value)}
+              onChange={(e) => {
+                setTextColor(e.target.value);
+                updateActiveText('fill', e.target.value);
+              }}
               className="w-16 h-10 p-0 rounded-none border-2 border-black cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
             />
             <Input
               type="text"
               value={textColor}
-              onChange={(e) => setTextColor(e.target.value)}
-              className="flex-1 rounded-none border-2 border-black focus-visible:ring-0 focus-visible:border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] uppercase font-mono text-sm uppercase"
+              onChange={(e) => {
+                setTextColor(e.target.value);
+                updateActiveText('fill', e.target.value);
+              }}
+              className="flex-1 rounded-none border-2 border-black focus-visible:ring-0 focus-visible:border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] font-mono text-sm uppercase"
               placeholder="#ffffff"
             />
           </div>
@@ -118,13 +181,24 @@ export const CustomizationTools = ({ onAddText, onAddLogo }: CustomizationToolsP
             <Input
               type="color"
               value={strokeColor}
-              onChange={(e) => setStrokeColor(e.target.value)}
+              onChange={(e) => {
+                setStrokeColor(e.target.value);
+                updateActiveText('stroke', e.target.value);
+                // Ensure strokeWidth is > 0 if color is set
+                if (strokeWidth === 0) {
+                  setStrokeWidth(1);
+                  updateActiveText('strokeWidth', 1);
+                }
+              }}
               className="w-16 h-10 p-0 rounded-none border-2 border-black cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
             />
             <Input
               type="text"
               value={strokeColor}
-              onChange={(e) => setStrokeColor(e.target.value)}
+              onChange={(e) => {
+                setStrokeColor(e.target.value);
+                updateActiveText('stroke', e.target.value);
+              }}
               className="flex-1 rounded-none border-2 border-black focus-visible:ring-0 focus-visible:border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] uppercase font-mono text-sm"
               placeholder="#000000"
             />
@@ -137,7 +211,10 @@ export const CustomizationTools = ({ onAddText, onAddLogo }: CustomizationToolsP
         <Label className="mb-2 block uppercase text-xs font-bold tracking-widest text-gray-500">Stroke Width: {strokeWidth}px</Label>
         <Slider
           value={[strokeWidth]}
-          onValueChange={(value) => setStrokeWidth(value[0])}
+          onValueChange={(value) => {
+            setStrokeWidth(value[0]);
+            updateActiveText('strokeWidth', value[0]);
+          }}
           min={0}
           max={10}
           step={0.5}

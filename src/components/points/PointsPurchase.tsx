@@ -34,7 +34,7 @@ export const PointsPurchase = ({ isOpen, onClose, onPurchase, currentPoints }: P
     setLoading(true)
     try {
       await onPurchase(packageId)
-      toast.success('Points purchased successfully!')
+      // Parent component shows the success toast with the exact points amount
       onClose()
       setSelectedPackage(null)
     } catch (error) {
@@ -188,7 +188,7 @@ export const PointsPurchase = ({ isOpen, onClose, onPurchase, currentPoints }: P
             <p className="font-semibold mb-2">Point Costs:</p>
             <div className="grid grid-cols-2 gap-2 text-sm">
               <div>• Front Image: 1 point</div>
-              <div>• Back Image: 2 points</div>
+              <div>• Back Image: 1 point</div>
               <div>• Sleeve: 1 point each</div>
               <div>• Collar: 1 point each</div>
             </div>

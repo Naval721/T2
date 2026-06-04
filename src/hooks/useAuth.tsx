@@ -12,11 +12,11 @@ interface AuthContextType {
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: AuthError | null, needsEmailConfirmation?: boolean }>
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>
   signOut: () => Promise<void>
-  updateProfile: (updates: Partial<UserProfile>) => Promise<{ error: any }>
-  updatePassword: (password: string) => Promise<{ error: any }>
+  updateProfile: (updates: Partial<UserProfile>) => Promise<{ error: AuthError | Error | null }>
+  updatePassword: (password: string) => Promise<{ error: AuthError | Error | null }>
   checkPointsBalance: (pointsNeeded: number) => boolean
-  deductPoints: (points: number, description: string) => Promise<{ success: boolean; error?: any }>
-  addPoints: (points: number, description: string) => Promise<{ success: boolean; error?: any }>
+  deductPoints: (points: number, description: string) => Promise<{ success: boolean; error?: AuthError | Error | string | null }>
+  addPoints: (points: number, description: string) => Promise<{ success: boolean; error?: AuthError | Error | string | null }>
   hasEnoughPoints: boolean
   currentPoints: number
   isPremium: boolean
@@ -90,12 +90,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   }, [])
 
-  // 3. Keep profile strictly synced with the active user
   useEffect(() => {
     if (user) {
       setLoading(true)
       fetchUserProfile(user.id)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id])
 
   const fetchUserProfile = async (userId: string) => {
@@ -360,6 +360,18 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     const isRefund = points < 0;
 
+    // Demo Mode Fallback
+    if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+      if (!profile) return { success: false, error: 'No profile found' };
+      if (!isRefund && profile.points_balance < points) {
+        return { success: false, error: `Insufficient points: have ${profile.points_balance}, need ${points}` };
+      }
+      const newBalance = profile.points_balance - points;
+      const newUsed = isRefund ? Math.max(0, profile.total_points_used + points) : profile.total_points_used + points;
+      setProfile(prev => prev ? { ...prev, points_balance: newBalance, total_points_used: newUsed } : null);
+      return { success: true };
+    }
+
     try {
       // Always fetch the live balance first to prevent stale-state race conditions
       const { data: freshProfile, error: fetchError } = await supabase
@@ -416,6 +428,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const addPoints = async (points: number, description: string): Promise<{ success: boolean; error?: any }> => {
     if (!user) {
       return { success: false, error: 'Not authenticated' }
+    }
+
+    // Demo Mode Fallback
+    if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+      if (!profile) return { success: false, error: 'No profile found' };
+      const newBalance = profile.points_balance + points;
+      const newPurchased = profile.total_points_purchased + points;
+      setProfile(prev => prev ? { ...prev, points_balance: newBalance, total_points_purchased: newPurchased } : null);
+      return { success: true };
     }
 
     try {

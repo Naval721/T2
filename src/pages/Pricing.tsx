@@ -166,7 +166,7 @@ const Pricing = () => {
                 </div>
                 <div className="flex justify-between items-center pb-4 border-b border-gray-100">
                   <span className="text-gray-700">Back image</span>
-                  <span className="font-semibold text-black">2 points</span>
+                  <span className="font-semibold text-black">1 point</span>
                 </div>
                 <div className="flex justify-between items-center pb-4 border-b border-gray-100">
                   <span className="text-gray-700">Sleeve (each)</span>

@@ -43,8 +43,8 @@ const LoadingFallback = () => (
 // Inner layout that can access useLocation
 const AppRoutes = () => {
   const location = useLocation();
-  // Hide the global footer on the home/landing page — it has its own design
-  const hideFooter = location.pathname === "/";
+  // Hide global footer on design page (it handles its own step-based footer display)
+  const hideFooter = location.pathname === "/design";
 
   return (
     <Suspense fallback={<LoadingFallback />}>

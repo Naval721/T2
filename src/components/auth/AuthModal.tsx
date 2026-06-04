@@ -75,7 +75,8 @@ export const AuthModal = ({ isOpen, onClose, defaultMode = 'signin', onSuccess }
         const { error } = await signIn(email, password)
         if (!error) {
           resetForm()
-          onSuccess ? onSuccess() : onClose()
+          if (onSuccess) onSuccess()
+          else onClose()
         }
       } else {
         const { error, needsEmailConfirmation } = await signUp(email, password, fullName)
@@ -84,7 +85,8 @@ export const AuthModal = ({ isOpen, onClose, defaultMode = 'signin', onSuccess }
             setMode('check_email')
           } else {
             resetForm()
-            onSuccess ? onSuccess() : onClose()
+            if (onSuccess) onSuccess()
+            else onClose()
           }
         }
       }
@@ -128,6 +130,13 @@ export const AuthModal = ({ isOpen, onClose, defaultMode = 'signin', onSuccess }
             >
               Close
             </Button>
+            <button
+              type="button"
+              className="text-sm text-gray-500 hover:text-black hover:underline mt-2"
+              onClick={() => { setMode('signin'); resetForm() }}
+            >
+              Wrong email? Back to Sign In
+            </button>
           </div>
         ) : (
           <>

@@ -6,6 +6,7 @@ import { RotateCcw, ZoomIn, ZoomOut, Move, Download, Scissors, Trash2 } from "lu
 import { toast } from "sonner";
 import type { JerseyImages, PlayerData } from "@/pages/Index";
 import { logger } from "@/lib/logger";
+import { fitTextToWidth } from "@/lib/textFit";
 import { getSizeScaleFactorFromDim, computeExportMultiplier } from '@/lib/sizes';
 import { useAuth } from "@/hooks/useAuth";
 import localforage from 'localforage';
@@ -740,9 +741,11 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
                 const shouldAutoCenter = !prevNameProps || !prevNumberProps;
                 setTimeout(() => {
                     if (myToken !== loadTokenRef.current) return;
-                    if (shouldAutoCenter) {
-                        const backImg = fabricCanvas.getObjects().find(o => (o as ExtendedFabricImage).name === 'jerseyBack') as ExtendedFabricImage | undefined;
-                        if (!backImg) return;
+
+                    // Find jersey back image to compute bounds for text fitting
+                    const backImg = fabricCanvas.getObjects().find(o => (o as ExtendedFabricImage).name === 'jerseyBack') as ExtendedFabricImage | undefined;
+
+                    if (shouldAutoCenter && backImg) {
                         const rect = backImg.getBoundingRect();
                         const backTop = rect.top;
                         const backHeight = rect.height;
@@ -752,14 +755,19 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
                         const nameFont = Math.max(16, Math.round(backHeight * backPlacementRef.current.nameFontRatio));
                         const numberFont = Math.max(48, Math.round(backHeight * backPlacementRef.current.numberFontRatio));
                         // Auto-fit name within back width with margins
-                        const maxTextWidth = rect.width * 0.7;
+                        const maxTextWidth = rect.width * 0.85;
                         nameText.set({ left: centerX, top: nameTop, originX: 'center', originY: 'center', textAlign: 'center', fontSize: nameFont });
-                        while (nameText.getScaledWidth() > maxTextWidth && nameText.fontSize! > 12) {
-                            nameText.set({ fontSize: nameText.fontSize! - 1 });
-                        }
+                        fitTextToWidth(nameText, maxTextWidth, 12);
                         numberText.set({ left: centerX, top: numberTop, originX: 'center', originY: 'center', textAlign: 'center', fontSize: numberFont });
+                        fitTextToWidth(numberText, maxTextWidth, 24);
                         // Persist the auto-center positions immediately
                         persistState();
+                    } else if (backImg) {
+                        // Even with saved placements, clamp text that overflows the jersey
+                        const rect = backImg.getBoundingRect();
+                        const maxTextWidth = rect.width * 0.85;
+                        fitTextToWidth(nameText, maxTextWidth, 12);
+                        fitTextToWidth(numberText, maxTextWidth, 24);
                     }
                     fabricCanvas.requestRenderAll();
                 }, 0);

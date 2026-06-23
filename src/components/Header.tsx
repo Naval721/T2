@@ -38,6 +38,9 @@ export const Header = () => {
             <Link to="/pricing" className="text-gray-600 hover:text-black transition">
               Pricing
             </Link>
+            <Link to="/contact" className="text-gray-600 hover:text-black transition">
+              Contact
+            </Link>
           </nav>
 
           {/* Auth Section */}
@@ -61,6 +64,8 @@ export const Header = () => {
                   variant="ghost"
                   size="sm"
                   onClick={handleSignOut}
+                  aria-label="Sign out"
+                  title="Sign out"
                   className="text-gray-600 hover:text-black hover:bg-gray-50 mb-[2px]"
                 >
                   <LogOut className="w-4 h-4" />

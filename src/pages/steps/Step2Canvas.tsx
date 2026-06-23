@@ -10,7 +10,6 @@ interface Step2CanvasProps {
   playerData: PlayerData[];
   selectedPlayer: PlayerData | null;
   onPlayerSelect: (player: PlayerData) => void;
-  onCanvasReady: (ref: FabricCanvas | null) => void;
   defaultFont: string;
   onFontChange: (font: string) => void;
   defaultColor: string;
@@ -24,7 +23,6 @@ export const Step2Canvas = ({
   playerData,
   selectedPlayer,
   onPlayerSelect,
-  onCanvasReady,
   defaultFont,
   onFontChange,
   defaultColor,
@@ -45,31 +43,31 @@ export const Step2Canvas = ({
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
         {/* Player Selection Panel */}
         <div className="xl:col-span-1">
-          <Card className="p-4">
-            <h3 className="font-semibold mb-3">Imported Players ({playerData.length})</h3>
+          <Card className="p-4 border-2 border-black rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <h3 className="font-black uppercase tracking-widest text-sm mb-3 border-b-2 border-black pb-2">Imported Players ({playerData.length})</h3>
             <div className="space-y-2 max-h-60 overflow-y-auto">
               {playerData.map((player) => (
                 <button
                   key={`${player.playerName}_${player.jerseyNumber}`}
                   onClick={() => onPlayerSelect(player)}
-                  className={`w-full p-3 text-left rounded-lg transition-smooth ${
+                  title={player.playerName}
+                  className={`w-full p-3 text-left transition-all border-2 text-sm font-bold uppercase leading-tight flex justify-between items-center ${
                     selectedPlayer?.playerName === player.playerName && selectedPlayer?.jerseyNumber === player.jerseyNumber
-                      ? 'bg-accent text-accent-foreground'
-                      : 'bg-secondary hover:bg-muted'
-                    }`}
+                      ? 'bg-black text-white border-black'
+                      : 'bg-gray-100 text-black border-transparent hover:border-black'
+                  }`}
                 >
-                  <div className="font-medium">{player.playerName}</div>
-                  <div className="text-sm opacity-70">#{player.jerseyNumber} - {player.size}</div>
-                  <div className="text-xs opacity-60">{player.teamName} - {player.position}</div>
+                  <div className="font-medium truncate pr-2">{player.playerName}</div>
+                  <div className="text-xs opacity-70 whitespace-nowrap">#{player.jerseyNumber} · {player.size}</div>
                 </button>
               ))}
             </div>
           </Card>
 
           {/* Font Selection */}
-          <Card className="p-4 mt-4">
-            <h4 className="font-semibold mb-3">Default Font for All Players</h4>
-            <p className="text-xs text-muted-foreground mb-4">
+          <Card className="p-4 mt-4 border-2 border-black rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <h4 className="font-black uppercase tracking-widest text-sm mb-3 border-b-2 border-black pb-2">Default Font for All Players</h4>
+            <p className="text-xs text-gray-500 font-mono mb-4">
               This font will be applied to all player names and numbers
             </p>
             <FontSelector
@@ -83,26 +81,26 @@ export const Step2Canvas = ({
           </Card>
 
           {/* Data Summary */}
-          <Card className="p-4 mt-4">
-            <h4 className="font-semibold mb-3">Import Summary</h4>
-            <div className="space-y-2 text-sm">
+          <Card className="p-4 mt-4 border-2 border-black rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <h4 className="font-black uppercase tracking-widest text-sm mb-3 border-b-2 border-black pb-2">Import Summary</h4>
+            <div className="space-y-2 text-sm font-mono">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Jersey Images:</span>
-                <span className="font-medium">{Object.keys(jerseyImages).length}</span>
+                <span className="text-gray-500 uppercase text-xs">Jersey Images:</span>
+                <span className="font-bold">{Object.keys(jerseyImages).length}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Players:</span>
-                <span className="font-medium">{playerData.length}</span>
+                <span className="text-gray-500 uppercase text-xs">Players:</span>
+                <span className="font-bold">{playerData.length}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Team Sizes:</span>
-                <span className="font-medium">
+                <span className="text-gray-500 uppercase text-xs">Sizes:</span>
+                <span className="font-bold">
                   {[...new Set(playerData.map(p => p.size))].join(', ')}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Selected Font:</span>
-                <span className="font-medium" style={{ fontFamily: defaultFont }}>
+                <span className="text-gray-500 uppercase text-xs">Font:</span>
+                <span className="font-bold truncate max-w-[100px]" title={defaultFont} style={{ fontFamily: defaultFont }}>
                   {defaultFont}
                 </span>
               </div>

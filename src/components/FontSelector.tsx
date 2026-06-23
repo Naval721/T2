@@ -32,6 +32,10 @@ interface FontSelectorProps {
     onChange: (font: string) => void;
     color?: string;
     onColorChange?: (color: string) => void;
+    strokeColor?: string;
+    onStrokeColorChange?: (color: string) => void;
+    strokeWidth?: number;
+    onStrokeWidthChange?: (width: number) => void;
     label?: string;
     showPreview?: boolean;
 }
@@ -42,6 +46,10 @@ export const FontSelector = ({
     onChange,
     color = "#000000",
     onColorChange,
+    strokeColor = "#FFFFFF",
+    onStrokeColorChange,
+    strokeWidth = 0,
+    onStrokeWidthChange,
     label = "Font Family",
     showPreview = true,
 }: FontSelectorProps) => {
@@ -57,6 +65,12 @@ export const FontSelector = ({
     const [hexInput, setHexInput] = useState(color);
     const colorDropRef = useRef<HTMLDivElement>(null);
     const nativeColorRef = useRef<HTMLInputElement>(null);
+
+    // Stroke picker state
+    const [strokeOpen, setStrokeOpen] = useState(false);
+    const [strokeHexInput, setStrokeHexInput] = useState(strokeColor);
+    const strokeDropRef = useRef<HTMLDivElement>(null);
+    const nativeStrokeColorRef = useRef<HTMLInputElement>(null);
 
     // Font import state
     const [customFonts, setCustomFonts] = useState<{ value: string; label: string; category?: string }[]>([]);
@@ -93,6 +107,7 @@ export const FontSelector = ({
 
     // Sync hex input with prop color
     useEffect(() => { setHexInput(color); }, [color]);
+    useEffect(() => { setStrokeHexInput(strokeColor); }, [strokeColor]);
 
     // Close font dropdown on outside click
     useEffect(() => {
@@ -116,13 +131,25 @@ export const FontSelector = ({
         return () => document.removeEventListener("mousedown", handler);
     }, []);
 
+    // Close stroke dropdown on outside click
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (strokeDropRef.current && !strokeDropRef.current.contains(e.target as Node)) {
+                setStrokeOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handler);
+        return () => document.removeEventListener("mousedown", handler);
+    }, []);
+
     // Auto-focus search when font dropdown opens
     useEffect(() => {
         if (fontOpen) setTimeout(() => searchRef.current?.focus(), 50);
     }, [fontOpen]);
 
-    const allFonts = [...JERSEY_FONTS, ...customFonts];
-    const filtered = (category === "All" ? allFonts : allFonts.filter(f => (f as any).category === category || (customFonts.includes(f as any) && category === "Custom")))
+    type FontItem = { value: string; label: string; category?: string };
+    const allFonts: FontItem[] = [...JERSEY_FONTS, ...customFonts];
+    const filtered = (category === "All" ? allFonts : allFonts.filter(f => f.category === category || (customFonts.some(c => c.value === f.value) && category === "Custom")))
         .filter(f => f.label.toLowerCase().includes(search.toLowerCase()) || f.value.toLowerCase().includes(search.toLowerCase()));
 
     const handleFontSelect = (fontValue: string) => {
@@ -137,6 +164,14 @@ export const FontSelector = ({
         if (/^#[0-9A-Fa-f]{6}$/.test(hex)) {
             onColorChange?.(hex);
             setHexInput(hex);
+        }
+    };
+    
+    const applyStrokeHex = (raw: string) => {
+        const hex = raw.startsWith("#") ? raw : `#${raw}`;
+        if (/^#[0-9A-Fa-f]{6}$/.test(hex)) {
+            onStrokeColorChange?.(hex);
+            setStrokeHexInput(hex);
         }
     };
 
@@ -213,7 +248,7 @@ export const FontSelector = ({
                     </button>
 
                     {fontOpen && (
-                        <div className="absolute z-50 top-[calc(100%+4px)] left-0 right-0 rounded-lg border border-border bg-popover shadow-xl overflow-hidden animate-in fade-in-0 slide-in-from-top-1 duration-150">
+                        <div className="absolute z-50 top-[calc(100%+4px)] left-0 w-[280px] sm:w-[320px] rounded-lg border border-border bg-popover shadow-xl overflow-hidden animate-in fade-in-0 slide-in-from-top-1 duration-150">
 
                             {/* Search */}
                             <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-muted/20">
@@ -263,7 +298,7 @@ export const FontSelector = ({
                                                     {font.value}
                                                 </span>
                                                 <span className="text-[10px] text-muted-foreground mt-0.5">
-                                                    {(font as any).category ?? "Custom"}
+                                                    {(font as FontItem).category ?? "Custom"}
                                                 </span>
                                             </div>
                                             {value === font.value && <Check className="w-3.5 h-3.5 text-primary shrink-0 ml-2" />}
@@ -357,6 +392,85 @@ export const FontSelector = ({
                         )}
                     </div>
                 )}
+                {/* ── STROKE BUTTON ── */}
+                {onStrokeColorChange && onStrokeWidthChange && (
+                    <div ref={strokeDropRef} className="relative">
+                        <button
+                            onClick={() => setStrokeOpen(o => !o)}
+                            title="Outline/Stroke"
+                            className={`h-9 w-9 rounded-md border flex items-center justify-center transition-all hover:bg-muted/30
+                ${strokeOpen ? "border-primary ring-2 ring-primary/20" : "border-border"}`}
+                        >
+                            <div className="flex flex-col items-center gap-px relative">
+                                <span className="text-xs font-black leading-none text-transparent" style={{ WebkitTextStroke: `1px ${strokeColor}` }}>A</span>
+                            </div>
+                        </button>
+
+                        {strokeOpen && (
+                            <div className="absolute z-50 top-[calc(100%+4px)] right-0 w-64 rounded-lg border border-border bg-popover shadow-xl p-3 space-y-3 animate-in fade-in-0 slide-in-from-top-1 duration-150">
+                                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                                    <Type className="w-3 h-3" /> Outline Colour
+                                </p>
+
+                                {/* Swatch grid */}
+                                <div className="grid grid-cols-10 gap-1">
+                                    {COLOR_SWATCHES.map(swatch => (
+                                        <button
+                                            key={swatch}
+                                            title={swatch}
+                                            onClick={() => { onStrokeColorChange(swatch); setStrokeHexInput(swatch); }}
+                                            className={`w-5 h-5 rounded-sm border transition-transform hover:scale-110 hover:z-10
+                        ${strokeColor === swatch ? "ring-2 ring-primary ring-offset-1 scale-110" : "border-border/40"}`}
+                                            style={{ background: swatch }}
+                                        />
+                                    ))}
+                                </div>
+
+                                {/* Hex input row */}
+                                <div className="flex items-center gap-2 pt-1 border-t border-border">
+                                    <div className="relative w-8 h-8 rounded border border-border overflow-hidden shrink-0 cursor-pointer">
+                                        <span className="absolute inset-0 pointer-events-none rounded" style={{ background: strokeColor }} />
+                                        <input
+                                            ref={nativeStrokeColorRef}
+                                            type="color"
+                                            value={strokeColor}
+                                            onChange={e => { onStrokeColorChange(e.target.value); setStrokeHexInput(e.target.value); }}
+                                            className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                                        />
+                                    </div>
+                                    <input
+                                        value={strokeHexInput}
+                                        onChange={e => setStrokeHexInput(e.target.value)}
+                                        onBlur={e => applyStrokeHex(e.target.value)}
+                                        onKeyDown={e => e.key === "Enter" && applyStrokeHex(strokeHexInput)}
+                                        maxLength={7}
+                                        className="flex-1 h-8 px-2 rounded border border-border bg-background text-xs font-mono uppercase outline-none focus:ring-2 focus:ring-primary/30"
+                                        placeholder="#000000"
+                                    />
+                                    <button
+                                        onClick={() => applyStrokeHex(strokeHexInput)}
+                                        className="h-8 px-2 rounded bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition"
+                                    >OK</button>
+                                </div>
+                                
+                                <div className="pt-2 border-t border-border space-y-2">
+                                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+                                        Outline Thickness
+                                        <span>{strokeWidth}px</span>
+                                    </p>
+                                    <input 
+                                        type="range" 
+                                        min="0" 
+                                        max="20" 
+                                        value={strokeWidth} 
+                                        onChange={(e) => onStrokeWidthChange(Number(e.target.value))}
+                                        className="w-full accent-primary"
+                                    />
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {/* ── IMPORT FONT BUTTON ── */}
                 <button
@@ -381,10 +495,10 @@ export const FontSelector = ({
             {showPreview && value && (
                 <div className="rounded-md border border-border bg-muted/20 px-4 py-3 text-center">
                     <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-2">Preview</p>
-                    <p className="text-2xl leading-tight" style={{ fontFamily: value, color }}>
+                    <p className="text-2xl leading-tight" style={{ fontFamily: value, color, WebkitTextStroke: strokeWidth > 0 ? `${strokeWidth / 5}px ${strokeColor}` : 'none' }}>
                         ABCXYZ 123
                     </p>
-                    <p className="text-sm mt-1 opacity-70" style={{ fontFamily: value, color }}>
+                    <p className="text-sm mt-1 opacity-70" style={{ fontFamily: value, color, WebkitTextStroke: strokeWidth > 0 ? `${strokeWidth / 10}px ${strokeColor}` : 'none' }}>
                         Player Name #99
                     </p>
                 </div>

@@ -9,10 +9,12 @@ import { toast } from "sonner";
 import { PointsPurchase } from "@/components/points/PointsPurchase";
 import { POINTS_PLANS, calculateTotalPoints, formatPoints, formatCurrency } from "@/types/points";
 import { Header } from "@/components/Header";
+import { AuthModal } from "@/components/auth/AuthModal";
 
 const Pricing = () => {
   const { user, profile, addPoints } = useAuth();
   const [showPurchaseDialog, setShowPurchaseDialog] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const navigate = useNavigate();
 
   const currentPoints = profile?.points_balance || 0;
@@ -137,7 +139,7 @@ const Pricing = () => {
                       } else if (user) {
                         setShowPurchaseDialog(true)
                       } else {
-                        navigate('/')
+                        setShowAuthModal(true)
                       }
                     }}
                     className={`w-full h-12 text-base ${isProfessional
@@ -232,14 +234,22 @@ const Pricing = () => {
 
               const result = await addPoints(totalPoints, `Purchased ${plan.name}`)
               if (!result.success) throw new Error('Transaction failed')
+              toast.success(`${formatPoints(totalPoints)} points added!`)
             } catch (e) {
               toast.error('Failed to process purchase.')
-              throw e // Let the PointsPurchase modal know it failed
+              throw e
             }
           }}
           currentPoints={currentPoints}
         />
       )}
+
+      {/* Auth Modal for unauthenticated users clicking a plan CTA */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        defaultMode="signup"
+      />
     </div>
   );
 };

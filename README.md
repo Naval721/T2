@@ -98,16 +98,14 @@ The application logic also actively disposes chunks of Fabric.js RAM dynamically
 
 ---
 
-## 🗺️ Production Roadmap & Known Issues
+## 🗺️ Production Roadmap & Features
 
-A major priority of current development revolves around stabilizing the bulk export workflow (Step 4 Export):
-- [ ] **Canvas State Resiliency:** Resolve bugs involving the canvas clearing during bulk exports and failing to restore initial states. 
-- [ ] **Export Precision Validation:** Fine-tune correct DPI multiplier calculations to strictly enforce 300/450/600 qualities without arbitrary scaling glitches.
+A major priority of current development revolves around continuing to expand SaaS features:
+- [x] **Canvas State Resiliency:** Resolved bugs involving the canvas clearing during bulk exports and failing to restore initial states, zoom, and active selections.
+- [x] **Export Precision Validation:** Fine-tuned correct DPI multiplier calculations to strictly enforce print qualities.
 - [ ] **Payment Gateway Integration:** Direct the `Pricing.tsx` layer to handle a live `Stripe` or `Razorpay` SDK checkout payload to sell points.
 - [ ] **Mobile Interactions:** Enhance safeguards to limit complex Canvas drag-and-drop workflows on mobile, as precision jersey mapping relies on desktop environments.
-- [ ] **Background Processing:** Add visual UI/UX progress indicators to the export module.
-
-*(For detailed export debugs, refer to `STEP4_EXPORT_BUGS.md` in the development root).*
+- [x] **Background Processing:** Added visual progress overlays, speed metrics, and ETA tracking to the export module.
 
 ---
 

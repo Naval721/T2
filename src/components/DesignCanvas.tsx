@@ -1,13 +1,16 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useRef, useState } from "react";
 import { Canvas as FabricCanvas, Image as FabricImage, IText as FabricText, TPointerEventInfo, Shadow, Pattern, Gradient } from "fabric";
+import type { TFiller } from "fabric";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import { RotateCcw, ZoomIn, ZoomOut, Move, Download, Scissors, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import type { JerseyImages, PlayerData } from "@/pages/Index";
 import { logger } from "@/lib/logger";
 import { fitTextToWidth } from "@/lib/textFit";
-import { getSizeScaleFactorFromDim, computeExportMultiplier } from '@/lib/sizes';
+import { getSizeScaleFactorFromDim, computeExportMultiplier, getSizeDim, getSizeDisplayBox } from '@/lib/sizes';
 import { useAuth } from "@/hooks/useAuth";
 import localforage from 'localforage';
 
@@ -17,17 +20,18 @@ type TextProps = {
     top: number;
     fontSize: number;
     fontFamily: string;
-    fill: string | Pattern | Gradient<any>;
-    stroke: string | Pattern | Gradient<any>;
+    fill: string | TFiller;
+    stroke: string | TFiller;
     strokeWidth: number;
     angle: number;
-    textAlign: any;
+    textAlign: 'left' | 'center' | 'right' | 'justify' | 'justify-left' | 'justify-center' | 'justify-right';
     width?: number;
     height?: number;
     originX: 'center';
     originY: 'center';
     scaleX?: number;
     scaleY?: number;
+    paintFirst?: 'fill' | 'stroke';
 };
 
 type LogoProps = {
@@ -56,6 +60,8 @@ interface DesignCanvasProps {
     onCanvasReady: (canvas: FabricCanvas | null) => void;
     defaultFont?: string;
     defaultColor?: string;
+    defaultStrokeColor?: string;
+    defaultStrokeWidth?: number;
     showTools?: boolean;
 }
 
@@ -87,6 +93,7 @@ const pickTextProps = (t: ExtendedFabricText): TextProps => ({
     originY: 'center',
     scaleX: t.scaleX ?? 1,
     scaleY: t.scaleY ?? 1,
+    paintFirst: t.paintFirst ?? 'stroke',
 });
 
 const getVisibleContentBounds = (canvas: FabricCanvas): CanvasBounds | null => {
@@ -141,6 +148,7 @@ const getVisibleContentBounds = (canvas: FabricCanvas): CanvasBounds | null => {
     };
 };
 
+/* eslint-disable react-refresh/only-export-components */
 export const getSizeScaleFactor = getSizeScaleFactorFromDim;
 
 export const exportCleanJerseyDesign = (
@@ -198,7 +206,7 @@ export const exportCleanJerseyDesign = (
     } as any);
 };
 
-export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, onCanvasReady, defaultFont = 'Anton', defaultColor = '#000000', showTools = false }: DesignCanvasProps) => {
+export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, onCanvasReady, defaultFont = 'Anton', defaultColor = '#000000', defaultStrokeColor = '#FFFFFF', defaultStrokeWidth = 0, showTools = false }: DesignCanvasProps) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [fabricCanvas, setFabricCanvas] = useState<FabricCanvas | null>(null);
     const [currentView, setCurrentView] = useState<'front' | 'back' | 'leftSleeve' | 'rightSleeve' | 'collar'>('front');
@@ -217,6 +225,8 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
     const isLoadingViewRef = useRef(false);
     const { deductPoints, currentPoints } = useAuth();
     const isInitialized = useRef(false);
+    // BUG-A2/U3 FIX: State to control confirmation dialog before Apply to All
+    const [showApplyAllConfirm, setShowApplyAllConfirm] = useState(false);
 
     // Global placement ratios for consistent Auto Center across all players
     const backPlacementRef = useRef({
@@ -244,7 +254,7 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
             const dataToSave = {
                 ...textRef.current
             };
-            localforage.setItem('jerseyDesigner:globalTemplate', dataToSave).catch(() => {});
+            localforage.setItem('jerseyDesigner:globalTemplate', dataToSave).catch(() => { });
         } catch (e) {
             // Ignore storage errors
         }
@@ -298,11 +308,14 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
     }, []);
 
     useEffect(() => {
-        const handleForceReload = () => {
-            loadJerseyView().catch(e => logger.error("Failed to reload view:", e));
+        const handleForceReload = (e: Event) => {
+            const customEvent = e as CustomEvent;
+            const activeObjectInfo = customEvent.detail?.activeObjectInfo;
+            loadJerseyView(undefined, activeObjectInfo).catch(e => logger.error("Failed to reload view:", e));
         };
         window.addEventListener('jerseyDesigner:forceReloadView', handleForceReload);
         return () => window.removeEventListener('jerseyDesigner:forceReloadView', handleForceReload);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useEffect(() => {
@@ -371,18 +384,18 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
         };
 
         const playerKey = `jerseyDesigner:playerElements_${currentPlayer.playerName}_${currentPlayer.jerseyNumber}`;
-        
+
         localforage.getItem<any>(playerKey).then(existingData => {
             const data = existingData || {};
             data[view] = customElementsData;
-            
+
             // Check approximate size to avoid hitting storage limits silently (though IndexedDB limit is high)
             const dataToSave = JSON.stringify(data);
             if (dataToSave.length > 50 * 1024 * 1024) { // 50MB warning
                 logger.error('Data exceeds safe limits');
                 toast.error('Logos are extremely large. Performance may degrade.');
             }
-            
+
             localforage.setItem(playerKey, data).catch(e => {
                 logger.error('persistState: failed to save to localforage:', e);
             });
@@ -406,11 +419,11 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
         };
 
         const handler = (opt: any) => {
+            // BUG-C2 FIX: Check isLoadingViewRef FIRST — before any other condition —
+            // to guarantee we never persist during a view rebuild, even if opt.target exists.
+            if (isLoadingViewRef.current) return;
             if (!selectedPlayer || !fabricCanvas || !opt.target) return;
             if ((fabricCanvas as any).__isExporting) return;
-            // Suppress during view loading — avoids overwriting saved logos with an empty list
-            // when jersey/structural images are added to the canvas before logos are restored.
-            if (isLoadingViewRef.current) return;
             persistState();
         };
 
@@ -453,6 +466,7 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
             fabricCanvas.off('object:scaling', continuousHandler);
             fabricCanvas.off('object:rotating', continuousHandler);
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [fabricCanvas, selectedPlayer]);
 
     // Load global template once on mount (applies to all players)
@@ -462,12 +476,12 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
 
     // Prevent race conditions when switching views quickly
     const loadTokenRef = useRef(0);
-    const loadJerseyView = async (view?: typeof currentView) => {
+    const loadJerseyView = async (view?: typeof currentView, activeObjectInfo?: any) => {
         if (!fabricCanvas) return;
-        
+
         // Cache the loading state before we set it to true
         const wasLoading = isLoadingViewRef.current;
-        
+
         loadTokenRef.current++;
         const myToken = loadTokenRef.current;
         // Block object:added → persistState during the entire async load so that
@@ -482,6 +496,12 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
             try {
                 const prevView = loadedViewRef.current;
                 const prevPlayer = loadedPlayerRef.current;
+                // BUG-C3 FIX: Capture the player KEY (identity string) immediately before
+                // the first await, so even if loadedPlayerRef.current changes mid-async,
+                // we always write to the correct player's storage slot.
+                const prevPlayerKey = prevPlayer
+                    ? `jerseyDesigner:playerElements_${prevPlayer.playerName}_${prevPlayer.jerseyNumber}`
+                    : null;
                 const objs = fabricCanvas.getObjects();
                 const nameObjPrev = objs.find(o => (o as ExtendedFabricText).name === 'playerName') as ExtendedFabricText | undefined;
                 const numberObjPrev = objs.find(o => (o as ExtendedFabricText).name === 'jerseyNumber') as ExtendedFabricText | undefined;
@@ -514,19 +534,18 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
                 textRef.current[prevView].customTexts = customElementsData.customTexts;
                 textRef.current[prevView].customLogos = customElementsData.customLogos as any;
 
-                if (prevPlayer) {
-                    const playerKey = `jerseyDesigner:playerElements_${prevPlayer.playerName}_${prevPlayer.jerseyNumber}`;
+                if (prevPlayerKey) {
                     try {
-                        const existingData: any = await localforage.getItem(playerKey) || {};
+                        const existingData: any = await localforage.getItem(prevPlayerKey) || {};
                         existingData[prevView] = customElementsData;
-                        await localforage.setItem(playerKey, existingData);
+                        await localforage.setItem(prevPlayerKey, existingData);
                     } catch (e) {
                         logger.error('loadJerseyView: failed to save player elements:', e);
                     }
                 }
 
                 saveGlobalTemplateDebounced();
-            } catch { }
+            } catch (_ignored) { /* intentionally ignored - global template save is best-effort */ }
         }
 
         // Get persisted text for current view globally
@@ -548,17 +567,14 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
                     try {
                         const jerseyImg = await FabricImage.fromURL(jerseyImageUrl);
 
-                        // Scale jersey to fit canvas with size-based adjustments
-                        const maxWidth = 640;
-                        const maxHeight = 514;
-                        const scaleX = maxWidth / jerseyImg.width!;
-                        const scaleY = maxHeight / jerseyImg.height!;
-                        const baseScale = Math.min(scaleX, scaleY);
-                        const scale = baseScale;
+                        // Scale jersey to fit the player's size-proportional bounding box
+                        const { maxW, maxH } = getSizeDisplayBox(selectedPlayer?.size, fabricCanvas.width!, fabricCanvas.height!, 'body');
+                        const scaleX = maxW / jerseyImg.width!;
+                        const scaleY = maxH / jerseyImg.height!;
 
                         jerseyImg.set({
-                            scaleX: scale,
-                            scaleY: scale,
+                            scaleX: scaleX,
+                            scaleY: scaleY,
                             originX: 'center',
                             originY: 'center',
                             left: fabricCanvas.width! / 2,
@@ -587,11 +603,12 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
 
                         if (myToken !== loadTokenRef.current) return;
 
-                        const baseScale = Math.min(400 / leftSleeve.width!, 400 / leftSleeve.height!);
-                        const scale = baseScale;
+                        const { maxW: slvMaxW, maxH: slvMaxH } = getSizeDisplayBox(selectedPlayer?.size, fabricCanvas.width!, fabricCanvas.height!, 'sleeve', leftSleeve.width! / leftSleeve.height!);
+                        const scaleX = slvMaxW / leftSleeve.width!;
+                        const scaleY = slvMaxH / leftSleeve.height!;
                         leftSleeve.set({
-                            scaleX: scale,
-                            scaleY: scale,
+                            scaleX: scaleX,
+                            scaleY: scaleY,
                             originX: 'center',
                             originY: 'center',
                             left: fabricCanvas.width! / 2,
@@ -622,11 +639,12 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
 
                         if (myToken !== loadTokenRef.current) return;
 
-                        const baseScale = Math.min(400 / rightSleeve.width!, 400 / rightSleeve.height!);
-                        const scale = baseScale;
+                        const { maxW: rSlvMaxW, maxH: rSlvMaxH } = getSizeDisplayBox(selectedPlayer?.size, fabricCanvas.width!, fabricCanvas.height!, 'sleeve', rightSleeve.width! / rightSleeve.height!);
+                        const scaleX = rSlvMaxW / rightSleeve.width!;
+                        const scaleY = rSlvMaxH / rightSleeve.height!;
                         rightSleeve.set({
-                            scaleX: scale,
-                            scaleY: scale,
+                            scaleX: scaleX,
+                            scaleY: scaleY,
                             originX: 'center',
                             originY: 'center',
                             left: fabricCanvas.width! / 2,
@@ -657,16 +675,13 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
 
                         if (myToken !== loadTokenRef.current) return;
 
-                        const maxWidth = 560;
-                        const maxHeight = 206;
-                        const scaleX = maxWidth / collarImg.width!;
-                        const scaleY = maxHeight / collarImg.height!;
-                        const baseScale = Math.min(scaleX, scaleY);
-                        const scale = baseScale;
+                        const { maxW: colMaxW, maxH: colMaxH } = getSizeDisplayBox(selectedPlayer?.size, fabricCanvas.width!, fabricCanvas.height!, 'collar');
+                        const scaleX = colMaxW / collarImg.width!;
+                        const scaleY = colMaxH / collarImg.height!;
 
                         collarImg.set({
-                            scaleX: scale,
-                            scaleY: scale,
+                            scaleX: scaleX,
+                            scaleY: scaleY,
                             originX: 'center',
                             originY: 'top',
                             left: fabricCanvas.width! / 2,
@@ -702,6 +717,9 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
                     fontSize: 38,
                     fontFamily: defaultFont,
                     fill: defaultColor,
+                    stroke: defaultStrokeWidth > 0 ? defaultStrokeColor : '',
+                    strokeWidth: defaultStrokeWidth,
+                    paintFirst: 'stroke',
                     textAlign: 'center' as const,
                     width: 960,
                     originX: 'center' as const,
@@ -724,6 +742,9 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
                     fontSize: 115,
                     fontFamily: defaultFont,
                     fill: defaultColor,
+                    stroke: defaultStrokeWidth > 0 ? defaultStrokeColor : '',
+                    strokeWidth: defaultStrokeWidth,
+                    paintFirst: 'stroke',
                     textAlign: 'center' as const,
                     height: 720,
                     originX: 'center' as const,
@@ -760,8 +781,11 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
                         fitTextToWidth(nameText, maxTextWidth, 12);
                         numberText.set({ left: centerX, top: numberTop, originX: 'center', originY: 'center', textAlign: 'center', fontSize: numberFont });
                         fitTextToWidth(numberText, maxTextWidth, 24);
-                        // Persist the auto-center positions immediately
-                        persistState();
+                        // Persist the auto-center positions immediately without wiping out loading logos
+                        if (!textRef.current[activeView]) textRef.current[activeView] = {};
+                        textRef.current[activeView].name = pickTextProps(nameText);
+                        textRef.current[activeView].number = pickTextProps(numberText);
+                        saveGlobalTemplateDebounced();
                     } else if (backImg) {
                         // Even with saved placements, clamp text that overflows the jersey
                         const rect = backImg.getBoundingRect();
@@ -860,7 +884,7 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
                 let labelLeft = 12;
                 let labelTop = fabricCanvas.height! - 10;
                 let originX: 'left' | 'right' = 'left';
-                let originY: 'bottom' = 'bottom';
+                const originY = 'bottom' as const;
 
                 if (shirtObj) {
                     // Position inside the bottom-right corner of the shirt
@@ -898,6 +922,18 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
             loadedViewRef.current = activeView;
             loadedPlayerRef.current = selectedPlayer;
             isCanvasInitializedRef.current = true;
+
+            if (activeObjectInfo) {
+                const newObjs = fabricCanvas.getObjects();
+                const match = newObjs.find(obj =>
+                    (obj as any).name === activeObjectInfo.name &&
+                    obj.type === activeObjectInfo.type &&
+                    (activeObjectInfo.text === undefined || (obj as any).text === activeObjectInfo.text)
+                );
+                if (match) {
+                    fabricCanvas.setActiveObject(match);
+                }
+            }
             fabricCanvas.renderAll();
         } catch (error) {
             // Silent failure to avoid noisy notifications; log only for debugging
@@ -993,6 +1029,7 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [fabricCanvas]);
 
     const handleZoomIn = () => {
@@ -1123,15 +1160,10 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
         if (numberObj) numberObj.set({ fontSize: numberFont });
 
         // Persist the new auto-centered positions immediately
-        // We use the handler's internal logic which we refactored
-        const objects = fabricCanvas.getObjects();
-        const view = currentViewRef.current;
-        if (!textRef.current[view]) textRef.current[view] = {};
+        if (nameObj) nameObj.setCoords();
+        if (numberObj) numberObj.setCoords();
 
-        if (nameObj) textRef.current[view].name = pickTextProps(nameObj);
-        if (numberObj) textRef.current[view].number = pickTextProps(numberObj);
-
-        saveGlobalTemplate();
+        persistState();
 
         fabricCanvas.requestRenderAll();
         toast.success("Name and number positioned perfectly!");
@@ -1277,7 +1309,7 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
                         <Button
                             variant="default"
                             size="sm"
-                            onClick={applyCustomElementsToAll}
+                            onClick={() => setShowApplyAllConfirm(true)}
                             className="bg-black text-white ml-2 shadow-[2px_2px_0px_0px_rgba(100,100,100,1)]"
                             title="Copy this player's custom text and logos to ALL players"
                         >
@@ -1341,6 +1373,22 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
                     ? "Use the customization tools to add logos, adjust text, and personalize the design. Proceed to the next step for high-res exports."
                     : "Review your designs and switch between views. Click 'Continue to Customization' to proceed."}
             </div>
+
+            {/* BUG-A2/U3 FIX: Confirmation dialog before destructively applying to all players */}
+            <ConfirmationDialog
+                open={showApplyAllConfirm}
+                onOpenChange={setShowApplyAllConfirm}
+                onConfirm={() => {
+                    setShowApplyAllConfirm(false);
+                    applyCustomElementsToAll();
+                }}
+                onCancel={() => setShowApplyAllConfirm(false)}
+                title="Apply to All Players?"
+                description={`This will copy the current player's custom logos and text to ALL ${playerData.length} players, overwriting any individual designs they have. This cannot be undone.`}
+                confirmText="Yes, Apply to All"
+                cancelText="Cancel"
+                destructive={true}
+            />
         </Card>
     );
 };

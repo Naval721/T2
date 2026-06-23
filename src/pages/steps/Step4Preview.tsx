@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowRight, Loader2, Image as ImageIcon } from "lucide-react
 import { Canvas as FabricCanvas, Image as FabricImage, Text as FabricText } from "fabric";
 import type { PlayerData, JerseyImages } from "@/pages/Index";
 import { logger } from "@/lib/logger";
+import { getSizeDim, getSizeDisplayBox } from "@/lib/sizes";
 import localforage from 'localforage';
 
 interface Step4PreviewProps {
@@ -14,11 +15,13 @@ interface Step4PreviewProps {
     onPrev: () => void;
     defaultFont?: string;
     defaultColor?: string;
+    defaultStrokeColor?: string;
+    defaultStrokeWidth?: number;
 }
 
 type ViewType = 'front' | 'back' | 'leftSleeve' | 'rightSleeve' | 'collar';
 
-export const Step4Preview = ({ playerData, jerseyImages, onNext, onPrev, defaultFont = 'Anton', defaultColor = '#000000' }: Step4PreviewProps) => {
+export const Step4Preview = ({ playerData, jerseyImages, onNext, onPrev, defaultFont = 'Anton', defaultColor = '#000000', defaultStrokeColor = '#FFFFFF', defaultStrokeWidth = 0 }: Step4PreviewProps) => {
     const [currentView, setCurrentView] = useState<ViewType>('front');
     const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
     const [isGenerating, setIsGenerating] = useState(false);
@@ -36,7 +39,7 @@ export const Step4Preview = ({ playerData, jerseyImages, onNext, onPrev, default
 
     useEffect(() => {
         if (!canvasElRef.current) return;
-        
+
         const canvas = new FabricCanvas(canvasElRef.current, {
             width: 960,
             height: 720,
@@ -56,19 +59,21 @@ export const Step4Preview = ({ playerData, jerseyImages, onNext, onPrev, default
 
         const generateThumbnails = async () => {
             if (!fabricCanvasRef.current || playerData.length === 0) return;
-            
+
             // Wait 400ms to allow any pending debounced saves from Step 3 to hit localStorage
             await new Promise(resolve => setTimeout(resolve, 400));
+            // Ensure any dynamic fonts (like Google Fonts) are fully loaded before rendering
+            await document.fonts.ready;
             if (isCancelled) return;
-            
+
             const canvas = fabricCanvasRef.current;
-            
+
             setIsGenerating(true);
             setProgress(0);
-            
+
             const newThumbnails: Record<string, string> = {};
-            const viewUrl = (jerseyImages as any)[currentView];
-            
+            const viewUrl = (jerseyImages as Record<string, string | undefined>)[currentView];
+
             if (!viewUrl) {
                 // No image for this view — don't wipe other views' thumbnails
                 setIsGenerating(false);
@@ -77,86 +82,102 @@ export const Step4Preview = ({ playerData, jerseyImages, onNext, onPrev, default
 
             try {
                 // 1. Load Global Template
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const globalTemplate: any = await localforage.getItem('jerseyDesigner:globalTemplate') || {};
                 const viewTemplate = globalTemplate[currentView] || {};
 
                 // 2. Setup Base Image
                 canvas.clear();
-                canvas.backgroundColor = '#1a1a1a'; // Dark background matching theme
-                
+                canvas.backgroundColor = 'white'; // always white — matches print reality
+
                 const bgImg = await FabricImage.fromURL(viewUrl, { crossOrigin: 'anonymous' }).catch(
                     () => FabricImage.fromURL(viewUrl)
                 );
-                
-                const maxW = currentView === 'collar' ? 560 : (currentView.includes('Sleeve') ? 400 : 640);
-                const maxH = currentView === 'collar' ? 206 : (currentView.includes('Sleeve') ? 400 : 514);
-                const scale = Math.min(maxW / (bgImg.width ?? 1), maxH / (bgImg.height ?? 1));
-                
-                bgImg.set({ 
-                    scaleX: scale, 
-                    scaleY: scale, 
-                    originX: 'center', 
-                    originY: 'center', 
-                    left: 480, 
-                    top: currentView === 'collar' ? 154 : 360,
-                    selectable: false 
-                });
-                
+
                 // 3. Create persistent Text objects (Name & Number) with proper fallbacks
-                const br = bgImg.getBoundingRect();
-                const backCX = br.left + br.width / 2;
+                // Note: bgImg scale will be set per-player inside the loop (size-aware).
                 const np = viewTemplate.name;
                 const nump = viewTemplate.number;
 
                 const nameText = new FabricText('', {
                     ...(np || {}),
-                    left: np?.left ?? backCX,
-                    top: np?.top ?? (br.top + br.height * 0.26),
                     fontSize: np?.fontSize ?? 38,
                     fontFamily: np?.fontFamily ?? defaultFont,
                     fill: np?.fill ?? defaultColor,
+                    stroke: np?.stroke ?? (defaultStrokeWidth > 0 ? defaultStrokeColor : ''),
+                    strokeWidth: np?.strokeWidth ?? defaultStrokeWidth,
+                    paintFirst: 'stroke',
                     originX: 'center',
                     originY: 'center',
                     selectable: false,
                     objectCaching: false
                 });
-                
+
                 const numberText = new FabricText('', {
                     ...(nump || {}),
-                    left: nump?.left ?? backCX,
-                    top: nump?.top ?? (br.top + br.height * 0.52),
                     fontSize: nump?.fontSize ?? 115,
                     fontFamily: nump?.fontFamily ?? defaultFont,
                     fill: nump?.fill ?? defaultColor,
+                    stroke: nump?.stroke ?? (defaultStrokeWidth > 0 ? defaultStrokeColor : ''),
+                    strokeWidth: nump?.strokeWidth ?? defaultStrokeWidth,
+                    paintFirst: 'stroke',
                     originX: 'center',
                     originY: 'center',
                     selectable: false,
                     objectCaching: false
                 });
 
-                // 4. Generate for each player
                 for (let i = 0; i < playerData.length; i++) {
                     if (isCancelled) break;
-                    
+
                     const player = playerData[i];
                     canvas.clear();
-                    canvas.backgroundColor = '#1a1a1a';
+                    canvas.backgroundColor = 'white';
+
+                    // Size-aware scaling: compute bounding box for this player's size
+                    let viewType: 'body' | 'sleeve' | 'collar' = 'body';
+                    if (currentView.includes('Sleeve')) viewType = 'sleeve';
+                    else if (currentView === 'collar') viewType = 'collar';
+
+                    const { maxW, maxH } = getSizeDisplayBox(
+                        player.size,
+                        960,
+                        720,
+                        viewType,
+                        (bgImg.width ?? 1) / (bgImg.height ?? 1)
+                    );
+
+                    const scaleX = maxW / (bgImg.width ?? 1);
+                    const scaleY = maxH / (bgImg.height ?? 1);
+                    bgImg.set({
+                        scaleX: scaleX,
+                        scaleY: scaleY,
+                        originX: 'center',
+                        originY: 'center',
+                        left: 480,
+                        top: currentView === 'collar' ? 154 : 360,
+                        selectable: false
+                    });
                     canvas.add(bgImg);
+
+                    // Compute bounds for text positioning
+                    const br = bgImg.getBoundingRect();
+                    const backCX = br.left + br.width / 2;
 
                     // Apply Name & Number
                     if (currentView === 'back') {
-                        nameText.set('text', player.playerName);
+                        nameText.set({ text: player.playerName, left: np?.left ?? backCX, top: np?.top ?? (br.top + br.height * 0.26) });
                         canvas.add(nameText);
-                        
-                        numberText.set('text', player.jerseyNumber);
+
+                        numberText.set({ text: player.jerseyNumber, left: nump?.left ?? backCX, top: nump?.top ?? (br.top + br.height * 0.52) });
                         canvas.add(numberText);
                     } else {
                         if (viewTemplate.name) {
-                            nameText.set('text', player.playerName);
+                            nameText.set({ text: player.playerName, left: np?.left ?? backCX, top: np?.top ?? (br.top + br.height * 0.26) });
                             canvas.add(nameText);
                         }
                         if (viewTemplate.number) {
-                            numberText.set('text', player.jerseyNumber);
+                            numberText.set({ text: player.jerseyNumber, left: nump?.left ?? backCX, top: nump?.top ?? (br.top + br.height * 0.52) });
                             canvas.add(numberText);
                         }
                     }
@@ -164,6 +185,7 @@ export const Step4Preview = ({ playerData, jerseyImages, onNext, onPrev, default
                     // Apply Custom Elements for this player
                     // Fall back to globalTemplate logos/texts if the player has no per-player data
                     const playerKey = `jerseyDesigner:playerElements_${player.playerName}_${player.jerseyNumber}`;
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     const playerElements: any = await localforage.getItem(playerKey) || {};
                     const rawViewElements = playerElements[currentView] || {};
                     const viewElements = {
@@ -192,11 +214,11 @@ export const Step4Preview = ({ playerData, jerseyImages, onNext, onPrev, default
                     }
 
                     canvas.renderAll();
-                    
+
                     // Generate tight cropped thumbnail around the jersey
                     const bgWidth = bgImg.getScaledWidth();
                     const bgHeight = bgImg.getScaledHeight();
-                    
+
                     const dataUrl = canvas.toDataURL({
                         format: 'jpeg',
                         quality: 0.85,
@@ -206,10 +228,10 @@ export const Step4Preview = ({ playerData, jerseyImages, onNext, onPrev, default
                         width: bgWidth + 20,
                         height: bgHeight + 20
                     });
-                    
+
                     // Key includes view so each view has its own cached thumbnails
                     newThumbnails[`${currentView}__${player.playerName}_${player.jerseyNumber}`] = dataUrl;
-                    
+
                     // Update progress UI every few players to avoid freezing
                     if (i % 3 === 0) {
                         setThumbnails({ ...newThumbnails });
@@ -238,7 +260,7 @@ export const Step4Preview = ({ playerData, jerseyImages, onNext, onPrev, default
         return () => {
             isCancelled = true;
         };
-    }, [currentView, playerData, jerseyImages, defaultFont, defaultColor]);
+    }, [currentView, playerData, jerseyImages, defaultFont, defaultColor, defaultStrokeColor, defaultStrokeWidth]);
 
     return (
         <Card className="flex flex-col h-[calc(100vh-140px)] border-2 border-black rounded-none shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-[#0f0f0f] text-white">
@@ -265,16 +287,15 @@ export const Step4Preview = ({ playerData, jerseyImages, onNext, onPrev, default
             {/* View Selector */}
             <div className="p-4 bg-[#111] border-b-2 border-zinc-800 flex justify-center gap-2 overflow-x-auto">
                 {views.map(view => {
-                    const hasImage = !!(jerseyImages as any)[view.key];
+                    const hasImage = !!(jerseyImages as Record<string, string | undefined>)[view.key];
                     return (
                         <Button
                             key={view.id}
                             variant={currentView === view.key ? "default" : "outline"}
-                            className={`rounded-none border-2 uppercase tracking-wider font-bold transition-all ${
-                                currentView === view.key
+                            className={`rounded-none border-2 uppercase tracking-wider font-bold transition-all ${currentView === view.key
                                     ? "bg-white text-black border-white shadow-[4px_4px_0px_0px_rgba(255,255,255,0.2)]"
                                     : "bg-transparent text-zinc-400 border-zinc-800 hover:border-zinc-500 hover:text-white"
-                            }`}
+                                }`}
                             onClick={() => setCurrentView(view.key)}
                             disabled={!hasImage}
                         >
@@ -308,8 +329,9 @@ export const Step4Preview = ({ playerData, jerseyImages, onNext, onPrev, default
                                     {thumb ? (
                                         <img src={thumb} alt={`${player.playerName} preview`} className="w-full h-full object-cover scale-110 group-hover:scale-125 transition-transform duration-500" />
                                     ) : (
-                                        <div className="text-zinc-700 flex flex-col items-center">
-                                            <ImageIcon className="w-8 h-8 mb-2 opacity-50" />
+                                        <div className="text-zinc-700 flex flex-col items-center gap-2">
+                                            <ImageIcon className="w-8 h-8 opacity-50" />
+                                            <p className="text-xs text-zinc-600 font-mono uppercase tracking-wider">Rendering...</p>
                                         </div>
                                     )}
                                 </div>

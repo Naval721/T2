@@ -1,6 +1,9 @@
 // Performance optimization utilities
 
+import { Canvas as FabricCanvas } from 'fabric';
+
 // Debounce function for performance
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const debounce = <T extends (...args: any[]) => any>(
   func: T,
   wait: number
@@ -14,6 +17,7 @@ export const debounce = <T extends (...args: any[]) => any>(
 };
 
 // Throttle function for performance
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const throttle = <T extends (...args: any[]) => any>(
   func: T,
   limit: number
@@ -53,7 +57,7 @@ export const preloadResource = (href: string, as: string) => {
 };
 
 // Optimize canvas rendering
-export const optimizeCanvasRender = (canvas: any) => {
+export const optimizeCanvasRender = (canvas: FabricCanvas | null) => {
   if (!canvas) return;
   
   // Enable hardware acceleration

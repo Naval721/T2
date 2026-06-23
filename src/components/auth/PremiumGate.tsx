@@ -43,6 +43,12 @@ export const PremiumGate = ({ children, feature, description }: PremiumGateProps
     )
   }
 
+  // Demo-mode bypass: if no Supabase config, any signed-in user can export freely
+  const isDemo = !import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY;
+  if (isDemo && user) {
+    return <>{children}</>
+  }
+
   // If user has points, show the content
   if (user && hasEnoughPoints) {
     return <>{children}</>
@@ -67,9 +73,13 @@ export const PremiumGate = ({ children, feature, description }: PremiumGateProps
           </p>
         </div>
 
-        {profile && (
+        {profile ? (
           <div className="inline-block px-6 py-3 border-2 border-black bg-gray-50 font-mono text-sm font-bold uppercase tracking-widest">
             Current Balance: {currentPoints} PTS
+          </div>
+        ) : (
+          <div className="inline-block px-6 py-3 border-2 border-gray-200 bg-gray-50 font-mono text-sm text-gray-400 uppercase tracking-widest">
+            Loading balance...
           </div>
         )}
 

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useRef } from "react";
 import { Coins, Download, User, Users, FileOutput, Loader2, Clock, XCircle, AlertTriangle } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -8,8 +9,9 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import type { PlayerData, JerseyImages } from "@/pages/Index";
 import localforage from "localforage";
-import { getSizeScaleFactorFromDim, computeExportMultiplier } from "@/lib/sizes";
+import { getSizeScaleFactorFromDim, computeExportMultiplier, getSizeDisplayBox, getSizeDim } from "@/lib/sizes";
 import { logger } from "@/lib/logger";
+import { setPngDpi } from "@/utils/pngDpi";
 
 // Export quality constants
 const EXPORT_TARGET_DPI = 450;
@@ -53,9 +55,6 @@ export const ExportPanel = ({
     const [exportingView, setExportingView] = useState("");
     const [exportEta, setExportEta] = useState("");
     const [exportSpeed, setExportSpeed] = useState("");
-    const [downloadKeys, setDownloadKeys] = useState<{key: string, fileName: string}[]>([]);
-    const [isDownloadReady, setIsDownloadReady] = useState(false);
-    const [isDownloadingAll, setIsDownloadingAll] = useState(false);
     const isCancelRequestedRef = useRef<boolean>(false);
 
     // Guard tab navigation/closes
@@ -76,6 +75,12 @@ export const ExportPanel = ({
             setExportPlayerIndex(Math.max(0, idx));
         }
     }, [selectedPlayer, playerData]);
+
+    useEffect(() => {
+        if (playerData.length > 0 && exportPlayerIndex >= playerData.length) {
+            setExportPlayerIndex(playerData.length - 1);
+        }
+    }, [playerData, exportPlayerIndex]);
 
     const activeExportPlayer = playerData[exportPlayerIndex] || selectedPlayer || null;
 
@@ -152,9 +157,6 @@ export const ExportPanel = ({
         setExportingView("");
         setExportEta("Estimating...");
         setExportSpeed("Calculating...");
-        setDownloadKeys([]);
-        setIsDownloadReady(false);
-        setIsDownloadingAll(false);
         isCancelRequestedRef.current = false;
         setIsExporting(true);
         (canvasRef as any).__isExporting = true;
@@ -164,6 +166,7 @@ export const ExportPanel = ({
         const totalSteps = totalPlayers * viewsPerPlayer;
 
         let originalVT: any;
+        let activeObject: any;
 
         try {
             // === DEDUCT POINTS UPFRONT ===
@@ -174,6 +177,8 @@ export const ExportPanel = ({
             let exportedCount = 0;
 
             originalVT = canvasRef.viewportTransform?.slice();
+            activeObject = canvasRef.getActiveObject();
+            canvasRef.discardActiveObject(); // Deselect elements before rendering
             canvasRef.setViewportTransform([1, 0, 0, 1, 0, 0]);
 
             const globalTemplate: any = await localforage.getItem('jerseyDesigner:globalTemplate') || {};
@@ -191,7 +196,6 @@ export const ExportPanel = ({
 
             let currentZip = new JSZip();
             let batchNumber = 1;
-            const tempDownloadKeys: {key: string, fileName: string}[] = [];
 
             for (let i = 0; i < playersToExport.length; i++) {
                 if (isCancelRequestedRef.current) throw new Error("Export cancelled by user");
@@ -272,17 +276,22 @@ export const ExportPanel = ({
 
                         const isCollar = view === 'collar';
                         const isSleeve = view === 'leftSleeve' || view === 'rightSleeve';
-                        const maxW = isCollar ? 560 : isSleeve ? 400 : 640;
-                        const maxH = isCollar ? 206 : isSleeve ? 400 : 514;
-                        const scale = Math.min(maxW / imgW, maxH / imgH);
+                        const viewType: 'body' | 'sleeve' | 'collar' = isCollar ? 'collar' : isSleeve ? 'sleeve' : 'body';
+                        // Use the same size-aware layout as DesignCanvas (960×720 canvas)
+                        const CANVAS_W = 960;
+                        const CANVAS_H = 720;
+                        const imageAspectRatio = imgW / imgH;
+                        const { maxW, maxH } = getSizeDisplayBox(player.size, CANVAS_W, CANVAS_H, viewType, imageAspectRatio);
+                        const scaleX = maxW / imgW;
+                        const scaleY = maxH / imgH;
 
                         bgImg.set({
-                            scaleX: scale,
-                            scaleY: scale,
+                            scaleX: scaleX,
+                            scaleY: scaleY,
                             originX: 'center',
                             originY: isCollar ? 'top' : 'center',
-                            left: 480,
-                            top: isCollar ? 154 : 360,
+                            left: CANVAS_W / 2,
+                            top: isCollar ? 154 : CANVAS_H / 2,
                             selectable: false,
                         });
 
@@ -337,33 +346,45 @@ export const ExportPanel = ({
                         // ⚡ Yield to main thread so progress UI can update smoothly
                         await new Promise(r => setTimeout(r, 20));
 
-                        const bounds = getDesignBounds(canvasRef);
-                        if (!bounds) {
-                            const fallback = bgImg.getBoundingRect();
-                            if (!fallback || fallback.width <= 0 || fallback.height <= 0) {
-                                logger.warn(`Export: no bounds for view "${view}", skipping`);
-                                continue;
-                            }
-                            Object.assign(fallback, {
-                                left: Math.max(0, fallback.left),
-                                top: Math.max(0, fallback.top),
-                            });
-                            const fallbackOptions = { left: fallback.left, top: fallback.top, width: fallback.width, height: fallback.height };
-                            const htmlCanvas = canvasRef.toCanvasElement(1, fallbackOptions);
-                            const blob = await nativeCanvasToBlobAsync(htmlCanvas);
-                            playerFolder.file(`${view}.png`, blob);
-                            exportedCount++;
+                        // ── CORRECT EXPORT APPROACH ─────────────────────────────────────────
+                        // Crop to the jersey image's OWN bounding rect (not all-objects bounds).
+                        // This makes the jersey fill the output frame with no whitespace, and
+                        // text positioned within the jersey stays proportionally correct.
+                        const jerseyRect = bgImg.getBoundingRect();
+                        if (!jerseyRect || jerseyRect.width <= 0 || jerseyRect.height <= 0) {
+                            logger.warn(`Export: jersey has no valid bounds for view "${view}", skipping`);
                             continue;
                         }
 
-                        let multiplier = getQualityMultiplier() * getSizeScaleFactorFromDim(player.size);
-                        if (view === 'front' || view === 'back') {
-                            multiplier = computeExportMultiplier(player.size, bounds.width, getTargetDpi());
+                        // Compute physical target pixels for each view type independently.
+                        // getSizeDisplayBox internally uses ppi=28 so: multiplier = targetDPI / 28.
+                        // For clamped sizes the jersey is smaller on-screen → multiplier is larger.
+                        const dim = getSizeDim(player.size);
+                        let physicalWidthIn: number;
+                        if (isSleeve) {
+                            // Use sleeve-specific width from the size chart
+                            physicalWidthIn = dim?.sleeveWidthIn ?? (jerseyRect.width / 28);
+                        } else if (isCollar) {
+                            // Use collar-specific length (flat layout width) from the size chart
+                            physicalWidthIn = dim?.collarLengthIn ?? (jerseyRect.width / 28);
+                        } else {
+                            // front and back use jersey body width
+                            physicalWidthIn = dim?.widthIn ?? (jerseyRect.width / 28);
                         }
+                        const targetPx = physicalWidthIn * getTargetDpi();
+                        const maxMul = 16000 / Math.max(jerseyRect.width, jerseyRect.height, 1);
+                        const multiplier = Math.min(targetPx / jerseyRect.width, maxMul);
 
-                        const exportOptions = { left: bounds.left, top: bounds.top, width: bounds.width, height: bounds.height };
+                        const exportOptions = {
+                            left: Math.max(0, jerseyRect.left),
+                            top: Math.max(0, jerseyRect.top),
+                            width: jerseyRect.width,
+                            height: jerseyRect.height,
+                        };
                         const htmlCanvas = canvasRef.toCanvasElement(multiplier, exportOptions);
-                        const blob = await nativeCanvasToBlobAsync(htmlCanvas);
+                        const rawBlob = await nativeCanvasToBlobAsync(htmlCanvas);
+                        // Inject physical DPI metadata directly into PNG binary chunks
+                        const blob = await setPngDpi(rawBlob, getTargetDpi());
                         playerFolder.file(`${view}.png`, blob);
                         exportedCount++;
                     } catch (e) {
@@ -388,35 +409,22 @@ export const ExportPanel = ({
                         : `GxDrip_${type.toUpperCase()}_${Date.now()}.zip`;
 
                     setExportEta(totalBatches > 1
-                        ? `Saving Part ${batchNumber} of ${totalBatches}...`
-                        : 'Saving...');
+                        ? `Downloading Part ${batchNumber} of ${totalBatches}...`
+                        : 'Downloading...');
 
                     const zipBlob = await currentZip.generateAsync({ type: "blob", compression: "STORE" });
+                    saveAs(zipBlob, fileName);
                     
-                    const tempKey = `temp_export_zip_${Date.now()}_${batchNumber}`;
-                    await localforage.setItem(tempKey, zipBlob);
-                    tempDownloadKeys.push({ key: tempKey, fileName });
-
                     batchNumber++;
 
                     // Free memory: discard old zip and create fresh one for next batch
-                    if (!isLastPlayer) {
-                        currentZip = new JSZip();
-                        // Brief pause to let GC reclaim memory and browser save the file
-                        await new Promise(r => setTimeout(r, 300));
-                    }
+                    currentZip = new JSZip();
+                    // Brief pause to let GC reclaim memory and browser save the file
+                    await new Promise(r => setTimeout(r, 800));
                 }
             }
 
             if (isCancelRequestedRef.current) throw new Error("Export cancelled by user");
-
-            canvasRef.setViewportTransform(originalVT as any);
-
-            // Restore original active canvas state
-            // Emit event so DesignCanvas reloads its proper active view and elements
-            window.dispatchEvent(new CustomEvent('jerseyDesigner:forceReloadView'));
-
-            canvasRef.requestRenderAll();
 
             if (exportedCount === 0) throw new Error("No views exported.");
 
@@ -424,75 +432,48 @@ export const ExportPanel = ({
             setExportEta("Done!");
 
             const partsMsg = totalBatches > 1 ? ` (${totalBatches} zip files)` : '';
-            toast.success(`Pack ready! ${exportedCount} files exported${partsMsg} (${totalCost} pts).`);
+            toast.success(`Export Complete! ${exportedCount} files downloaded${partsMsg} (${totalCost} pts).`);
             
-            setDownloadKeys(tempDownloadKeys);
-            setIsDownloadReady(true);
-            (canvasRef as any).__isExporting = false;
+            // Auto close progress dialog after 2.5 seconds
+            setTimeout(() => {
+                setIsExporting(false);
+            }, 2500);
 
         } catch (e: any) {
             logger.error('Outer Export Failed', e);
-            if (pointsDeducted && e.message !== "Export cancelled by user") {
-                // If it crashed but they already paid upfront, refund them
-                await deductPoints(-totalCost, "Refund: Failed Export");
-                toast.info("Points refunded due to export failure.");
+            if (pointsDeducted) {
+                const refundReason = e.message === "Export cancelled by user" ? "Refund: Cancelled Export" : "Refund: Failed Export";
+                await deductPoints(-totalCost, refundReason);
+                if (e.message === "Export cancelled by user") {
+                    toast.info("Export batch cancelled successfully. Zero points deducted.");
+                } else {
+                    toast.info("Points refunded due to export failure.");
+                }
             }
 
-            if (e.message === "Export cancelled by user") {
-                if (pointsDeducted) {
-                    await deductPoints(-totalCost, "Refund: Cancelled Export");
-                }
-                toast.info("Export batch cancelled successfully. Zero points deducted.");
-                
-                // Restore original canvas view transform even on cancel
-                if (originalVT) {
-                    canvasRef.setViewportTransform(originalVT);
-                    canvasRef.requestRenderAll();
-                }
-                setIsExporting(false);
-            } else {
+            if (e.message !== "Export cancelled by user") {
                 toast.error(`Export Failed: ${e.message}`);
-                setIsExporting(false);
             }
-            (canvasRef as any).__isExporting = false;
-        }
-    };
-
-    const handleDownloadAll = async () => {
-        setIsDownloadingAll(true);
-        try {
-            for (const { key, fileName } of downloadKeys) {
-                const blob = await localforage.getItem<Blob>(key);
-                if (blob) {
-                    saveAs(blob, fileName);
-                    // 500ms delay to prevent browser from blocking multiple file downloads
-                    await new Promise(r => setTimeout(r, 500));
-                }
-                // Clean up memory after successful download trigger
-                await localforage.removeItem(key);
-            }
-            toast.success("All parts downloaded!");
-        } catch (e: any) {
-            logger.error("Failed to download all parts", e);
-            toast.error("Failed to download all parts. Some might be missing.");
-        } finally {
-            setIsDownloadingAll(false);
-            setIsDownloadReady(false);
             setIsExporting(false);
-            setDownloadKeys([]);
+        } finally {
+            (canvasRef as any).__isExporting = false;
+            if (originalVT) {
+                canvasRef.setViewportTransform(originalVT);
+            }
+            const activeObjectInfo = activeObject ? {
+                name: (activeObject as any).name,
+                type: activeObject.type,
+                text: activeObject.type === 'text' ? (activeObject as any).text : undefined
+            } : null;
+            window.dispatchEvent(new CustomEvent('jerseyDesigner:forceReloadView', {
+                detail: { activeObjectInfo }
+            }));
+            canvasRef.requestRenderAll();
         }
     };
 
     const handleCancelExport = () => {
-        if (isDownloadReady) {
-            // They cancelled from the Download Ready screen, just clean up DB and close
-            downloadKeys.forEach(k => localforage.removeItem(k.key));
-            setIsDownloadReady(false);
-            setIsExporting(false);
-            setDownloadKeys([]);
-        } else {
-            isCancelRequestedRef.current = true;
-        }
+        isCancelRequestedRef.current = true;
     };
 
     return (
@@ -654,56 +635,36 @@ export const ExportPanel = ({
                         </div>
 
                         {/* Time Stats */}
-                        {isDownloadReady ? (
-                            <div className="flex flex-col items-center justify-center p-6 bg-gray-50 border-4 border-black">
-                                <h4 className="text-xl font-black uppercase tracking-widest text-black mb-4">Export Complete</h4>
-                                <p className="text-sm font-bold text-gray-500 mb-6 text-center">Your files are securely held in local storage.<br />Click below to save all {downloadKeys.length} parts to your device.</p>
-                                <button
-                                    onClick={handleDownloadAll}
-                                    disabled={isDownloadingAll}
-                                    className="w-full flex items-center justify-center h-14 bg-black text-white border-4 border-black font-black uppercase tracking-widest hover:bg-white hover:text-black transition-colors disabled:opacity-50"
-                                >
-                                    {isDownloadingAll ? (
-                                        <><Loader2 className="w-5 h-5 mr-3 animate-spin" /> DOWNLOADING...</>
-                                    ) : (
-                                        <><Download className="w-5 h-5 mr-3" /> DOWNLOAD ALL PARTS</>
-                                    )}
-                                </button>
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="border-4 border-black p-4">
-                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Time Remaining</span>
-                                    <div className="flex items-center gap-2 font-mono text-xl font-black text-black">
-                                        <Clock className="w-5 h-5" /> {exportEta}
-                                    </div>
-                                </div>
-                                <div className="border-4 border-black p-4">
-                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Processing Speed</span>
-                                    <div className="font-mono text-xl font-black text-black">
-                                        {exportSpeed || '--'}
-                                    </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="border-4 border-black p-4">
+                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Time Remaining</span>
+                                <div className="flex items-center gap-2 font-mono text-xl font-black text-black">
+                                    <Clock className="w-5 h-5" /> {exportEta}
                                 </div>
                             </div>
-                        )}
+                            <div className="border-4 border-black p-4">
+                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Processing Speed</span>
+                                <div className="font-mono text-xl font-black text-black">
+                                    {exportSpeed || '--'}
+                                </div>
+                            </div>
+                        </div>
 
                         {/* Alert Information */}
                         <div className="text-xs font-black text-red-600 uppercase tracking-wider bg-red-50 border-2 border-red-500 p-3 text-center flex items-center justify-center gap-2">
                             <AlertTriangle className="w-4 h-4 flex-shrink-0 animate-pulse text-red-500" />
-                            <span>Do not close this tab or navigate away. Points will be charged ONLY upon successful download.</span>
+                            <span>Do not close this tab or navigate away. Zips download automatically in parts.</span>
                         </div>
 
                         {/* Cancel/Close Footer */}
                         <div className="pt-4 mt-6 border-t-2 border-dashed border-gray-300 flex justify-end">
                             <button
                                 onClick={handleCancelExport}
-                                disabled={isCancelRequestedRef.current || isDownloadingAll}
+                                disabled={isCancelRequestedRef.current}
                                 className="h-12 px-6 border-2 border-black bg-white text-black hover:bg-black hover:text-white transition-all font-black uppercase tracking-widest text-xs flex items-center gap-2 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50"
                             >
                                 {isCancelRequestedRef.current ? (
                                     <><Loader2 className="w-4 h-4 text-black hover:text-white animate-spin transition-colors" /> CANCELLING...</>
-                                ) : isDownloadReady ? (
-                                    <><XCircle className="w-4 h-4 text-black hover:text-white transition-colors" /> CLOSE</>
                                 ) : (
                                     <><XCircle className="w-4 h-4 text-red-500 hover:text-white transition-colors" /> CANCEL EXPORT</>
                                 )}

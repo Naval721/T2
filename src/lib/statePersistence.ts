@@ -25,6 +25,8 @@ export interface PersistedState {
     selectedPlayerIndex: number;
     defaultFont?: string;
     defaultColor?: string;
+    defaultStrokeColor?: string;
+    defaultStrokeWidth?: number;
     sessionId: string;
     lastSave: string;
 }
@@ -52,18 +54,23 @@ export const saveState = async (
     currentStep: number,
     selectedPlayerIndex: number,
     defaultFont?: string,
-    defaultColor?: string
+    defaultColor?: string,
+    defaultStrokeColor?: string,
+    defaultStrokeWidth?: number
 ): Promise<boolean> => {
     try {
-        const sessionId = getSessionId();
+        getSessionId(); // ensure session ID exists
         const lastSave = new Date().toISOString();
 
         await localforage.setItem(STORAGE_KEYS.JERSEY_IMAGES, jerseyImages);
         await localforage.setItem(STORAGE_KEYS.PLAYER_DATA, playerData);
         await localforage.setItem(STORAGE_KEYS.CURRENT_STEP, currentStep);
         await localforage.setItem(STORAGE_KEYS.SELECTED_PLAYER_INDEX, selectedPlayerIndex);
-        if (defaultFont) await localforage.setItem('gxdrip_default_font', defaultFont);
-        if (defaultColor) await localforage.setItem('gxdrip_default_color', defaultColor);
+        // BUG-C6 FIX: use explicit undefined/null checks so empty strings and #FFFFFF save correctly
+        if (defaultFont !== undefined && defaultFont !== null) await localforage.setItem('gxdrip_default_font', defaultFont);
+        if (defaultColor !== undefined && defaultColor !== null) await localforage.setItem('gxdrip_default_color', defaultColor);
+        if (defaultStrokeColor !== undefined && defaultStrokeColor !== null) await localforage.setItem('gxdrip_default_stroke_color', defaultStrokeColor);
+        if (defaultStrokeWidth !== undefined && defaultStrokeWidth !== null) await localforage.setItem('gxdrip_default_stroke_width', defaultStrokeWidth);
         await localforage.setItem(STORAGE_KEYS.LAST_SAVE, lastSave);
 
         return true;
@@ -85,6 +92,8 @@ export const loadState = async (): Promise<Partial<PersistedState> | null> => {
         const selectedPlayerIndex = await localforage.getItem<number>(STORAGE_KEYS.SELECTED_PLAYER_INDEX);
         const defaultFont = await localforage.getItem<string>('gxdrip_default_font');
         const defaultColor = await localforage.getItem<string>('gxdrip_default_color');
+        const defaultStrokeColor = await localforage.getItem<string>('gxdrip_default_stroke_color');
+        const defaultStrokeWidth = await localforage.getItem<number>('gxdrip_default_stroke_width');
         const lastSave = await localforage.getItem<string>(STORAGE_KEYS.LAST_SAVE);
 
         if (!jerseyImages && (!playerData || playerData.length === 0)) {
@@ -98,6 +107,8 @@ export const loadState = async (): Promise<Partial<PersistedState> | null> => {
             selectedPlayerIndex: selectedPlayerIndex || 0,
             defaultFont: defaultFont || undefined,
             defaultColor: defaultColor || undefined,
+            defaultStrokeColor: defaultStrokeColor || undefined,
+            defaultStrokeWidth: defaultStrokeWidth !== null ? defaultStrokeWidth : undefined,
             sessionId: getSessionId(),
             lastSave: lastSave || undefined
         };
@@ -112,27 +123,42 @@ export const loadState = async (): Promise<Partial<PersistedState> | null> => {
  * Clear all persisted state
  */
 export const clearState = async (): Promise<void> => {
+    // BUG-C1 FIX: Run each cleanup in its own try/catch so a failure in one
+    // step does not prevent the others from running. Global template is always
+    // cleared last so ghost logos cannot persist across sessions.
+
+    // Step 1: Clear session/app keys
     try {
         await Promise.all(
             Object.values(STORAGE_KEYS).map(key => localforage.removeItem(key))
         );
         await localforage.removeItem('gxdrip_default_font');
         await localforage.removeItem('gxdrip_default_color');
+        await localforage.removeItem('gxdrip_default_stroke_color');
+        await localforage.removeItem('gxdrip_default_stroke_width');
+    } catch (error) {
+        console.error('Failed to clear session keys:', error);
+    }
 
-        // Also clear canvas persistence data for all players
+    // Step 2: BUG-D4 FIX: Clear canvas/player-element keys in isolated try/catch
+    try {
         const keys = await localforage.keys();
-        const keysToRemove = keys.filter(key => 
-            key.startsWith('gxdrip_canvas_') || 
+        const keysToRemove = keys.filter(key =>
+            key.startsWith('gxdrip_canvas_') ||
             key.startsWith('jerseyDesigner:playerElements_')
         );
-        
-        await Promise.all(keysToRemove.map(key => localforage.removeItem(key)));
-
-        // Wipe the global designer template so custom logos/texts don't ghost onto new sessions
-        await localforage.removeItem('jerseyDesigner:globalTemplate');
-
+        if (keysToRemove.length > 0) {
+            await Promise.all(keysToRemove.map(key => localforage.removeItem(key)));
+        }
     } catch (error) {
-        console.error('Failed to clear state:', error);
+        console.error('Failed to clear player canvas keys:', error);
+    }
+
+    // Step 3: BUG-C1 FIX: Always clear global template — guaranteed, even if step 2 failed
+    try {
+        await localforage.removeItem('jerseyDesigner:globalTemplate');
+    } catch (error) {
+        console.error('Failed to clear global template:', error);
     }
 };
 
@@ -154,7 +180,7 @@ export const getSessionId = (): string => {
  */
 export const hasSavedSession = async (): Promise<boolean> => {
     const jerseyImages = await localforage.getItem(STORAGE_KEYS.JERSEY_IMAGES);
-    const playerData = await localforage.getItem<any[]>(STORAGE_KEYS.PLAYER_DATA);
+    const playerData = await localforage.getItem<PlayerData[]>(STORAGE_KEYS.PLAYER_DATA);
     return !!(jerseyImages || (playerData && playerData.length > 0));
 };
 

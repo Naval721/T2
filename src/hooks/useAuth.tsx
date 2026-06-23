@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext, ReactNode } from 'react'
+import { useState, useEffect, useRef, createContext, useContext, ReactNode } from 'react'
 import { User, Session, AuthError } from '@supabase/supabase-js'
 import { supabase, UserProfile, SECURITY_CONFIG } from '@/lib/supabase'
 import { toast } from 'sonner'
@@ -19,7 +19,6 @@ interface AuthContextType {
   addPoints: (points: number, description: string) => Promise<{ success: boolean; error?: AuthError | Error | string | null }>
   hasEnoughPoints: boolean
   currentPoints: number
-  isPremium: boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -41,6 +40,26 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+
+  // ── Rate-limit tracker: stores timestamps of recent points-API calls ──────────
+  // Lives in a ref so it never triggers a re-render and cannot be cleared from
+  // the React DevTools state panel.
+  const pointRequestsRef = useRef<number[]>([])
+
+  /** Returns true (and shows a toast) when the caller is over the rate limit. */
+  const _isRateLimited = (): boolean => {
+    const now = Date.now()
+    // Prune timestamps older than the sliding window
+    pointRequestsRef.current = pointRequestsRef.current.filter(
+      (ts) => now - ts < SECURITY_CONFIG.RATE_LIMIT_WINDOW
+    )
+    if (pointRequestsRef.current.length >= SECURITY_CONFIG.MAX_REQUESTS_PER_WINDOW) {
+      toast.error('Too many requests. Please wait a moment before trying again.')
+      return true
+    }
+    pointRequestsRef.current.push(now)
+    return false
+  }
 
   useEffect(() => {
     // Check if Supabase is properly configured
@@ -353,12 +372,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     return profile.points_balance >= pointsNeeded
   }
 
-  const deductPoints = async (points: number, description: string): Promise<{ success: boolean; error?: any }> => {
+  const deductPoints = async (points: number, description: string): Promise<{ success: boolean; error?: AuthError | Error | string | null }> => {
     if (!user) {
       return { success: false, error: 'Not authenticated' }
     }
 
     const isRefund = points < 0;
+
+    // ── Rate-limit guard: skip for refunds so failed-export refunds are never blocked ──
+    if (!isRefund && _isRateLimited()) {
+      return { success: false, error: 'Rate limit exceeded. Please try again shortly.' }
+    }
 
     // Demo Mode Fallback
     if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
@@ -419,15 +443,21 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setProfile(prev => prev ? { ...prev, points_balance: newBalance, total_points_used: newUsed } : null)
 
       return { success: true }
-    } catch (error: any) {
+    } catch (error) {
       logger.error('Error in deductPoints:', error)
-      return { success: false, error: error?.message || error }
+      const msg = error instanceof Error ? error.message : String(error)
+      return { success: false, error: msg }
     }
   }
 
-  const addPoints = async (points: number, description: string): Promise<{ success: boolean; error?: any }> => {
+  const addPoints = async (points: number, description: string): Promise<{ success: boolean; error?: AuthError | Error | string | null }> => {
     if (!user) {
       return { success: false, error: 'Not authenticated' }
+    }
+
+    // ── Rate-limit guard ──────────────────────────────────────────────────────
+    if (_isRateLimited()) {
+      return { success: false, error: 'Rate limit exceeded. Please try again shortly.' }
     }
 
     // Demo Mode Fallback
@@ -488,7 +518,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const hasEnoughPoints = profile ? profile.points_balance > 0 : false
   const currentPoints = profile?.points_balance || 0
-  const isPremium = profile ? profile.total_points_purchased > 100 : false // Premium if user has purchased more than 100 points total
 
   const value: AuthContextType = {
     user,
@@ -504,8 +533,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     deductPoints,
     addPoints,
     hasEnoughPoints,
-    currentPoints,
-    isPremium
+    currentPoints
   }
 
   return (

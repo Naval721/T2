@@ -3,6 +3,7 @@
 import { lazy, ComponentType } from 'react';
 
 // Lazy load heavy components
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const lazyLoad = <T extends ComponentType<any>>(
   importFunc: () => Promise<{ default: T }>
 ) => {
@@ -10,6 +11,7 @@ export const lazyLoad = <T extends ComponentType<any>>(
 };
 
 // Preload component
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const preloadComponent = (lazyComponent: any) => {
   if (lazyComponent._payload) {
     return lazyComponent._payload._result;

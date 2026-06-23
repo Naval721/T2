@@ -132,10 +132,11 @@ export const OTPVerification = ({ userId, email, onVerified, onCancel }: OTPVeri
         setOtp(['', '', '', '', '', ''])
         inputRefs.current[0]?.focus()
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('OTP verification error:', err)
       setAttempts(prev => prev + 1)
-      setError(err.message || 'Failed to verify OTP. Please try again.')
+      const message = err instanceof Error ? err.message : 'Failed to verify OTP. Please try again.'
+      setError(message)
       setOtp(['', '', '', '', '', ''])
       inputRefs.current[0]?.focus()
     } finally {
@@ -161,7 +162,7 @@ export const OTPVerification = ({ userId, email, onVerified, onCancel }: OTPVeri
         setOtp(['', '', '', '', '', ''])
         inputRefs.current[0]?.focus()
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Resend OTP error:', err)
       toast.error('Failed to resend OTP. Please try again.')
     } finally {
@@ -192,7 +193,7 @@ export const OTPVerification = ({ userId, email, onVerified, onCancel }: OTPVeri
             {otp.map((digit, index) => (
               <Input
                 key={index}
-                ref={(el) => (inputRefs.current[index] = el)}
+                ref={(el) => { inputRefs.current[index] = el; }}
                 type="text"
                 inputMode="numeric"
                 maxLength={1}

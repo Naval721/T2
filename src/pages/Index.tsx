@@ -15,11 +15,10 @@ import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 import Footer from "@/components/Footer";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import heroImage from "@/assets/hero-jersey-designer.jpg"; // file exists at src/assets/hero-jersey-designer.jpg
 import { Canvas as FabricCanvas } from "fabric";
 import { toast } from "sonner";
-import { Save, AlertCircle, RotateCcw, ImageIcon, Users, Paintbrush, Package } from "lucide-react";
+import { Save, AlertCircle, RotateCcw, ImageIcon, Users, Paintbrush, Package, Download, Loader2 } from "lucide-react";
 import {
   saveState,
   loadState,
@@ -55,12 +54,16 @@ const Index = () => {
   const [canvasRef, setCanvasRef] = useState<FabricCanvas | null>(null);
   const [defaultFont, setDefaultFont] = useState<string>('Anton'); // Default font for all players
   const [defaultColor, setDefaultColor] = useState<string>('#000000'); // Default text colour for all players
+  const [defaultStrokeColor, setDefaultStrokeColor] = useState<string>('#FFFFFF');
+  const [defaultStrokeWidth, setDefaultStrokeWidth] = useState<number>(0);
   const [showRestoreDialog, setShowRestoreDialog] = useState(false);
   const [showClearDialog, setShowClearDialog] = useState(false);
   const [lastSaveTime, setLastSaveTime] = useState<string>('Never');
+  const [isSaving, setIsSaving] = useState(false);
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
   const [fallbackTarget, setFallbackTarget] = useState<HTMLElement | null>(null);
+  const selectedPlayerIndexRef = useRef(0);
 
   // An isolated, stable DOM container that React never destroys
   const persistentCanvasContainer = useMemo(() => {
@@ -131,24 +134,50 @@ const Index = () => {
     }
   }, [user, authLoading, navigate]);
 
+  // Keep selected player index ref in sync with latest state
+  useEffect(() => {
+    if (selectedPlayer && playerData.length > 0) {
+      const idx = playerData.findIndex(p => p.playerName === selectedPlayer.playerName && p.jerseyNumber === selectedPlayer.jerseyNumber);
+      if (idx !== -1) {
+        selectedPlayerIndexRef.current = idx;
+      }
+    } else {
+      selectedPlayerIndexRef.current = 0;
+    }
+  }, [selectedPlayer, playerData]);
+
   // Auto-save state when it changes
   useEffect(() => {
     if (autoSaveEnabled && (Object.keys(jerseyImages).length > 0 || playerData.length > 0)) {
-      const selectedIndex = selectedPlayer
-        ? playerData.findIndex(p => p.playerName === selectedPlayer.playerName && p.jerseyNumber === selectedPlayer.jerseyNumber)
-        : 0;
+      const selectedIndex = selectedPlayerIndexRef.current;
 
+      // Show saving indicator immediately when debounce starts
+      setIsSaving(true);
       const timerId = setTimeout(() => {
-        saveState(jerseyImages, playerData, currentStep, selectedIndex, defaultFont, defaultColor).then(async (saved) => {
+        saveState(
+          jerseyImages,
+          playerData,
+          currentStep,
+          selectedIndex,
+          defaultFont,
+          defaultColor,
+          defaultStrokeColor,
+          defaultStrokeWidth
+        ).then(async (saved) => {
           if (saved) {
             setLastSaveTime(await formatLastSaveTime());
           }
+        }).finally(() => {
+          setIsSaving(false);
         });
       }, 1000); // Debounce by 1 second
 
-      return () => clearTimeout(timerId);
+      return () => {
+        clearTimeout(timerId);
+        setIsSaving(false);
+      };
     }
-  }, [jerseyImages, playerData, currentStep, selectedPlayer, defaultFont, defaultColor, autoSaveEnabled]);
+  }, [jerseyImages, playerData, currentStep, selectedPlayer, defaultFont, defaultColor, defaultStrokeColor, defaultStrokeWidth, autoSaveEnabled]);
 
   // Sync selectedPlayer when playerData changes
   useEffect(() => {
@@ -230,13 +259,13 @@ const Index = () => {
   const handleConfirmClear = async () => {
     // Clear all state
     setCurrentStep(1);
-    navigate("/");
     setJerseyImages({});
     setPlayerData([]);
     setSelectedPlayer(null);
     setCanvasRef(null);
     await clearState();
     setLastSaveTime('Never');
+    navigate("/");
     toast.success("Project cleared. Ready to start fresh!");
   };
 
@@ -246,6 +275,8 @@ const Index = () => {
       if (savedState.jerseyImages) setJerseyImages(savedState.jerseyImages);
       if (savedState.defaultFont) setDefaultFont(savedState.defaultFont);
       if (savedState.defaultColor) setDefaultColor(savedState.defaultColor);
+      if (savedState.defaultStrokeColor) setDefaultStrokeColor(savedState.defaultStrokeColor);
+      if (savedState.defaultStrokeWidth !== undefined) setDefaultStrokeWidth(savedState.defaultStrokeWidth);
       if (savedState.playerData) {
         setPlayerData(savedState.playerData);
         if (
@@ -318,7 +349,6 @@ const Index = () => {
               playerData={playerData}
               selectedPlayer={selectedPlayer}
               onPlayerSelect={setSelectedPlayer}
-              onCanvasReady={setCanvasRef}
               defaultFont={defaultFont}
               onFontChange={setDefaultFont}
               defaultColor={defaultColor}
@@ -340,6 +370,10 @@ const Index = () => {
               onFontChange={setDefaultFont}
               defaultColor={defaultColor}
               onColorChange={setDefaultColor}
+              defaultStrokeColor={defaultStrokeColor}
+              onStrokeColorChange={setDefaultStrokeColor}
+              defaultStrokeWidth={defaultStrokeWidth}
+              onStrokeWidthChange={setDefaultStrokeWidth}
               onNext={handleNext}
               onPrev={handlePrev}
             />
@@ -353,6 +387,8 @@ const Index = () => {
               onPrev={handlePrev}
               defaultFont={defaultFont}
               defaultColor={defaultColor}
+              defaultStrokeColor={defaultStrokeColor}
+              defaultStrokeWidth={defaultStrokeWidth}
             />
           );
         case 5:
@@ -397,21 +433,27 @@ const Index = () => {
       <div className="container mx-auto p-6">
         {/* Auto-save Indicator */}
         {hasRequiredData && (
-          <div className="flex items-center justify-between mb-4 p-3 bg-muted/50 rounded-lg">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Save className="w-4 h-4" />
-              <span>Last saved: {lastSaveTime}</span>
-              <Badge variant="outline" className="ml-2">Auto-save enabled</Badge>
+          <div className="flex items-center justify-between mb-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+            <div className="flex items-center gap-2 text-sm font-mono">
+              {isSaving ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-gray-500" />
+                  <span className="text-gray-500 uppercase tracking-wider text-xs">Saving...</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 text-gray-400" />
+                  <span className="text-gray-600 text-xs uppercase tracking-wider">Saved {lastSaveTime}</span>
+                </>
+              )}
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
+            <button
               onClick={() => setShowClearDialog(true)}
-              className="text-destructive hover:text-destructive"
+              className="text-xs text-gray-400 hover:text-red-600 font-mono uppercase tracking-wider transition-colors"
+              title="Clear all data and start fresh"
             >
-              <RotateCcw className="w-4 h-4 mr-2" />
-              Clear All Data
-            </Button>
+              Clear data
+            </button>
           </div>
         )}
 
@@ -431,10 +473,10 @@ const Index = () => {
               - Since the portal target NEVER changes identity, React never unmounts the canvas.
               - A useEffect manually moves persistentCanvasContainer between fallbackTarget and the active step's portalTarget.
             */}
-            <div 
-               ref={setFallbackTarget}
-               id="persistent-canvas-fallback"
-               className={currentStep >= 4 ? "fixed -top-[9999px] -left-[9999px] opacity-0 pointer-events-none" : "hidden"}
+            <div
+              ref={setFallbackTarget}
+              id="persistent-canvas-fallback"
+              className={currentStep >= 4 ? "fixed -top-[9999px] -left-[9999px] opacity-0 pointer-events-none" : "hidden"}
             />
 
             {currentStep >= 2 && createPortal(
@@ -445,6 +487,8 @@ const Index = () => {
                 onCanvasReady={stableSetCanvasRef}
                 defaultFont={defaultFont}
                 defaultColor={defaultColor}
+                defaultStrokeColor={defaultStrokeColor}
+                defaultStrokeWidth={defaultStrokeWidth}
                 showTools={currentStep === 3}
               />,
               persistentCanvasContainer
@@ -519,7 +563,7 @@ const Index = () => {
                     </div>
                     <div className="p-6 bg-gray-50 border-2 border-gray-200 hover:border-black transition-colors text-left group">
                       <div className="w-12 h-12 bg-black text-white flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                        <Package className="w-6 h-6" />
+                        <Download className="w-6 h-6" />
                       </div>
                       <h4 className="font-bold text-lg mb-2 uppercase tracking-wide">Step 5: Export & Share</h4>
                       <p className="text-gray-500 font-mono text-sm leading-relaxed">

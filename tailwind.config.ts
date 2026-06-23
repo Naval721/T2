@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import tailwindAnimate from "tailwindcss-animate";
 
 export default {
   darkMode: ["class"],
@@ -15,16 +16,14 @@ export default {
     extend: {
       fontFamily: {
         sans: ["Inter", "sans-serif"],
-        jersey: {
-          'anton': ['Anton', 'sans-serif'],
-          'bebas': ['Bebas Neue', 'sans-serif'],
-          'orbitron': ['Orbitron', 'sans-serif'],
-          'oswald': ['Oswald', 'sans-serif'],
-          'roboto-condensed': ['Roboto Condensed', 'sans-serif'],
-          'russo': ['Russo One', 'sans-serif'],
-          'rajdhani': ['Rajdhani', 'sans-serif'],
-          'exo': ['Exo 2', 'sans-serif'],
-        },
+        "jersey-anton": ["Anton", "sans-serif"],
+        "jersey-bebas": ["Bebas Neue", "sans-serif"],
+        "jersey-orbitron": ["Orbitron", "sans-serif"],
+        "jersey-oswald": ["Oswald", "sans-serif"],
+        "jersey-roboto-condensed": ["Roboto Condensed", "sans-serif"],
+        "jersey-russo": ["Russo One", "sans-serif"],
+        "jersey-rajdhani": ["Rajdhani", "sans-serif"],
+        "jersey-exo": ["Exo 2", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -133,5 +132,5 @@ export default {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [tailwindAnimate],
 } satisfies Config;

@@ -13,6 +13,7 @@ import * as XLSX from 'xlsx';
 import type { PlayerData } from "@/pages/Index";
 import { logger } from "@/lib/logger";
 import { ALLOWED_SIZES, formatSizeDim } from "@/lib/sizes";
+import localforage from 'localforage';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // IMPORTANT: Field is defined OUTSIDE PlayerDataUpload.
@@ -133,10 +134,30 @@ export const PlayerDataUpload = ({ playerData, onDataChange }: PlayerDataUploadP
     setEditErrors({});
   };
 
-  const saveEdit = () => {
+  const saveEdit = async () => {
     if (editingIndex === null) return;
     const errs = validateRow(editingPlayer);
     if (Object.keys(errs).length > 0) { setEditErrors(errs); return; }
+
+    const oldPlayer = playerData[editingIndex];
+    const nameChanged = oldPlayer.playerName !== editingPlayer.playerName;
+    const numberChanged = oldPlayer.jerseyNumber !== editingPlayer.jerseyNumber;
+
+    if (nameChanged || numberChanged) {
+      const oldKey = `jerseyDesigner:playerElements_${oldPlayer.playerName}_${oldPlayer.jerseyNumber}`;
+      const newKey = `jerseyDesigner:playerElements_${editingPlayer.playerName}_${editingPlayer.jerseyNumber}`;
+      try {
+        const oldData = await localforage.getItem(oldKey);
+        if (oldData) {
+          await localforage.setItem(newKey, oldData);
+          await localforage.removeItem(oldKey);
+          logger.info(`Migrated player canvas key from ${oldKey} to ${newKey}`);
+        }
+      } catch (err) {
+        logger.error("Failed to migrate player canvas data on rename/number change:", err);
+      }
+    }
+
     const updated = [...playerData];
     updated[editingIndex] = { ...editingPlayer };
     onDataChange(updated);
@@ -170,6 +191,7 @@ export const PlayerDataUpload = ({ playerData, onDataChange }: PlayerDataUploadP
   };
 
   // ─── Excel / CSV upload ─────────────────────────────────────────────────────
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const parseAndValidate = (data: any[]): { isValid: boolean; errors: string[]; validData: PlayerData[] } => {
     const errors: string[] = [];
     const validData: PlayerData[] = [];

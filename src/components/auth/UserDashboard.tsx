@@ -309,7 +309,7 @@ export const UserDashboard = ({ onClose }: UserDashboardProps) => {
         <CardContent>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">High-Quality Exports (300 DPI)</span>
+              <span className="text-sm font-medium">High-Quality Exports (450 DPI)</span>
               <CheckCircle className="w-4 h-4 text-black" />
             </div>
             <div className="flex items-center justify-between">

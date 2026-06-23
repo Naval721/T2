@@ -21,7 +21,7 @@ export interface PointsTransaction {
   amount: number // positive for purchase/bonus, negative for usage
   description: string
   createdAt: Date
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 export interface UserPoints {

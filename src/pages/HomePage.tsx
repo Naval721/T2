@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import {
@@ -7,7 +8,9 @@ import {
   Download,
   Eye,
   BarChart3,
-  FileImage
+  FileImage,
+  Menu,
+  X
 } from 'lucide-react'
 import { GxLogo } from '@/components/ui/GxLogo'
 import { Link, useNavigate } from 'react-router-dom'
@@ -31,10 +34,17 @@ interface HomePageProps {
 
 export const HomePage = ({ onStart }: HomePageProps) => {
   const navigate = useNavigate()
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const scrollTo = (id: string) => {
     const el = document.getElementById(id)
     if (el) el.scrollIntoView({ behavior: 'smooth' })
+    setMobileMenuOpen(false)
+  }
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    setMobileMenuOpen(false)
   }
 
   const features = [
@@ -54,7 +64,7 @@ export const HomePage = ({ onStart }: HomePageProps) => {
     },
     {
       title: "High-quality output.",
-      description: "Export print-ready images ready for manufacturing and professional garment production.",
+      description: "Export 450 DPI print-ready images ready for manufacturing and professional garment production.",
       placeholder: "large",
       image: featureHqOutput,
       icon: FileImage
@@ -62,26 +72,26 @@ export const HomePage = ({ onStart }: HomePageProps) => {
   ]
 
   const stats = [
-    { number: "2x", label: "Views per item" },
-    { number: "153", label: "Designs processed" },
-    { number: "300dpi", label: "Export quality" }
+    { number: "5", label: "Views per jersey" },
+    { number: "450dpi", label: "Export quality" },
+    { number: "100%", label: "Print-ready output" }
   ]
 
   const steps = [
     {
       icon: Upload,
       title: "Upload",
-      description: "Add front and back images, player data, and assets."
+      description: "Add front, back, sleeve, and collar images plus player data."
     },
     {
       icon: Palette,
       title: "Design",
-      description: "Preview both sides, refine placement, and personalize."
+      description: "Preview all views, refine placement, and personalize."
     },
     {
       icon: Download,
       title: "Export",
-      description: "Download 300dpi, print-ready files for production."
+      description: "Download 450 DPI, print-ready files for production."
     }
   ]
 
@@ -97,14 +107,42 @@ export const HomePage = ({ onStart }: HomePageProps) => {
               </div>
               <span className="text-[22px] text-black" style={{ fontFamily: "'Press Start 2P', monospace", paddingTop: '6px' }}>GXDRIP</span>
             </div>
+
+            {/* Desktop Nav */}
             <div className="hidden md:flex items-center space-x-8">
-              <button onClick={() => scrollTo('features')} className="text-gray-600 hover:text-black transition-colors">Home</button>
+              <button onClick={scrollToTop} className="text-gray-600 hover:text-black transition-colors">Home</button>
               <button onClick={() => scrollTo('designs')} className="text-gray-600 hover:text-black transition-colors">Gallery</button>
               <button onClick={() => scrollTo('how')} className="text-gray-600 hover:text-black transition-colors">Create</button>
               <Link to="/pricing" className="text-gray-600 hover:text-black transition-colors">Pricing</Link>
               <Link to="/contact" className="text-gray-600 hover:text-black transition-colors">Contact</Link>
             </div>
+
+            {/* Mobile hamburger */}
+            <button
+              className="md:hidden p-2 hover:bg-gray-100 transition-colors border border-gray-200"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
           </div>
+
+          {/* Mobile dropdown */}
+          {mobileMenuOpen && (
+            <div className="md:hidden border-t border-gray-200 mt-3 pt-3 pb-4 space-y-1">
+              <button onClick={scrollToTop} className="block w-full text-left px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-black transition-colors">Home</button>
+              <button onClick={() => scrollTo('designs')} className="block w-full text-left px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-black transition-colors">Gallery</button>
+              <button onClick={() => scrollTo('how')} className="block w-full text-left px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-black transition-colors">Create</button>
+              <Link to="/pricing" onClick={() => setMobileMenuOpen(false)} className="block px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-black transition-colors">Pricing</Link>
+              <Link to="/contact" onClick={() => setMobileMenuOpen(false)} className="block px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-black transition-colors">Contact</Link>
+              <div className="px-4 pt-3">
+                <Button onClick={() => { onStart(); setMobileMenuOpen(false); }} className="w-full bg-black text-white hover:bg-gray-800 font-bold uppercase tracking-wider">
+                  Get Started
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </nav>
 
@@ -223,7 +261,7 @@ export const HomePage = ({ onStart }: HomePageProps) => {
           <div className="text-center mb-16">
             <h2 className="text-5xl md:text-6xl font-black uppercase tracking-tight text-black mb-4">Designs</h2>
             <div className="h-1.5 w-24 bg-black mx-auto mb-6"></div>
-            <p className="text-xl text-gray-600 font-medium">Front & back previews for pixel-perfect prints</p>
+            <p className="text-xl text-gray-600 font-medium">Front &amp; back previews for pixel-perfect prints</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -242,9 +280,15 @@ export const HomePage = ({ onStart }: HomePageProps) => {
         </div>
       </section>
 
-      {/* CTA Section */}
+      {/* CTA Section — noise via pure CSS, no external URL */}
       <section className="py-24 px-6 bg-black text-white border-y-8 border-gray-900 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
+        <div
+          className="absolute inset-0 opacity-20 mix-blend-overlay pointer-events-none"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E")`,
+            backgroundSize: '200px 200px'
+          }}
+        />
         <div className="max-w-4xl mx-auto text-center relative z-10">
           <h2 className="text-6xl md:text-8xl font-black uppercase tracking-tighter mb-6 relative">
             START<br /><span className="text-gray-500">DESIGNING.</span>

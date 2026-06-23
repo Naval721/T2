@@ -28,7 +28,7 @@ export const CustomizationTools = ({ onAddText, onAddLogo, canvasRef }: Customiz
 
     const handleSelection = () => {
       const activeObject = canvasRef.getActiveObject();
-      if (activeObject && (activeObject as any).text) {
+      if (activeObject && activeObject instanceof FabricText) {
         const textObj = activeObject as FabricText;
         if (textObj.fontSize) {
           const effectiveSize = Math.round(textObj.fontSize * (textObj.scaleY || 1));
@@ -50,17 +50,17 @@ export const CustomizationTools = ({ onAddText, onAddLogo, canvasRef }: Customiz
     };
   }, [canvasRef]);
 
-  const updateActiveText = (key: string, value: any) => {
+  const updateActiveText = (key: string, value: string | number) => {
     if (!canvasRef) return;
     const activeObject = canvasRef.getActiveObject();
-    if (activeObject && (activeObject as any).text) {
+    if (activeObject && activeObject instanceof FabricText) {
       if (key === 'fontSize') {
-        activeObject.set({ fontSize: value, scaleX: 1, scaleY: 1 });
+        activeObject.set({ fontSize: value as number, scaleX: 1, scaleY: 1 });
       } else {
-        activeObject.set(key, value);
+        activeObject.set(key as keyof FabricText, value as never);
       }
       canvasRef.requestRenderAll();
-      canvasRef.fire('object:modified', { target: activeObject } as any);
+      canvasRef.fire('object:modified', { target: activeObject });
     }
   };
 

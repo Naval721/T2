@@ -15,6 +15,10 @@ interface Step3CustomizeProps {
   onFontChange: (font: string) => void;
   defaultColor: string;
   onColorChange: (color: string) => void;
+  defaultStrokeColor: string;
+  onStrokeColorChange: (color: string) => void;
+  defaultStrokeWidth: number;
+  onStrokeWidthChange: (width: number) => void;
   onNext: () => void;
   onPrev: () => void;
 }
@@ -30,6 +34,10 @@ export const Step3Customize = ({
   onFontChange,
   defaultColor,
   onColorChange,
+  defaultStrokeColor,
+  onStrokeColorChange,
+  defaultStrokeWidth,
+  onStrokeWidthChange,
   onNext,
   onPrev
 }: Step3CustomizeProps) => {
@@ -44,6 +52,8 @@ export const Step3Customize = ({
       fill,
       stroke: strokeWidth > 0 ? stroke : undefined,
       strokeWidth,
+      // BUG-A5 FIX: stroke renders behind fill, same as player name/number text
+      paintFirst: 'stroke',
       originX: 'center',
       originY: 'center',
       textAlign: 'center',
@@ -69,6 +79,8 @@ export const Step3Customize = ({
       if (logoImg.width && logoImg.width > 300) {
         logoImg.scaleToWidth(300);
       }
+      // BUG-C4/A1 FIX: Set .name and .src BEFORE adding to canvas so that
+      // the object:added → persistState() handler captures them correctly.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (logoImg as any).name = 'customLogo';
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -103,8 +115,7 @@ export const Step3Customize = ({
                 <button
                   key={`${player.playerName}_${player.jerseyNumber}`}
                   onClick={() => onPlayerSelect(player)}
-                  className={`w-full p-3 text-left transition-all border-2 border-transparent uppercase font-bold text-sm leading-tight flex justify-between items-center ${
-                    selectedPlayer?.playerName === player.playerName && selectedPlayer?.jerseyNumber === player.jerseyNumber
+                  className={`w-full p-3 text-left transition-all border-2 border-transparent uppercase font-bold text-sm leading-tight flex justify-between items-center ${selectedPlayer?.playerName === player.playerName && selectedPlayer?.jerseyNumber === player.jerseyNumber
                       ? 'bg-black text-white translate-x-1 shadow-[4px_4px_0px_0px_rgba(200,200,200,1)]'
                       : 'bg-gray-100 text-black hover:border-black'
                     }`}
@@ -129,6 +140,10 @@ export const Step3Customize = ({
                 onChange={onFontChange}
                 color={defaultColor}
                 onColorChange={onColorChange}
+                strokeColor={defaultStrokeColor}
+                onStrokeColorChange={onStrokeColorChange}
+                strokeWidth={defaultStrokeWidth}
+                onStrokeWidthChange={onStrokeWidthChange}
                 label="Name & Number Style"
                 showPreview={true}
               />
@@ -178,7 +193,7 @@ export const Step3Customize = ({
           onClick={onNext}
           className="h-14 px-8 text-sm font-bold uppercase tracking-widest bg-black text-white border-2 border-black hover:bg-gray-900 transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
         >
-          Continue to Export
+          Continue to Preview
           <ArrowRight className="w-5 h-5 ml-3" />
         </Button>
       </div>

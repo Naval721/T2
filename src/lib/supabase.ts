@@ -37,20 +37,22 @@ export interface UserProfile {
   updated_at: string
 }
 
+import type { JerseyImages, PlayerData } from '@/pages/Index'
+
 export interface DesignProject {
   id: string
   user_id: string
   project_name: string
-  jersey_images: any
-  player_data: any
+  jersey_images: JerseyImages
+  player_data: PlayerData[]
   created_at: string
   updated_at: string
   is_public: boolean
 }
 
-// Security and rate limiting
-export const SECURITY_CONFIG = {
+// Security and rate limiting — frozen so console tampering cannot relax limits
+export const SECURITY_CONFIG = Object.freeze({
   SESSION_TIMEOUT: 24 * 60 * 60 * 1000, // 24 hours
-  RATE_LIMIT_WINDOW: 60 * 1000, // 1 minute
-  MAX_REQUESTS_PER_WINDOW: 10
-}
+  RATE_LIMIT_WINDOW:        60 * 1000,   // 1 minute sliding window
+  MAX_REQUESTS_PER_WINDOW:  10           // max points API calls per window
+})

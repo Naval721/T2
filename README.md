@@ -3,141 +3,158 @@
   <p><strong>Professional Jersey Print Studio Engine & Roster Customization Tool</strong></p>
 
   <p>
-    <a href="#overview">Overview</a> •
-    <a href="#features">Features</a> •
-    <a href="#tech-stack">Tech Stack</a> •
-    <a href="#getting-started">Getting Started</a> •
-    <a href="#database-schema">Database Schema</a> •
-    <a href="#usage">Usage</a> •
-    <a href="#development">Development</a> •
-    <a href="#deployment">Deployment</a> •
-    <a href="#license">License</a>
+    <a href="#-overview">Overview</a> •
+    <a href="#-core-features">Features</a> •
+    <a href="#-tech-stack--architecture">Tech Stack & Architecture</a> •
+    <a href="#-repository-structure">Repository Structure</a> •
+    <a href="#-installation--setup">Installation & Setup</a> •
+    <a href="#-database-schema">Database Schema</a> •
+    <a href="#-configuration--security">Configuration & Security</a>
   </p>
 
-  <p>
-    <img src="https://img.shields.io/badge/REACT-18.x-00d8ff?style=flat-square&logo=react&logoColor=white" alt="React" />
-    <img src="https://img.shields.io/badge/TYPESCRIPT-5.x-3178c6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript" />
-    <img src="https://img.shields.io/badge/CANVAS-FABRIC.JS-ff4081?style=flat-square" alt="Fabric.js" />
-    <img src="https://img.shields.io/badge/SUPABASE-AUTH%20%26%20DB-3ecf8e?style=flat-square&logo=supabase&logoColor=white" alt="Supabase" />
-    <img src="https://img.shields.io/badge/TAILWIND%20CSS-3.x-38bdf8?style=flat-square&logo=tailwind-css&logoColor=white" alt="Tailwind CSS" />
-  </p>
+  <img src="https://img.shields.io/badge/React-18-blue?style=for-the-badge&logo=react" alt="React Badge"/>
+  <img src="https://img.shields.io/badge/Vite-5-purple?style=for-the-badge&logo=vite" alt="Vite Badge"/>
+  <img src="https://img.shields.io/badge/TypeScript-5-blue?style=for-the-badge&logo=typescript" alt="TypeScript Badge"/>
+  <img src="https://img.shields.io/badge/Fabric.js-Canvas-ff4081?style=for-the-badge" alt="Fabric.js Badge"/>
+  <img src="https://img.shields.io/badge/Supabase-Auth%20%26%20DB-3ecf8e?style=for-the-badge&logo=supabase" alt="Supabase Badge"/>
+  <img src="https://img.shields.io/badge/Tailwind_CSS-3-38bdf8?style=for-the-badge&logo=tailwindcss" alt="Tailwind CSS Badge"/>
 </div>
 
 ---
 
-## Overview
+## 📖 Overview
 
-**GxDrip** is a high-performance, web-based application designed for sports apparel customizers and print shops. It combines an interactive design canvas with bulk roster processing, allowing studios to map team rosters onto jersey templates and export print-ready, high-resolution vector and image files.
+**GxDrip** is an enterprise-grade jersey print studio engine engineered specifically for custom sportswear manufacturers and sublimated apparel shops. It replaces manual artwork mapping with a highly optimized, canvas-based bulk processor.
 
----
-
-## Features
-
-- **Bulk Roster Imports:** Upload team rosters via Excel (`.xlsx`) or CSV to instantly generate individual player jersey designs.
-- **Interactive Canvas Engine:** A precise jersey editor powered by Fabric.js supporting dynamic player name/number layouts, drag-and-drop elements, constraint locking, and vector logos.
-- **Production-Grade Exports:** Render and download jersey layouts at print-ready resolutions (300 DPI, 450 DPI, and 600 DPI) optimized for large sublimation printers.
-- **Transaction-Backed Deductions:** Integration with Supabase checks balance and executes credit deductions before approving downloads to prevent exploits.
-- **Session Auto-Recovery:** Restores active canvas elements and design states seamlessly in the event of an unexpected page refresh.
+By harnessing a customized **Fabric.js** canvas environment, design shops can rapidly upload entire team rosters (names, numbers, sizes) via Excel/CSV, instantly preview them on high-fidelity mockups, and run high-resolution rasterizations reaching **600 DPI**—production-ready for full-size garments. The entire flow is backed by a secure **Supabase** points ledger to ensure credit integrity.
 
 ---
 
-## Tech Stack
+## ✨ Core Features
 
-| Component | Technology | Description |
+- **⚡ Bulk Roster Processing:** Parse team rosters from `.xlsx` or `.csv` spreadsheets instantly. Automatically map name/number pairs onto canvas layouts to generate hundreds of individual player jerseys.
+- **🎨 Interactive Fabric Canvas:** Custom-built designer workspace supporting drag-and-drop text fields, constraint bounds, customizable font styling, custom color fills, and vector branding logo integrations.
+- **🖨️ Production-Grade Exports:**
+  - **Standard (300 DPI):** Optimized for digital previews and client mockups.
+  - **High (450 DPI):** Balanced resolution for smaller print formats.
+  - **Ultra (600 DPI):** High-density vector rasterization explicitly sized for large-format sublimation printing on 36"+ jerseys.
+- **🔒 Ledger-Backed Security:** Deductions are verified atomically through a secure database function in Supabase. Credits are debited from the profile ledger *before* high-resolution files are generated, blocking client-side download bypasses.
+- **💾 Session Auto-Recovery:** Robust local session saving ensures that active roster configurations, customized positions, and canvas modifications are preserved through unexpected page reloads.
+
+---
+
+## 🛠️ Tech Stack & Architecture
+
+GxDrip is constructed with a highly responsive React SPA architecture linked to containerized cloud databases and static assets.
+
+### The Stack
+* **Frontend Framework:** React 18, Vite, TypeScript
+* **Canvas Manipulation:** Fabric.js 5+
+* **Styling & UI Library:** Tailwind CSS, Shadcn UI, Radix UI primitives
+* **Database & Auth:** Supabase (PostgreSQL with RLS policy locks)
+* **Packaging Utilities:** SheetJS (Excel parser), JSZip (bulk export compressor), FileSaver
+
+### System Architecture Diagram
+
+```mermaid
+graph TD
+    Client([Vite React Client]) -->|1. Parse Roster| ExcelParser[SheetJS Parser]
+    Client -->|2. Bind Elements| CanvasEngine[Fabric.js Canvas Engine]
+    Client -->|3. Check Balance| SupabaseDB[(Supabase DB Ledger)]
+    SupabaseDB -->|Deduct Points & Approve| Client
+    Client -->|4. Trigger Render| CanvasEngine
+    CanvasEngine -->|High-Res Rasterization| ExportPanel[Export Panel & Worker]
+    ExportPanel -->|5. Zip Compression| ZipExporter[JSZip Exporter]
+    ZipExporter -->|6. Download| User([User Browser])
+```
+
+---
+
+## 📁 Repository Structure
+
+The project directory is structured cleanly to separate design components, canvas layout scripts, and database schema definition files:
+
+```text
+GxStudioStitch-main/          <-- Root Repository Directory
+├── public/                   <-- Static files, custom fonts, and system logos
+├── src/                      <-- Source code
+│   ├── components/           # UI elements (auth panels, control panels, menus)
+│   ├── hooks/                # Custom React hooks (authentication, canvas bindings)
+│   ├── lib/                  # Library clients (Supabase setup, performance monitoring)
+│   ├── pages/                # Primary dashboard screens and landing layout
+│   │   └── steps/            # Interactive step-by-step jersey generation wizard
+│   ├── types/                # Strict TypeScript interface declarations
+│   └── utils/                # Utility helpers (DPI math, state loaders)
+├── supabase/                 # PostgreSQL migration files and database schemas
+├── index.html                # Vite SPA template entrypoint
+├── package.json              # Workspace package definitions
+└── tailwind.config.ts        # Design tokens and theme settings
+```
+
+---
+
+## 🚀 Installation & Setup
+
+Set up your local workspace in minutes by following these steps.
+
+### 1. Prerequisites
+Ensure you have the following installed:
+* **Node.js (v18 or higher)**
+* **NPM**
+* A configured **Supabase** database instance (or run locally in demo mode)
+
+### 2. Local Workspace Setup
+
+#### A. Clone the Repository
+```bash
+git clone https://github.com/Naval721/T2.git
+cd T2
+```
+
+#### B. Install Dependencies
+```bash
+npm install
+```
+
+#### C. Environment Configuration
+Create a `.env` file in the root directory:
+```env
+VITE_SUPABASE_URL=your-supabase-project-url
+VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+```
+> [!NOTE]
+> If you start the app without setting these environment variables, GxDrip automatically falls back to **Demo Mode** which runs purely local configurations.
+
+#### D. Start the Local Server
+```bash
+npm run dev
+```
+Open [http://localhost:5173](http://localhost:5173) in your browser.
+
+---
+
+## 🗄️ Database Schema
+
+Database triggers, functions, and layout definitions are stored inside the `/supabase` folder. 
+
+Initialize these tables in your database instance to enable credit deduction features:
+* **`user_profiles`**: Linked to Auth users; hosts email, display name, and active `points_balance`.
+* **`points_transactions`**: Encapsulates ledger integrity tracking point purchases and rendering debits.
+
+---
+
+## 🔧 Configuration & Security
+
+> [!WARNING]
+> **Production Safety Reminder:** Never commit active access keys, environment credentials, or private secrets to version control. Always utilize cloud key vaults or ignored environment files.
+
+| Variable Name | Default Dev Fallback (Safe) | Description / Purpose |
 |---|---|---|
-| **Frontend** | React 18, Vite, TypeScript | Fast, type-safe interactive interface |
-| **Canvas API** | Fabric.js | Advanced vector manipulation and rendering |
-| **Styling** | Tailwind CSS, Shadcn UI | Premium, responsive component interface |
-| **Backend** | Supabase | Secure Auth & PostgreSQL data persistence |
-| **Utilities** | JSZip, SheetJS (XLSX) | Bulk compression and Excel parsing |
+| `VITE_SUPABASE_URL` | *None* | Target endpoints for your Supabase backend client |
+| `VITE_SUPABASE_ANON_KEY` | *None* | Public API anon keys used to interact with database routes |
 
 ---
 
-## Getting Started
-
-### Prerequisites
-
-- Node.js (v18 or higher)
-- A Supabase project instance (optional – app can run in demo mode without it)
-
-### Installation & Setup
-
-1. **Clone the Repository:**
-   ```bash
-   git clone https://github.com/Naval721/T2.git
-   cd T2
-   ```
-
-2. **Install Dependencies:**
-   ```bash
-   npm install
-   ```
-
-3. **Configure Environment:**
-   Create a `.env` file in the root folder:
-   ```env
-   VITE_SUPABASE_URL=your-supabase-url
-   VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
-   ```
-   *Note: If these keys are not set, GxDrip will operate in a local-only Demo Mode with credit checks bypassed.*
-
-4. **Start Development Server:**
-   ```bash
-   npm run dev
-   ```
-   Open `http://localhost:5173` in your browser.
-
----
-
-## Database Schema
-
-To link GxDrip with credits and authentication, initialize these tables inside your Supabase project (SQL migration scripts are located in the `/supabase` folder):
-
-- **`user_profiles`**: Extends Supabase auth profiles; tracks player emails, names, and credit balances (`points_balance`).
-- **`points_transactions`**: A backend-secured ledger recording credit purchases and print deductions.
-
----
-
-## Usage
-
-- **Upload a Roster:** Use the import tool to upload a file with player names and numbers. Each player becomes a separate jersey design.
-- **Customize on Canvas:** Click any element to edit text, adjust position, scale, or rotation.
-- **Export:** Choose a DPI preset and download single or bulk designs as high-res images (PNG/PDF).
-- **Credits:** Each high-res export consumes points from the user’s balance. The ledger ensures atomic deductions.
-
----
-
-## Development
-
-### Project Structure
-
-```
-/
-├── src/
-│   ├── components/     # React UI components
-│   ├── canvas/         # Fabric.js canvas logic
-│   ├── hooks/          # Custom React hooks
-│   ├── lib/            # Utilities (Supabase client, export helpers)
-│   └── types/          # TypeScript type definitions
-├── supabase/           # Database migrations and seeds
-└── public/             # Static assets
-```
-
-### Key Scripts
-
-- `npm run dev` – Start Vite development server
-- `npm run build` – Create production build
-- `npm run lint` – Run ESLint code checks
-- `npm run preview` – Preview the production build locally
-
----
-
-## Deployment
-
-The app is static and can be deployed to any hosting service (Vercel, Netlify, etc.). Environment variables must be set on the host for Supabase integration. For Docker or self‑hosted setups, ensure the `.env` file is present during build.
-
----
-
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+<div align="center">
+  <sub>Built with precision and scalability by the Gx Developers Organization.</sub>
+</div>

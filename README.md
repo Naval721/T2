@@ -75,40 +75,6 @@ GxDrip/
 
 ---
 
-## Setup
-
-### Prerequisites
-
-- Node.js 18+
-- (Optional) A Supabase project for auth and credit tracking
-
-### Steps
-
-1. **Clone**  
-   ```bash
-   git clone https://github.com/Naval721/T2.git
-   cd T2
-   ```
-
-2. **Install**  
-   ```bash
-   npm install
-   ```
-
-3. **Environment** – create a `.env` file:  
-   ```env
-   VITE_SUPABASE_URL=your-project-url
-   VITE_SUPABASE_ANON_KEY=your-anon-key
-   ```  
-   > If you skip this, the app runs in **Demo Mode** – all data stays local, and credit checks are disabled.
-
-4. **Run**  
-   ```bash
-   npm run dev
-   ```  
-   Then open `http://localhost:5173`.
-
----
 
 ## Database
 

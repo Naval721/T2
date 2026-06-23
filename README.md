@@ -148,9 +148,6 @@ Canvas renders high‑res image → ZIP package created → download starts
 
 ---
 
-## Deployment
-
-The build output (`dist/`) is static, so you can deploy to Vercel, Netlify, or any static host. Remember to set the same environment variables (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`) in your hosting dashboard.
 
 ---
 

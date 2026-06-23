@@ -158,6 +158,3 @@ The build output (`dist/`) is static, so you can deploy to Vercel, Netlify, or a
 
 MIT © GxDrip
 
----
-
-This version keeps the visual polish (badges, diagram, clean tables) but reads like it was written by a developer who knows the codebase inside out — concise, precise, and free of filler. Let me know if you’d like any wording tweaked further.

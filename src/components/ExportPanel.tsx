@@ -15,7 +15,6 @@ import { setPngDpi } from "@/utils/pngDpi";
 
 // Export quality constants
 const EXPORT_TARGET_DPI = 450;
-const EXPORT_QUALITY_MULTIPLIER = 10.42;
 
 interface ExportPanelProps {
     canvasRef: FabricCanvas | null;
@@ -87,16 +86,31 @@ export const ExportPanel = ({
     const viewKeys = ['front', 'back', 'leftSleeve', 'rightSleeve', 'collar'] as const;
     const viewsAvailable = viewKeys.filter(view => !!(jerseyImages as any)[view]).length;
 
-    const getQualityMultiplier = () => EXPORT_QUALITY_MULTIPLIER;
     const getTargetDpi = () => EXPORT_TARGET_DPI;
 
-    const generateFileName = (player: PlayerData, suffix: string, format: string, seqIndex?: number) => {
+    // Readable folder names for each jersey view
+    const viewFolderNames: Record<string, string> = {
+        front: 'Front',
+        back: 'Back',
+        leftSleeve: 'Left Sleeve',
+        rightSleeve: 'Right Sleeve',
+        collar: 'Collar',
+    };
+
+    // Generate a print-friendly filename: "PlayerName_#10_SZ.L_TagInfo.png"
+    const generatePlayerFileName = (player: PlayerData, seqIndex: number, totalPlayers: number) => {
         const pad = (n: number, total: number) => String(n).padStart(String(total).length, '0');
-        const seq = seqIndex !== undefined ? `${pad(seqIndex, playerData.length)}_` : '';
         const sanitize = (s: string) => s.replace(/[^a-z0-9]/gi, '_').replace(/__+/g, '_').replace(/^_|_$/g, '');
-        const parts = [sanitize(player.playerName), `NO.${player.jerseyNumber}`, `SZ.${player.size}`];
-        if (suffix) parts.push(suffix);
-        return `${seq}${parts.join('_')}.${format}`;
+        const parts = [
+            pad(seqIndex + 1, totalPlayers),
+            sanitize(player.playerName),
+            `#${player.jerseyNumber}`,
+            `SZ.${player.size}`,
+        ];
+        if (player.customTag && player.customTag.trim()) {
+            parts.push(sanitize(player.customTag.trim()));
+        }
+        return `${parts.join('_')}.png`;
     };
 
     const getDesignBounds = (canvas: FabricCanvas, nameFilter?: string[]) => {
@@ -183,19 +197,48 @@ export const ExportPanel = ({
 
             const globalTemplate: any = await localforage.getItem('jerseyDesigner:globalTemplate') || {};
 
-            // Cache background images and logos to massively reduce network/parsing load
-            const bgCache = new Map<string, FabricImage>();
-            const logoCache = new Map<string, FabricImage>();
+            // ── MEMORY-OPTIMIZED CACHING ────────────────────────────────────────
+            // We cache decoded FabricImages to avoid re-downloading/parsing the same
+            // background or logo URL for every single player.  Caches are evicted
+            // between batches so memory stays bounded.
+            let bgCache = new Map<string, FabricImage>();
+            let logoCache = new Map<string, FabricImage>();
 
-            // === CHUNKED ZIP STRATEGY ===
-            // For team packs with many players, we split into batches of 10 players per zip
-            // to prevent the browser from running out of memory when compiling one massive zip.
-            const BATCH_SIZE = 10;
+            // ── CHUNKED ZIP STRATEGY (optimized for 100+ players) ───────────────
+            // Smaller batch = less peak RAM.  5 players × 5 views = 25 PNGs max
+            // per zip, keeping each zip under ~250 MB even at 450 DPI.
+            const BATCH_SIZE = 5;
             const isTeamPack = type === 'teamPack' && playersToExport.length > 1;
             const totalBatches = isTeamPack ? Math.ceil(playersToExport.length / BATCH_SIZE) : 1;
 
             let currentZip = new JSZip();
             let batchNumber = 1;
+
+            // Helper: create per-view folders inside a zip
+            const createViewFolders = (zip: JSZip) => {
+                const refs = new Map<string, JSZip>();
+                for (const v of views) {
+                    if (!(jerseyImages as any)[v]) continue;
+                    refs.set(v, zip.folder(viewFolderNames[v] || v)!);
+                }
+                return refs;
+            };
+
+            let viewFolderRefs = createViewFolders(currentZip);
+
+            // Helper: dispose an HTMLCanvasElement to free its GPU-backed bitmap.
+            // Setting width/height to 0 forces the browser to release the memory
+            // immediately instead of waiting for GC.
+            const disposeHtmlCanvas = (c: HTMLCanvasElement) => {
+                const ctx = c.getContext('2d');
+                if (ctx) ctx.clearRect(0, 0, c.width, c.height);
+                c.width = 0;
+                c.height = 0;
+            };
+
+            // Helper: yield to the main thread so progress UI + GC can breathe.
+            // Longer pauses at batch boundaries, shorter between views.
+            const yieldMs = (ms: number) => new Promise(r => setTimeout(r, ms));
 
             for (let i = 0; i < playersToExport.length; i++) {
                 if (isCancelRequestedRef.current) throw new Error("Export cancelled by user");
@@ -204,9 +247,8 @@ export const ExportPanel = ({
                 setExportingPlayerName(player.playerName);
                 setExportingPlayerIndexState(i);
 
-                const safeName = player.playerName.replace(/[^a-z0-9]/gi, '_');
-                const folderName = `${String(i + 1).padStart(3, '0')}_${safeName}_#${player.jerseyNumber}`;
-                const playerFolder = isTeamPack ? currentZip.folder(folderName)! : currentZip;
+                // Player image filename: "01_PlayerName_#10_SZ.L_Tag.png"
+                const playerFileName = generatePlayerFileName(player, i, playersToExport.length);
 
                 for (let j = 0; j < views.length; j++) {
                     if (isCancelRequestedRef.current) throw new Error("Export cancelled by user");
@@ -256,9 +298,11 @@ export const ExportPanel = ({
                                 : (viewData.customLogos || []),
                         };
 
+                        // ── CANVAS SETUP (fresh for every view render) ──────────
                         canvasRef.clear();
                         canvasRef.backgroundColor = 'transparent';
 
+                        // Clone the cached background so we don't mutate the original
                         let bgImg = bgCache.get(view);
                         if (!bgImg) {
                             bgImg = await FabricImage.fromURL(imgUrl, { crossOrigin: 'anonymous' }).catch(
@@ -344,12 +388,10 @@ export const ExportPanel = ({
 
                         canvasRef.renderAll();
                         // ⚡ Yield to main thread so progress UI can update smoothly
-                        await new Promise(r => setTimeout(r, 20));
+                        await yieldMs(30);
 
-                        // ── CORRECT EXPORT APPROACH ─────────────────────────────────────────
-                        // Crop to the jersey image's OWN bounding rect (not all-objects bounds).
-                        // This makes the jersey fill the output frame with no whitespace, and
-                        // text positioned within the jersey stays proportionally correct.
+                        // ── HIGH-RES EXPORT ─────────────────────────────────────────
+                        // Crop to the jersey image's bounding rect for a clean output.
                         const jerseyRect = bgImg.getBoundingRect();
                         if (!jerseyRect || jerseyRect.width <= 0 || jerseyRect.height <= 0) {
                             logger.warn(`Export: jersey has no valid bounds for view "${view}", skipping`);
@@ -357,18 +399,13 @@ export const ExportPanel = ({
                         }
 
                         // Compute physical target pixels for each view type independently.
-                        // getSizeDisplayBox internally uses ppi=28 so: multiplier = targetDPI / 28.
-                        // For clamped sizes the jersey is smaller on-screen → multiplier is larger.
                         const dim = getSizeDim(player.size);
                         let physicalWidthIn: number;
                         if (isSleeve) {
-                            // Use sleeve-specific width from the size chart
                             physicalWidthIn = dim?.sleeveWidthIn ?? (jerseyRect.width / 28);
                         } else if (isCollar) {
-                            // Use collar-specific length (flat layout width) from the size chart
                             physicalWidthIn = dim?.collarLengthIn ?? (jerseyRect.width / 28);
                         } else {
-                            // front and back use jersey body width
                             physicalWidthIn = dim?.widthIn ?? (jerseyRect.width / 28);
                         }
                         const targetPx = physicalWidthIn * getTargetDpi();
@@ -381,20 +418,41 @@ export const ExportPanel = ({
                             width: jerseyRect.width,
                             height: jerseyRect.height,
                         };
+
+                        // ── RENDER → BLOB → DISPOSE (critical memory path) ──────
                         const htmlCanvas = canvasRef.toCanvasElement(multiplier, exportOptions);
                         const rawBlob = await nativeCanvasToBlobAsync(htmlCanvas);
-                        // Inject physical DPI metadata directly into PNG binary chunks
+                        // ⚡ IMMEDIATELY free the heavyweight off-screen canvas bitmap
+                        disposeHtmlCanvas(htmlCanvas);
+
+                        // Inject physical DPI metadata into PNG binary chunks
                         const blob = await setPngDpi(rawBlob, getTargetDpi());
-                        playerFolder.file(`${view}.png`, blob);
+
+                        // Place file inside the view folder (e.g. Front/01_PlayerName_#10_SZ.L.png)
+                        const targetFolder = viewFolderRefs.get(view);
+                        if (targetFolder) {
+                            targetFolder.file(playerFileName, blob);
+                        } else {
+                            currentZip.file(playerFileName, blob);
+                        }
                         exportedCount++;
+
+                        // ── POST-VIEW CLEANUP ───────────────────────────────────
+                        // Remove all fabric objects from canvas to release their
+                        // internal backing stores before the next iteration.
+                        canvasRef.clear();
+                        // Small yield between views to let browser GC run
+                        await yieldMs(15);
+
                     } catch (e) {
                         logger.error('Export failed for view', view, e);
+                        // Continue to next view — don't abort the whole export
                     }
                 }
 
                 // === FLUSH BATCH TO DISK ===
                 // Every BATCH_SIZE players (or at the end), compile this chunk and download it.
-                // This prevents holding hundreds of images in memory at once.
+                // This prevents holding hundreds of high-res PNGs in memory at once.
                 const isLastPlayer = i === playersToExport.length - 1;
                 const isBatchComplete = isTeamPack && ((i + 1) % BATCH_SIZE === 0);
 
@@ -417,10 +475,22 @@ export const ExportPanel = ({
                     
                     batchNumber++;
 
-                    // Free memory: discard old zip and create fresh one for next batch
+                    // ── AGGRESSIVE MEMORY RECLAIM ────────────────────────────
+                    // Free the old zip instance and all its buffered blob data
                     currentZip = new JSZip();
-                    // Brief pause to let GC reclaim memory and browser save the file
-                    await new Promise(r => setTimeout(r, 800));
+                    viewFolderRefs = createViewFolders(currentZip);
+
+                    // Evict image caches between batches to prevent unbounded
+                    // memory growth.  They will be re-loaded on first use in
+                    // the next batch — a small network hit but huge RAM savings.
+                    bgCache.clear();
+                    bgCache = new Map<string, FabricImage>();
+                    logoCache.clear();
+                    logoCache = new Map<string, FabricImage>();
+
+                    // Give the browser 1.2s to finish writing the zip to disk,
+                    // run garbage collection, and stabilize memory pressure.
+                    await yieldMs(1200);
                 }
             }
 

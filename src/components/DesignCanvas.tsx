@@ -832,6 +832,7 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
             const customTextObjects = customTexts.map((customTextProps: any) => {
                 const customText = new FabricText(customTextProps.text, {
                     ...customTextProps,
+                    paintFirst: 'stroke',
                     objectCaching: false,
                 }) as ExtendedFabricText;
                 customText.name = 'customText';

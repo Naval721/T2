@@ -648,7 +648,7 @@ const Index = () => {
                   <Button
                     onClick={() => setCurrentStep(1)}
                     size="lg"
-                    className="mt-10 bg-black text-white border-2 border-black rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition-all uppercase tracking-widest font-bold h-14 px-8"
+                    className="mt-10 bg-black text-white border-2 border-black rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 active:translate-y-0 active:shadow-none transition-all uppercase tracking-widest font-bold h-14 px-8"
                   >
                     Go to Upload Step
                   </Button>

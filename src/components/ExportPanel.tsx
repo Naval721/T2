@@ -371,7 +371,7 @@ export const ExportPanel = ({
                         }
 
                         for (const ct of (viewPlayerElements.customTexts || [])) {
-                            const t = new FabricText(ct.text ?? '', { ...ct, selectable: false, objectCaching: false });
+                            const t = new FabricText(ct.text ?? '', { ...ct, paintFirst: 'stroke', selectable: false, objectCaching: false });
                             (t as any).name = 'customText'; canvasRef.add(t);
                         }
                         for (const cl of (viewPlayerElements.customLogos || [])) {

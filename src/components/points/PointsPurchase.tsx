@@ -69,7 +69,7 @@ export const PointsPurchase = ({ isOpen, onClose, currentPoints }: PointsPurchas
         </div>
 
         {/* Points Packages */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-2">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-2">
           {POINTS_PLANS.map((plan) => {
             const totalPoints = calculateTotalPoints(plan)
             const isEnterprise = plan.id === 'enterprise'
@@ -88,31 +88,31 @@ export const PointsPurchase = ({ isOpen, onClose, currentPoints }: PointsPurchas
                   </div>
                 )}
 
-                <CardHeader className="text-center pb-4">
-                  <div className="mx-auto w-16 h-16 bg-gray-100 border border-gray-200 rounded-xl flex items-center justify-center mb-3">
-                    {plan.id === 'basic' && <Zap className="w-8 h-8 text-black" />}
-                    {plan.id === 'professional' && <Crown className="w-8 h-8 text-black" />}
-                    {plan.id === 'enterprise' && <Building2 className="w-8 h-8 text-black" />}
+                <CardHeader className="text-center pb-2 pt-4">
+                  <div className="mx-auto w-12 h-12 bg-gray-100 border border-gray-200 rounded-xl flex items-center justify-center mb-2">
+                    {plan.id === 'basic' && <Zap className="w-6 h-6 text-black" />}
+                    {plan.id === 'professional' && <Crown className="w-6 h-6 text-black" />}
+                    {plan.id === 'enterprise' && <Building2 className="w-6 h-6 text-black" />}
                   </div>
-                  <CardTitle className="text-xl tracking-tight">{plan.name}</CardTitle>
-                  <CardDescription className="text-sm text-gray-500">{plan.description}</CardDescription>
+                  <CardTitle className="text-lg tracking-tight">{plan.name}</CardTitle>
+                  <CardDescription className="text-xs text-gray-500">{plan.description}</CardDescription>
                 </CardHeader>
 
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-3 pb-4">
                   {/* Price */}
                   <div className="text-center">
                     {isEnterprise ? (
-                      <div className="space-y-2">
-                        <p className="text-3xl font-bold text-gray-900">Custom</p>
-                        <p className="text-sm text-gray-600">Contact for pricing</p>
+                      <div className="space-y-1">
+                        <p className="text-2xl font-bold text-gray-900">Custom</p>
+                        <p className="text-xs text-gray-600">Contact for pricing</p>
                       </div>
                     ) : (
                       <div className="space-y-1">
-                        <p className="text-4xl font-bold text-black tracking-tight">
+                        <p className="text-3xl font-bold text-black tracking-tight">
                           {formatCurrency(plan.price)}
                         </p>
                         {plan.bonusPoints && plan.bonusPoints > 0 && (
-                          <Badge variant="outline" className="border-gray-200 bg-white text-black font-semibold">
+                          <Badge variant="outline" className="border-gray-200 bg-white text-black font-semibold text-[10px] py-0">
                             <Gift className="w-3 h-3 mr-1" />
                             +{plan.bonusPoints} bonus points
                           </Badge>
@@ -123,13 +123,13 @@ export const PointsPurchase = ({ isOpen, onClose, currentPoints }: PointsPurchas
 
                   {/* Points */}
                   {!isEnterprise && (
-                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                    <div className="bg-gray-50 p-3 rounded-xl border border-gray-200">
                       <div className="text-center">
-                        <p className="text-sm font-medium text-gray-500 mb-1">You Get</p>
-                        <p className="text-3xl font-bold text-black">{formatPoints(totalPoints)}</p>
-                        <p className="text-xs text-gray-500 mt-1">points</p>
+                        <p className="text-xs font-medium text-gray-500 mb-1">You Get</p>
+                        <p className="text-2xl font-bold text-black">{formatPoints(totalPoints)}</p>
+                        <p className="text-[10px] text-gray-500 mt-0">points</p>
                         {plan.value && (
-                          <p className="text-xs text-gray-500 mt-2">{plan.value}</p>
+                          <p className="text-[10px] text-gray-500 mt-1">{plan.value}</p>
                         )}
                       </div>
                     </div>

@@ -198,7 +198,7 @@ export const Step4Preview = ({ playerData, jerseyImages, onNext, onPrev, default
                     };
 
                     for (const ct of (viewElements.customTexts || [])) {
-                        const t = new FabricText(ct.text ?? '', { ...ct, selectable: false, objectCaching: false });
+                        const t = new FabricText(ct.text ?? '', { ...ct, paintFirst: 'stroke', selectable: false, objectCaching: false });
                         canvas.add(t);
                     }
 
@@ -327,7 +327,7 @@ export const Step4Preview = ({ playerData, jerseyImages, onNext, onPrev, default
                             <div key={`${player.playerName}_${player.jerseyNumber}`} className="flex flex-col bg-[#1a1a1a] border-2 border-zinc-800 hover:border-zinc-500 transition-colors group">
                                 <div className="aspect-[4/5] bg-[#0a0a0a] relative overflow-hidden flex items-center justify-center">
                                     {thumb ? (
-                                        <img src={thumb} alt={`${player.playerName} preview`} className="w-full h-full object-cover scale-110 group-hover:scale-125 transition-transform duration-500" />
+                                        <img src={thumb} alt={`${player.playerName} preview`} className="w-full h-full object-contain scale-100 group-hover:scale-105 transition-transform duration-500" />
                                     ) : (
                                         <div className="text-zinc-700 flex flex-col items-center gap-2">
                                             <ImageIcon className="w-8 h-8 opacity-50" />

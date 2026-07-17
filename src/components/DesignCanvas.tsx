@@ -998,9 +998,16 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
         }
 
         try {
-            // 1. Save to the global template ref and localforage
-            textRef.current = parsedData;
-            await localforage.setItem('jerseyDesigner:globalTemplate', parsedData);
+            // 1. Merge custom elements into the global template ref and save to localforage
+            // We MUST NOT overwrite textRef.current entirely, because it contains `name` and `number` which aren't in parsedData!
+            Object.keys(parsedData).forEach(viewKey => {
+                if (!textRef.current[viewKey]) {
+                    textRef.current[viewKey] = {};
+                }
+                textRef.current[viewKey].customTexts = parsedData[viewKey].customTexts;
+                textRef.current[viewKey].customLogos = parsedData[viewKey].customLogos;
+            });
+            await localforage.setItem('jerseyDesigner:globalTemplate', textRef.current);
 
             // 2. Remove all player-specific overrides for all other players
             // to ensure they fall back to the global template and don't take up duplicate space.

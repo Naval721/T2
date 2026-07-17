@@ -29,7 +29,7 @@ interface PointsPurchaseProps {
   currentPoints: number
 }
 
-const SUPPORT_EMAIL = 'support@jerseyartist.com'
+const SUPPORT_EMAIL = 'alexxzzx4839@outlook.com'
 
 export const PointsPurchase = ({ isOpen, onClose, currentPoints }: PointsPurchaseProps) => {
 

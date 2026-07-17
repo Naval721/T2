@@ -3,6 +3,7 @@ import { User, Session, AuthError } from '@supabase/supabase-js'
 import { supabase, UserProfile, SECURITY_CONFIG } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { logger } from '@/lib/logger'
+import { clearState } from '@/lib/statePersistence'
 
 interface AuthContextType {
   user: User | null
@@ -303,6 +304,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
         setUser(null)
         setProfile(null)
+        await clearState();
         toast.success('Signed out (Demo Mode)')
         return;
       }
@@ -312,6 +314,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       // Always clear local state on sign out attempt
       setUser(null)
       setProfile(null)
+      await clearState();
 
       if (error) {
         // Log the error but don't prevent user from experiencing a sign-out locally
@@ -323,6 +326,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     } catch (error) {
       setUser(null)
       setProfile(null)
+      await clearState();
       toast.success('Signed out successfully')
     }
   }

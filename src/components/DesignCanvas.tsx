@@ -260,9 +260,13 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
             const dataToSave = {
                 ...textRef.current
             };
-            localforage.setItem('jerseyDesigner:globalTemplate', dataToSave).catch(() => { });
+            localforage.setItem('jerseyDesigner:globalTemplate', dataToSave).catch((e) => { 
+                logger.error("Failed to save global template:", e);
+                toast.error("Storage full! Please clear some browser data to save your designs.");
+            });
         } catch (e) {
-            // Ignore storage errors
+            logger.error("Failed to save global template:", e);
+            toast.error("Storage error! Could not save global template.");
         }
     };
 
@@ -405,9 +409,11 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
 
             localforage.setItem(playerKey, data).catch(e => {
                 logger.error('persistState: failed to save to localforage:', e);
+                toast.error("Storage full! Failed to save player design. Please clear browser data.");
             });
         }).catch(e => {
             logger.error('persistState: failed to read localforage:', e);
+            toast.error("Storage read error! Player design could not be loaded.");
         });
 
         saveGlobalTemplateDebounced();
@@ -995,6 +1001,11 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
         if (playerData.length === 0) {
             toast.error("No players found to apply customizations.");
             return;
+        }
+
+        if (fabricCanvas) {
+            fabricCanvas.discardActiveObject();
+            fabricCanvas.requestRenderAll();
         }
 
         try {

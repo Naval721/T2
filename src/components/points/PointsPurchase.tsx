@@ -1,12 +1,9 @@
-import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
-  ShoppingCart,
-  CheckCircle,
   Star,
   Zap,
   Crown,
@@ -14,34 +11,27 @@ import {
   Building2,
   TrendingUp,
   Gift,
-  Info
+  Info,
+  Mail
 } from 'lucide-react'
 import { POINTS_PLANS, calculateTotalPoints, formatPoints, formatCurrency } from '@/types/points'
-import { toast } from 'sonner'
 
 interface PointsPurchaseProps {
   isOpen: boolean
   onClose: () => void
-  onPurchase: (packageId: string) => Promise<void>
   currentPoints: number
 }
 
-export const PointsPurchase = ({ isOpen, onClose, onPurchase, currentPoints }: PointsPurchaseProps) => {
-  const [selectedPackage, setSelectedPackage] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+const SUPPORT_EMAIL = 'support@jerseyartist.com'
 
-  const handlePurchase = async (packageId: string) => {
-    setLoading(true)
-    try {
-      await onPurchase(packageId)
-      // Parent component shows the success toast with the exact points amount
-      onClose()
-      setSelectedPackage(null)
-    } catch (error) {
-      toast.error('Failed to purchase points. Please try again.')
-    } finally {
-      setLoading(false)
-    }
+export const PointsPurchase = ({ isOpen, onClose, currentPoints }: PointsPurchaseProps) => {
+
+  const handleContactPurchase = (plan: typeof POINTS_PLANS[0]) => {
+    const subject = encodeURIComponent(`Points Purchase Request — ${plan.name}`)
+    const body = encodeURIComponent(
+      `Hi,\n\nI'd like to purchase the ${plan.name} (${formatCurrency(plan.price)} — ${formatPoints(calculateTotalPoints(plan))} points).\n\nPlease let me know the next steps.\n\nThank you!`
+    )
+    window.location.href = `mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`
   }
 
   return (
@@ -52,9 +42,18 @@ export const PointsPurchase = ({ isOpen, onClose, onPurchase, currentPoints }: P
             Buy Points
           </DialogTitle>
           <DialogDescription className="text-lg">
-            Choose a package to purchase points for exporting your jersey designs
+            Choose a package and we'll get you set up — points are added manually by our team.
           </DialogDescription>
         </DialogHeader>
+
+        {/* Contact notice */}
+        <Alert className="bg-amber-50 border-amber-200">
+          <Mail className="h-5 w-5 text-amber-600" />
+          <AlertDescription className="text-amber-800">
+            <span className="font-semibold">How it works: </span>
+            Click "Request Purchase" on any plan below — it will open a pre-filled email to our team. We'll add your points manually within 24 hours of payment confirmation.
+          </AlertDescription>
+        </Alert>
 
         {/* Current Balance */}
         <Alert className="bg-gray-50 border-gray-200">
@@ -68,7 +67,7 @@ export const PointsPurchase = ({ isOpen, onClose, onPurchase, currentPoints }: P
         </Alert>
 
         {/* Points Packages */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-2">
           {POINTS_PLANS.map((plan) => {
             const totalPoints = calculateTotalPoints(plan)
             const isEnterprise = plan.id === 'enterprise'
@@ -76,8 +75,7 @@ export const PointsPurchase = ({ isOpen, onClose, onPurchase, currentPoints }: P
             return (
               <Card
                 key={plan.id}
-                className={`relative overflow-hidden transition-all duration-300 hover:shadow-xl ${plan.popular ? 'border-2 border-black shadow-lg' : 'border border-gray-200'
-                  } ${selectedPackage === plan.id ? 'ring-2 ring-black' : ''}`}
+                className={`relative overflow-hidden transition-all duration-300 hover:shadow-xl ${plan.popular ? 'border-2 border-black shadow-lg' : 'border border-gray-200'}`}
               >
                 {plan.popular && (
                   <div className="absolute top-0 right-0 bg-black text-white px-4 py-1 rounded-bl-lg text-sm font-semibold">
@@ -122,58 +120,40 @@ export const PointsPurchase = ({ isOpen, onClose, onPurchase, currentPoints }: P
                   </div>
 
                   {/* Points */}
-                  <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                    <div className="text-center">
-                      <p className="text-sm font-medium text-gray-500 mb-1">You Get</p>
-                      <p className="text-3xl font-bold text-black">{formatPoints(totalPoints)}</p>
-                      <p className="text-xs text-gray-500 mt-1">points</p>
-                      {plan.value && (
-                        <p className="text-xs text-gray-500 mt-2">{plan.value}</p>
-                      )}
+                  {!isEnterprise && (
+                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                      <div className="text-center">
+                        <p className="text-sm font-medium text-gray-500 mb-1">You Get</p>
+                        <p className="text-3xl font-bold text-black">{formatPoints(totalPoints)}</p>
+                        <p className="text-xs text-gray-500 mt-1">points</p>
+                        {plan.value && (
+                          <p className="text-xs text-gray-500 mt-2">{plan.value}</p>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Features */}
                   <div className="space-y-2">
-                    <div className="flex items-start space-x-2">
-                      <CheckCircle className="w-4 h-4 text-black mt-0.5 flex-shrink-0" />
-                      <span className="text-sm font-medium">{formatPoints(plan.points)} base points</span>
-                    </div>
-                    {plan.bonusPoints && plan.bonusPoints > 0 && (
-                      <div className="flex items-start space-x-2">
-                        <CheckCircle className="w-4 h-4 text-black mt-0.5 flex-shrink-0" />
-                        <span className="text-sm font-medium">{formatPoints(plan.bonusPoints)} bonus points</span>
+                    {plan.features.map((feature, i) => (
+                      <div key={i} className="flex items-start space-x-2">
+                        <span className="text-black mt-0.5 flex-shrink-0">✓</span>
+                        <span className="text-sm">{feature}</span>
                       </div>
-                    )}
-                    <div className="flex items-start space-x-2">
-                      <CheckCircle className="w-4 h-4 text-black mt-0.5 flex-shrink-0" />
-                      <span className="text-sm font-medium">No expiration date</span>
-                    </div>
-                    <div className="flex items-start space-x-2">
-                      <CheckCircle className="w-4 h-4 text-black mt-0.5 flex-shrink-0" />
-                      <span className="text-sm font-medium">Instant activation</span>
-                    </div>
+                    ))}
                   </div>
 
-                  {/* Purchase Button */}
+                  {/* Contact Button */}
                   <Button
-                    onClick={() => {
-                      if (isEnterprise) {
-                        toast.info('Please contact support for enterprise pricing')
-                      } else {
-                        setSelectedPackage(plan.id)
-                        handlePurchase(plan.id)
-                      }
-                    }}
-                    disabled={loading}
+                    onClick={() => handleContactPurchase(plan)}
                     className={`w-full font-semibold ${plan.popular
                       ? 'bg-black text-white hover:bg-gray-800'
-                      : 'bg-white text-black border-gray-200 hover:bg-gray-50'
+                      : 'bg-white text-black border border-gray-300 hover:bg-gray-50'
                       }`}
                     variant={plan.popular ? 'default' : 'outline'}
                   >
-                    <ShoppingCart className="w-4 h-4 mr-2" />
-                    {loading && selectedPackage === plan.id ? 'Processing...' : isEnterprise ? 'Contact Sales' : 'Buy Now'}
+                    <Mail className="w-4 h-4 mr-2" />
+                    {isEnterprise ? 'Contact Sales' : 'Request Purchase'}
                   </Button>
                 </CardContent>
               </Card>
@@ -202,7 +182,7 @@ export const PointsPurchase = ({ isOpen, onClose, onPurchase, currentPoints }: P
             <p className="font-semibold mb-2">What You Can Do:</p>
             <div className="text-sm space-y-1">
               <p>With <strong>700 points</strong>: ~175 full jerseys (front + back + 2 sleeves)</p>
-              <p>With <strong>1800 points</strong>: ~450 full jerseys (front + back + 2 sleeves)</p>
+              <p>With <strong>2,200 points</strong>: ~550 full jerseys (front + back + 2 sleeves)</p>
             </div>
           </AlertDescription>
         </Alert>
@@ -210,4 +190,3 @@ export const PointsPurchase = ({ isOpen, onClose, onPurchase, currentPoints }: P
     </Dialog>
   )
 }
-

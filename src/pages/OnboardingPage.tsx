@@ -23,7 +23,7 @@ type OnboardingStep = 'home' | 'auth' | 'points' | 'ready'
 
 export const OnboardingPage = () => {
   const navigate = useNavigate()
-  const { user, profile, signOut, addPoints } = useAuth()
+  const { user, profile, signOut } = useAuth()
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('home')
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [showPointsModal, setShowPointsModal] = useState(false)
@@ -61,41 +61,7 @@ export const OnboardingPage = () => {
     toast.success('Welcome to GxDrip!')
   }
 
-  const handlePointsPurchase = async (packageId: string) => {
-    // Enterprise is a custom/contact plan — no direct points to add
-    if (packageId === 'enterprise') {
-      toast.info('For enterprise pricing, please contact us.')
-      navigate('/contact')
-      return
-    }
 
-    setLoading(true)
-    try {
-      // Use the canonical plan data instead of a hardcoded map
-      const { getPointsPlanById, calculateTotalPoints } = await import('@/types/points')
-      const plan = getPointsPlanById(packageId)
-      if (!plan) {
-        toast.error('Unknown package selected.')
-        return
-      }
-      const totalPoints = calculateTotalPoints(plan)
-      if (totalPoints > 0) {
-        await addPoints(totalPoints, `Purchased ${plan.name}`)
-        toast.success(`${formatPoints(totalPoints)} points added to your account!`)
-        setShowPointsModal(false)
-        setCurrentStep('ready')
-        setTimeout(() => {
-          navigate('/design')
-        }, 1500)
-      } else {
-        toast.info('Please contact us for enterprise pricing.')
-      }
-    } catch (error) {
-      toast.error('Failed to add points. Please try again.')
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleSkipToDesign = () => {
     navigate('/design')
@@ -160,7 +126,6 @@ export const OnboardingPage = () => {
               <PointsPurchase
                 isOpen={showPointsModal}
                 onClose={handleBackToHome}
-                onPurchase={handlePointsPurchase}
                 currentPoints={currentPoints}
               />
               <div className="mt-6 text-center">

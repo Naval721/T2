@@ -12,7 +12,7 @@ import { Header } from "@/components/Header";
 import { AuthModal } from "@/components/auth/AuthModal";
 
 const Pricing = () => {
-  const { user, profile, addPoints } = useAuth();
+  const { user, profile } = useAuth();
   const [showPurchaseDialog, setShowPurchaseDialog] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const navigate = useNavigate();
@@ -113,22 +113,12 @@ const Pricing = () => {
 
                   {/* Features */}
                   <div className="space-y-4 mb-8">
-                    <div className="flex items-start gap-3">
-                      <Check className="w-5 h-5 text-black shrink-0 mt-0.5" />
-                      <span className="text-gray-700">Never expires</span>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <Check className="w-5 h-5 text-black shrink-0 mt-0.5" />
-                      <span className="text-gray-700">Instant activation</span>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <Check className="w-5 h-5 text-black shrink-0 mt-0.5" />
-                      <span className="text-gray-700">All features included</span>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <Check className="w-5 h-5 text-black shrink-0 mt-0.5" />
-                      <span className="text-gray-700">High-quality exports</span>
-                    </div>
+                    {plan.features.map((feature, i) => (
+                      <div key={i} className="flex items-start gap-3">
+                        <Check className="w-5 h-5 text-black shrink-0 mt-0.5" />
+                        <span className="text-gray-700">{feature}</span>
+                      </div>
+                    ))}
                   </div>
 
                   {/* CTA Button */}
@@ -220,26 +210,6 @@ const Pricing = () => {
         <PointsPurchase
           isOpen={showPurchaseDialog}
           onClose={() => setShowPurchaseDialog(false)}
-          onPurchase={async (packageId) => {
-            try {
-              const { getPointsPlanById, calculateTotalPoints } = await import('@/types/points')
-              const plan = getPointsPlanById(packageId)
-              if (!plan) throw new Error('Unknown package')
-
-              const totalPoints = calculateTotalPoints(plan)
-              if (totalPoints <= 0) {
-                toast.info('Please contact us for enterprise pricing.')
-                return
-              }
-
-              const result = await addPoints(totalPoints, `Purchased ${plan.name}`)
-              if (!result.success) throw new Error('Transaction failed')
-              toast.success(`${formatPoints(totalPoints)} points added!`)
-            } catch (e) {
-              toast.error('Failed to process purchase.')
-              throw e
-            }
-          }}
           currentPoints={currentPoints}
         />
       )}

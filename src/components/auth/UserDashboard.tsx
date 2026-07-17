@@ -34,7 +34,7 @@ interface UserDashboardProps {
 
 export const UserDashboard = ({ onClose }: UserDashboardProps) => {
   const navigate = useNavigate()
-  const { user, profile, signOut, updateProfile, addPoints, updatePassword, loading: authLoading } = useAuth()
+  const { user, profile, signOut, updateProfile, updatePassword, loading: authLoading } = useAuth()
   const [loading, setLoading] = useState(false)
   const [showPurchaseDialog, setShowPurchaseDialog] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
@@ -98,33 +98,7 @@ export const UserDashboard = ({ onClose }: UserDashboardProps) => {
 
   const exportsPossible = calculateExportsPossible(currentPoints)
 
-  const handlePurchasePoints = async (packageId: string) => {
-    setLoading(true)
-    try {
-      const { getPointsPlanById, calculateTotalPoints } = await import('@/types/points')
-      const plan = getPointsPlanById(packageId)
-      if (!plan) {
-        toast.error('Unknown package selected.')
-        return
-      }
-      const totalPoints = calculateTotalPoints(plan)
-      if (totalPoints <= 0) {
-        toast.info('Please contact us for enterprise pricing.')
-        return
-      }
-      const result = await addPoints(totalPoints, `Purchased ${plan.name}`)
-      if (result.success) {
-        toast.success(`${formatPoints(totalPoints)} points added to your account!`)
-        setShowPurchaseDialog(false)
-      } else {
-        toast.error('Failed to add points. Please try again.')
-      }
-    } catch (error) {
-      toast.error('An unexpected error occurred.')
-    } finally {
-      setLoading(false)
-    }
-  }
+
 
   if (authLoading) {
     return (
@@ -399,7 +373,6 @@ export const UserDashboard = ({ onClose }: UserDashboardProps) => {
       <PointsPurchase
         isOpen={showPurchaseDialog}
         onClose={() => setShowPurchaseDialog(false)}
-        onPurchase={handlePurchasePoints}
         currentPoints={currentPoints}
       />
     </div>

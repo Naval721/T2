@@ -89,13 +89,42 @@ export const CustomizationTools = ({ onAddText, onAddLogo, canvasRef }: Customiz
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const logoUrl = event.target?.result as string;
-      onAddLogo?.(logoUrl);
-      toast.success("Logo added to canvas");
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      const MAX_DIM = 1500;
+      let { width, height } = img;
+      
+      if (width > MAX_DIM || height > MAX_DIM) {
+        const ratio = Math.min(MAX_DIM / width, MAX_DIM / height);
+        width = Math.round(width * ratio);
+        height = Math.round(height * ratio);
+      }
+      
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      
+      if (ctx) {
+        ctx.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/png');
+        onAddLogo?.(dataUrl);
+        toast.success("Logo added to canvas");
+      } else {
+        toast.error("Failed to process image");
+      }
     };
-    reader.readAsDataURL(file);
+    
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      toast.error("Invalid image file");
+    };
+    
+    img.src = objectUrl;
+
     // Reset so the same file can be re-uploaded
     if (logoInputRef.current) logoInputRef.current.value = '';
   };

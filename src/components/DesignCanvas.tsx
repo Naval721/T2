@@ -1026,8 +1026,14 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
     // Listen for Delete key
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            // Prevent triggering if user is typing in an input field (but let Fabric handle its own text editing)
-            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+            // Prevent triggering if user is typing in an input field or contenteditable (but let Fabric handle its own text editing)
+            const activeEl = document.activeElement;
+            if (activeEl) {
+                const tag = activeEl.tagName.toLowerCase();
+                const isInput = tag === 'input' || tag === 'textarea' || tag === 'select';
+                const isEditable = (activeEl as HTMLElement).isContentEditable;
+                if (isInput || isEditable) return;
+            }
 
             if (e.key === 'Delete' || e.key === 'Backspace') {
                 if (fabricCanvas && fabricCanvas.getActiveObject()) {

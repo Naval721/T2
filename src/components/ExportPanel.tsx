@@ -55,6 +55,7 @@ export const ExportPanel = ({
     const [exportEta, setExportEta] = useState("");
     const [exportSpeed, setExportSpeed] = useState("");
     const isCancelRequestedRef = useRef<boolean>(false);
+    const isExportingRef = useRef<boolean>(false);
 
     // Guard tab navigation/closes
     useEffect(() => {
@@ -137,6 +138,8 @@ export const ExportPanel = ({
     };
 
     const runExportSequence = async (type: 'playerPack' | 'teamPack') => {
+        if (isExportingRef.current) return;
+        
         if (!canvasRef || !selectedPlayer || playerData.length === 0) {
             toast.error("Required data is missing.");
             return;
@@ -172,6 +175,7 @@ export const ExportPanel = ({
         setExportEta("Estimating...");
         setExportSpeed("Calculating...");
         isCancelRequestedRef.current = false;
+        isExportingRef.current = true;
         setIsExporting(true);
         (canvasRef as any).__isExporting = true;
         let pointsDeducted = false;
@@ -391,7 +395,7 @@ export const ExportPanel = ({
                         await yieldMs(30);
 
                         // ── HIGH-RES EXPORT ─────────────────────────────────────────
-                        // Crop to the jersey image's bounding rect for a clean output.
+                        // Crop ONLY to the jersey image's bounding rect, ignoring stray custom elements.
                         const jerseyRect = bgImg.getBoundingRect();
                         if (!jerseyRect || jerseyRect.width <= 0 || jerseyRect.height <= 0) {
                             logger.warn(`Export: jersey has no valid bounds for view "${view}", skipping`);
@@ -506,6 +510,7 @@ export const ExportPanel = ({
             
             // Auto close progress dialog after 2.5 seconds
             setTimeout(() => {
+                isExportingRef.current = false;
                 setIsExporting(false);
             }, 2500);
 
@@ -524,6 +529,7 @@ export const ExportPanel = ({
             if (e.message !== "Export cancelled by user") {
                 toast.error(`Export Failed: ${e.message}`);
             }
+            isExportingRef.current = false;
             setIsExporting(false);
         } finally {
             (canvasRef as any).__isExporting = false;

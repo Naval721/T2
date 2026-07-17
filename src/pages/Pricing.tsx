@@ -2,6 +2,12 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, ArrowRight } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -18,6 +24,33 @@ const Pricing = () => {
   const navigate = useNavigate();
 
   const currentPoints = profile?.points_balance || 0;
+
+  const SUPPORT_EMAIL = 'support@jerseyartist.com';
+  const getEmailParams = () => {
+    const subject = `Enterprise Pricing Inquiry`;
+    const body = `Hi,\n\nI'd like to inquire about Enterprise pricing for GxDrip.\n\nPlease let me know the next steps.\n\nThank you!`;
+    return { subject, body };
+  };
+
+  const openGmail = () => {
+    const { subject, body } = getEmailParams();
+    window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${SUPPORT_EMAIL}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank');
+  };
+
+  const openOutlook = () => {
+    const { subject, body } = getEmailParams();
+    window.open(`https://outlook.live.com/mail/0/deeplink/compose?to=${SUPPORT_EMAIL}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank');
+  };
+
+  const openDefaultMail = () => {
+    const { subject, body } = getEmailParams();
+    window.location.href = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  };
+
+  const copyEmail = () => {
+    navigator.clipboard.writeText(SUPPORT_EMAIL);
+    toast.success("Support email copied to clipboard");
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -122,24 +155,49 @@ const Pricing = () => {
                   </div>
 
                   {/* CTA Button */}
-                  <Button
-                    onClick={() => {
-                      if (isEnterprise) {
-                        window.location.href = 'mailto:support@jerseyartist.com?subject=Enterprise Pricing Inquiry'
-                      } else if (user) {
-                        setShowPurchaseDialog(true)
-                      } else {
-                        setShowAuthModal(true)
-                      }
-                    }}
-                    className={`w-full h-12 text-base ${isProfessional
-                      ? 'bg-black text-white hover:bg-gray-800'
-                      : 'bg-white text-black border-2 border-black hover:bg-gray-50'
-                      }`}
-                  >
-                    {isEnterprise ? 'Contact sales' : user ? 'Get started' : 'Sign up to buy'}
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
+                  {isEnterprise ? (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          className={`w-full h-12 text-base bg-white text-black border-2 border-black hover:bg-gray-50`}
+                        >
+                          Contact sales
+                          <ArrowRight className="w-4 h-4 ml-2" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="center" className="w-[200px]">
+                        <DropdownMenuItem onClick={openGmail} className="cursor-pointer">
+                          Open in Gmail
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={openOutlook} className="cursor-pointer">
+                          Open in Outlook
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={openDefaultMail} className="cursor-pointer">
+                          Open Default Mail App
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={copyEmail} className="cursor-pointer">
+                          Copy Email Address
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  ) : (
+                    <Button
+                      onClick={() => {
+                        if (user) {
+                          setShowPurchaseDialog(true)
+                        } else {
+                          setShowAuthModal(true)
+                        }
+                      }}
+                      className={`w-full h-12 text-base ${isProfessional
+                        ? 'bg-black text-white hover:bg-gray-800'
+                        : 'bg-white text-black border-2 border-black hover:bg-gray-50'
+                        }`}
+                    >
+                      {user ? 'Get started' : 'Sign up to buy'}
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Button>
+                  )}
                 </div>
               </Card>
             )

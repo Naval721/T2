@@ -4,6 +4,13 @@ import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { toast } from 'sonner'
+import {
   Star,
   Zap,
   Crown,
@@ -26,12 +33,30 @@ const SUPPORT_EMAIL = 'support@jerseyartist.com'
 
 export const PointsPurchase = ({ isOpen, onClose, currentPoints }: PointsPurchaseProps) => {
 
-  const handleContactPurchase = (plan: typeof POINTS_PLANS[0]) => {
-    const subject = encodeURIComponent(`Points Purchase Request — ${plan.name}`)
-    const body = encodeURIComponent(
-      `Hi,\n\nI'd like to purchase the ${plan.name} (${formatCurrency(plan.price)} — ${formatPoints(calculateTotalPoints(plan))} points).\n\nPlease let me know the next steps.\n\nThank you!`
-    )
-    window.location.href = `mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`
+  const getEmailParams = (plan: typeof POINTS_PLANS[0]) => {
+    const subject = `Points Purchase Request — ${plan.name}`
+    const body = `Hi,\n\nI'd like to purchase the ${plan.name} (${formatCurrency(plan.price)} — ${formatPoints(calculateTotalPoints(plan))} points).\n\nPlease let me know the next steps.\n\nThank you!`
+    return { subject, body }
+  }
+
+  const openGmail = (plan: typeof POINTS_PLANS[0]) => {
+    const { subject, body } = getEmailParams(plan)
+    window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${SUPPORT_EMAIL}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank')
+  }
+
+  const openOutlook = (plan: typeof POINTS_PLANS[0]) => {
+    const { subject, body } = getEmailParams(plan)
+    window.open(`https://outlook.live.com/mail/0/deeplink/compose?to=${SUPPORT_EMAIL}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank')
+  }
+
+  const openDefaultMail = (plan: typeof POINTS_PLANS[0]) => {
+    const { subject, body } = getEmailParams(plan)
+    window.location.href = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+  }
+
+  const copyEmail = () => {
+    navigator.clipboard.writeText(SUPPORT_EMAIL)
+    toast.success("Support email copied to clipboard")
   }
 
   return (
@@ -146,17 +171,34 @@ export const PointsPurchase = ({ isOpen, onClose, currentPoints }: PointsPurchas
                   </div>
 
                   {/* Contact Button */}
-                  <Button
-                    onClick={() => handleContactPurchase(plan)}
-                    className={`w-full font-semibold ${plan.popular
-                      ? 'bg-black text-white hover:bg-gray-800'
-                      : 'bg-white text-black border border-gray-300 hover:bg-gray-50'
-                      }`}
-                    variant={plan.popular ? 'default' : 'outline'}
-                  >
-                    <Mail className="w-4 h-4 mr-2" />
-                    {isEnterprise ? 'Contact Sales' : 'Request Purchase'}
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        className={`w-full font-semibold ${plan.popular
+                          ? 'bg-black text-white hover:bg-gray-800'
+                          : 'bg-white text-black border border-gray-300 hover:bg-gray-50'
+                          }`}
+                        variant={plan.popular ? 'default' : 'outline'}
+                      >
+                        <Mail className="w-4 h-4 mr-2" />
+                        {isEnterprise ? 'Contact Sales' : 'Request Purchase'}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="center" className="w-[200px]">
+                      <DropdownMenuItem onClick={() => openGmail(plan)} className="cursor-pointer">
+                        Open in Gmail
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => openOutlook(plan)} className="cursor-pointer">
+                        Open in Outlook
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => openDefaultMail(plan)} className="cursor-pointer">
+                        Open Default Mail App
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={copyEmail} className="cursor-pointer">
+                        Copy Email Address
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </CardContent>
               </Card>
             )

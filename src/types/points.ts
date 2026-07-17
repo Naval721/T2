@@ -88,6 +88,7 @@ export const POINTS_PLANS: PointsPlan[] = [
     value: 'Contact for pricing',
     stripePriceId: undefined,
     features: [
+      '450 DPI exports',
       'Bulk roster import/export',
       'Access to premium design templates',
       'Expanded font library',

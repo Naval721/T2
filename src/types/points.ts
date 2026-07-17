@@ -12,6 +12,7 @@ export interface PointsPlan {
   popular?: boolean
   value?: string // e.g., "Best Value", "Most Popular"
   stripePriceId?: string
+  features: string[]
 }
 
 export interface PointsTransaction {
@@ -47,32 +48,52 @@ export const POINTS_PLANS: PointsPlan[] = [
   {
     id: 'basic',
     name: 'Basic Package',
-    description: 'Perfect for small projects',
+    description: 'Great for getting started with jersey design exports',
     price: 1000,
     points: 700,
     bonusPoints: 0,
     value: '₹1.43 per point',
-    stripePriceId: 'price_basic_points'
+    stripePriceId: 'price_basic_points',
+    features: [
+      '450 DPI exports',
+      'Bulk roster import/export',
+      'Standard fonts',
+      'Standard support',
+    ]
   },
   {
     id: 'professional',
     name: 'Professional Package',
-    description: 'Best value for designers',
+    description: 'Best value for professional designers and studios',
     price: 2500,
-    points: 1800,
+    points: 2000,
     bonusPoints: 200,
     popular: true,
-    value: 'Best Value - ₹1.25 per point',
-    stripePriceId: 'price_professional_points'
+    value: 'Best Value - ₹1.14 per point',
+    stripePriceId: 'price_professional_points',
+    features: [
+      '450 DPI exports',
+      'Bulk roster import/export',
+      'Access to premium design templates',
+      'Expanded font library',
+      'Priority support',
+    ]
   },
   {
     id: 'enterprise',
     name: 'Enterprise Package',
-    description: 'Custom pricing for large teams',
+    description: 'Custom solutions for large teams and organisations',
     price: 0, // Custom pricing
     points: 0, // Custom points
     value: 'Contact for pricing',
-    stripePriceId: undefined
+    stripePriceId: undefined,
+    features: [
+      'Bulk roster import/export',
+      'Access to premium design templates',
+      'Expanded font library',
+      'One-on-one onboarding & dedicated support',
+      'Custom team/account setup',
+    ]
   }
 ]
 

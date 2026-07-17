@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { Mail, Phone, MapPin, Send } from "lucide-react"
+import { Mail, Send } from "lucide-react"
 import { Header } from "@/components/Header"
 
 const Contact = () => {
@@ -32,26 +32,6 @@ const Contact = () => {
                   <div>
                     <h3 className="font-semibold text-black mb-1">Email</h3>
                     <p className="text-gray-600">support@gxdrip.com</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start space-x-4">
-                  <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                    <Phone className="w-6 h-6 text-black" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-black mb-1">Phone</h3>
-                    <p className="text-gray-600">+1 (555) 123-4567</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start space-x-4">
-                  <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                    <MapPin className="w-6 h-6 text-black" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-black mb-1">Address</h3>
-                    <p className="text-gray-600">123 Design Street, Creative City, CC 12345</p>
                   </div>
                 </div>
               </div>

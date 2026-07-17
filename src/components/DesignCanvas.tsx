@@ -63,6 +63,12 @@ interface DesignCanvasProps {
     defaultStrokeColor?: string;
     defaultStrokeWidth?: number;
     showTools?: boolean;
+    initialView?: 'front' | 'back' | 'leftSleeve' | 'rightSleeve' | 'collar';
+    initialZoom?: number;
+    initialCuttingOutline?: boolean;
+    onViewChange?: (view: 'front' | 'back' | 'leftSleeve' | 'rightSleeve' | 'collar') => void;
+    onZoomChange?: (zoom: number) => void;
+    onCuttingOutlineChange?: (show: boolean) => void;
 }
 
 type ExportableCanvas = FabricCanvas & {
@@ -206,13 +212,13 @@ export const exportCleanJerseyDesign = (
     } as any);
 };
 
-export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, onCanvasReady, defaultFont = 'Anton', defaultColor = '#000000', defaultStrokeColor = '#FFFFFF', defaultStrokeWidth = 0, showTools = false }: DesignCanvasProps) => {
+export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, onCanvasReady, defaultFont = 'Anton', defaultColor = '#000000', defaultStrokeColor = '#FFFFFF', defaultStrokeWidth = 0, showTools = false, initialView, initialZoom, initialCuttingOutline, onViewChange, onZoomChange, onCuttingOutlineChange }: DesignCanvasProps) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [fabricCanvas, setFabricCanvas] = useState<FabricCanvas | null>(null);
-    const [currentView, setCurrentView] = useState<'front' | 'back' | 'leftSleeve' | 'rightSleeve' | 'collar'>('front');
-    const [zoom, setZoom] = useState(1);
+    const [currentView, setCurrentView] = useState<'front' | 'back' | 'leftSleeve' | 'rightSleeve' | 'collar'>(initialView || 'front');
+    const [zoom, setZoom] = useState(initialZoom || 1);
     const [isPanMode, setIsPanMode] = useState(false);
-    const [showCuttingOutline, setShowCuttingOutline] = useState(false);
+    const [showCuttingOutline, setShowCuttingOutline] = useState(initialCuttingOutline || false);
     // Persist text placements/styles across views and sessions globally
     const textRef = useRef<{ [view: string]: { name?: TextProps; number?: TextProps; customTexts?: TextProps[]; customLogos?: LogoProps[] } }>({});
     const loadedViewRef = useRef<'front' | 'back' | 'leftSleeve' | 'rightSleeve' | 'collar'>('front');
@@ -274,9 +280,10 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
         selectedPlayerRef.current = selectedPlayer;
     }, [selectedPlayer]);
 
-    // Keep currentViewRef always in sync with state
+    // Keep currentViewRef always in sync with state and notify parent
     useEffect(() => {
         currentViewRef.current = currentView;
+        onViewChange?.(currentView);
     }, [currentView]);
 
     useEffect(() => {
@@ -1037,6 +1044,7 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
         const newZoom = Math.min(zoom * 1.2, 3);
         fabricCanvas.setZoom(newZoom);
         setZoom(newZoom);
+        onZoomChange?.(newZoom);
     };
 
     const handleZoomOut = () => {
@@ -1044,6 +1052,7 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
         const newZoom = Math.max(zoom / 1.2, 0.3);
         fabricCanvas.setZoom(newZoom);
         setZoom(newZoom);
+        onZoomChange?.(newZoom);
     };
 
     const handleResetView = () => {
@@ -1051,6 +1060,7 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
         fabricCanvas.setZoom(1);
         fabricCanvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
         setZoom(1);
+        onZoomChange?.(1);
     };
 
     const togglePanMode = () => {
@@ -1348,7 +1358,11 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
                             <Button
                                 variant={showCuttingOutline ? "default" : "outline"}
                                 size="sm"
-                                onClick={() => setShowCuttingOutline(!showCuttingOutline)}
+                                onClick={() => {
+                                    const next = !showCuttingOutline;
+                                    setShowCuttingOutline(next);
+                                    onCuttingOutlineChange?.(next);
+                                }}
                                 title="Toggle cutting outline"
                             >
                                 <Scissors className="w-4 h-4" />

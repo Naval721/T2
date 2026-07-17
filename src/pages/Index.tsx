@@ -25,7 +25,9 @@ import {
   clearState,
   hasSavedSession,
   formatLastSaveTime,
+  isWarmReturn,
 } from "@/lib/statePersistence";
+import type { CanvasViewType } from "@/lib/statePersistence";
 
 export interface JerseyImages {
   front?: string;
@@ -63,7 +65,14 @@ const Index = () => {
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
   const [fallbackTarget, setFallbackTarget] = useState<HTMLElement | null>(null);
+  const [canvasView, setCanvasView] = useState<CanvasViewType>('front');
+  const [canvasZoom, setCanvasZoom] = useState(1);
+  const [canvasCuttingOutline, setCanvasCuttingOutline] = useState(false);
   const selectedPlayerIndexRef = useRef(0);
+  // Refs for unmount save (always current)
+  const canvasViewRef = useRef<CanvasViewType>('front');
+  const canvasZoomRef = useRef(1);
+  const canvasCuttingOutlineRef = useRef(false);
 
   // An isolated, stable DOM container that React never destroys
   const persistentCanvasContainer = useMemo(() => {
@@ -118,12 +127,20 @@ const Index = () => {
   // Check for saved session on mount
   useEffect(() => {
     const checkSession = async () => {
-      if (await hasSavedSession()) {
-        setShowRestoreDialog(true);
+      const hasSession = await hasSavedSession();
+      if (hasSession) {
+        if (isWarmReturn()) {
+          // Warm return — auto-restore silently without dialog
+          await handleRestoreSession();
+        } else {
+          // Cold start — show the restore dialog
+          setShowRestoreDialog(true);
+        }
       }
       setLastSaveTime(await formatLastSaveTime());
     };
     checkSession();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Protect route — OnboardingPage lives at '/'
@@ -162,7 +179,10 @@ const Index = () => {
           defaultFont,
           defaultColor,
           defaultStrokeColor,
-          defaultStrokeWidth
+          defaultStrokeWidth,
+          canvasViewRef.current,
+          canvasZoomRef.current,
+          canvasCuttingOutlineRef.current
         ).then(async (saved) => {
           if (saved) {
             setLastSaveTime(await formatLastSaveTime());
@@ -177,7 +197,42 @@ const Index = () => {
         setIsSaving(false);
       };
     }
-  }, [jerseyImages, playerData, currentStep, selectedPlayer, defaultFont, defaultColor, defaultStrokeColor, defaultStrokeWidth, autoSaveEnabled]);
+  }, [jerseyImages, playerData, currentStep, selectedPlayer, defaultFont, defaultColor, defaultStrokeColor, defaultStrokeWidth, canvasView, canvasZoom, canvasCuttingOutline, autoSaveEnabled]);
+
+  // Ref that always holds the latest saveable state for the unmount handler
+  const latestStateRef = useRef({
+    jerseyImages, playerData, currentStep,
+    defaultFont, defaultColor, defaultStrokeColor, defaultStrokeWidth,
+  });
+  useEffect(() => {
+    latestStateRef.current = {
+      jerseyImages, playerData, currentStep,
+      defaultFont, defaultColor, defaultStrokeColor, defaultStrokeWidth,
+    };
+  });
+
+  // Save immediately on unmount (no debounce) so nothing is lost
+  useEffect(() => {
+    return () => {
+      const s = latestStateRef.current;
+      if (Object.keys(s.jerseyImages).length > 0 || s.playerData.length > 0) {
+        saveState(
+          s.jerseyImages,
+          s.playerData,
+          s.currentStep,
+          selectedPlayerIndexRef.current,
+          s.defaultFont,
+          s.defaultColor,
+          s.defaultStrokeColor,
+          s.defaultStrokeWidth,
+          canvasViewRef.current,
+          canvasZoomRef.current,
+          canvasCuttingOutlineRef.current
+        );
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Sync selectedPlayer when playerData changes
   useEffect(() => {
@@ -277,6 +332,18 @@ const Index = () => {
       if (savedState.defaultColor) setDefaultColor(savedState.defaultColor);
       if (savedState.defaultStrokeColor) setDefaultStrokeColor(savedState.defaultStrokeColor);
       if (savedState.defaultStrokeWidth !== undefined) setDefaultStrokeWidth(savedState.defaultStrokeWidth);
+      if (savedState.currentView) {
+        setCanvasView(savedState.currentView);
+        canvasViewRef.current = savedState.currentView;
+      }
+      if (savedState.zoom) {
+        setCanvasZoom(savedState.zoom);
+        canvasZoomRef.current = savedState.zoom;
+      }
+      if (savedState.cuttingOutline !== undefined) {
+        setCanvasCuttingOutline(savedState.cuttingOutline);
+        canvasCuttingOutlineRef.current = savedState.cuttingOutline;
+      }
       if (savedState.playerData) {
         setPlayerData(savedState.playerData);
         if (
@@ -490,6 +557,12 @@ const Index = () => {
                 defaultStrokeColor={defaultStrokeColor}
                 defaultStrokeWidth={defaultStrokeWidth}
                 showTools={currentStep === 3}
+                initialView={canvasView}
+                initialZoom={canvasZoom}
+                initialCuttingOutline={canvasCuttingOutline}
+                onViewChange={(v) => { setCanvasView(v); canvasViewRef.current = v; }}
+                onZoomChange={(z) => { setCanvasZoom(z); canvasZoomRef.current = z; }}
+                onCuttingOutlineChange={(c) => { setCanvasCuttingOutline(c); canvasCuttingOutlineRef.current = c; }}
               />,
               persistentCanvasContainer
             )}

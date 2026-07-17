@@ -46,25 +46,27 @@ export const PointsPurchase = ({ isOpen, onClose, currentPoints }: PointsPurchas
           </DialogDescription>
         </DialogHeader>
 
-        {/* Contact notice */}
-        <Alert className="bg-amber-50 border-amber-200">
-          <Mail className="h-5 w-5 text-amber-600" />
-          <AlertDescription className="text-amber-800">
-            <span className="font-semibold">How it works: </span>
-            Click "Request Purchase" on any plan below — it will open a pre-filled email to our team. We'll add your points manually within 24 hours of payment confirmation.
-          </AlertDescription>
-        </Alert>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Contact notice */}
+          <Alert className="bg-amber-50 border-amber-200">
+            <Mail className="h-5 w-5 text-amber-600" />
+            <AlertDescription className="text-amber-800 text-sm">
+              <span className="font-semibold">How it works: </span>
+              Click "Request Purchase" to email our team. We'll add points manually within 24 hours of payment.
+            </AlertDescription>
+          </Alert>
 
-        {/* Current Balance */}
-        <Alert className="bg-gray-50 border-gray-200">
-          <div className="flex items-center space-x-3">
-            <Coins className="h-5 w-5 text-black" />
-            <div>
-              <p className="font-semibold text-black">Current Balance</p>
-              <p className="text-2xl font-bold text-black">{formatPoints(currentPoints)} points</p>
+          {/* Current Balance */}
+          <Alert className="bg-gray-50 border-gray-200 flex items-center justify-center">
+            <div className="flex items-center space-x-3">
+              <Coins className="h-6 w-6 text-black" />
+              <div>
+                <p className="font-semibold text-black text-sm">Current Balance</p>
+                <p className="text-2xl font-bold text-black">{formatPoints(currentPoints)} points</p>
+              </div>
             </div>
-          </div>
-        </Alert>
+          </Alert>
+        </div>
 
         {/* Points Packages */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-2">
@@ -161,31 +163,33 @@ export const PointsPurchase = ({ isOpen, onClose, currentPoints }: PointsPurchas
           })}
         </div>
 
-        {/* Point Costs Info */}
-        <Alert className="mt-6 bg-gray-50 border-gray-200">
-          <Info className="h-5 w-5 text-black" />
-          <AlertDescription className="text-black">
-            <p className="font-semibold mb-2">Point Costs:</p>
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <div>• Front Image: 1 point</div>
-              <div>• Back Image: 1 point</div>
-              <div>• Sleeve: 1 point each</div>
-              <div>• Collar: 1 point each</div>
-            </div>
-          </AlertDescription>
-        </Alert>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+          {/* Point Costs Info */}
+          <Alert className="bg-gray-50 border-gray-200">
+            <Info className="h-5 w-5 text-black" />
+            <AlertDescription className="text-black">
+              <p className="font-semibold mb-2">Point Costs:</p>
+              <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-xs">
+                <div>• Front Image: 1 point</div>
+                <div>• Back Image: 1 point</div>
+                <div>• Sleeve: 1 point each</div>
+                <div>• Collar: 1 point each</div>
+              </div>
+            </AlertDescription>
+          </Alert>
 
-        {/* Example Calculations */}
-        <Alert className="bg-gray-50 border border-black shadow-sm">
-          <TrendingUp className="h-5 w-5 text-black" />
-          <AlertDescription className="text-black">
-            <p className="font-semibold mb-2">What You Can Do:</p>
-            <div className="text-sm space-y-1">
-              <p>With <strong>700 points</strong>: ~175 full jerseys (front + back + 2 sleeves)</p>
-              <p>With <strong>2,200 points</strong>: ~550 full jerseys (front + back + 2 sleeves)</p>
-            </div>
-          </AlertDescription>
-        </Alert>
+          {/* Example Calculations */}
+          <Alert className="bg-gray-50 border border-black shadow-sm">
+            <TrendingUp className="h-5 w-5 text-black" />
+            <AlertDescription className="text-black">
+              <p className="font-semibold mb-2">What You Can Do:</p>
+              <div className="text-xs space-y-1">
+                <p>With <strong>700 points</strong>: ~175 full jerseys (front + back + 2 sleeves)</p>
+                <p>With <strong>2,200 points</strong>: ~550 full jerseys (front + back + 2 sleeves)</p>
+              </div>
+            </AlertDescription>
+          </Alert>
+        </div>
       </DialogContent>
     </Dialog>
   )

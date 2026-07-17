@@ -14,9 +14,14 @@ const STORAGE_KEYS = {
     PLAYER_DATA: 'gxdrip_player_data',
     CURRENT_STEP: 'gxdrip_current_step',
     SELECTED_PLAYER_INDEX: 'gxdrip_selected_player',
+    CURRENT_VIEW: 'gxdrip_current_view',
+    ZOOM: 'gxdrip_zoom',
+    CUTTING_OUTLINE: 'gxdrip_cutting_outline',
     SESSION_ID: 'gxdrip_session_id',
     LAST_SAVE: 'gxdrip_last_save'
 } as const;
+
+export type CanvasViewType = 'front' | 'back' | 'leftSleeve' | 'rightSleeve' | 'collar';
 
 export interface PersistedState {
     jerseyImages: JerseyImages;
@@ -27,6 +32,9 @@ export interface PersistedState {
     defaultColor?: string;
     defaultStrokeColor?: string;
     defaultStrokeWidth?: number;
+    currentView?: CanvasViewType;
+    zoom?: number;
+    cuttingOutline?: boolean;
     sessionId: string;
     lastSave: string;
 }
@@ -56,7 +64,10 @@ export const saveState = async (
     defaultFont?: string,
     defaultColor?: string,
     defaultStrokeColor?: string,
-    defaultStrokeWidth?: number
+    defaultStrokeWidth?: number,
+    currentView?: CanvasViewType,
+    zoom?: number,
+    cuttingOutline?: boolean
 ): Promise<boolean> => {
     try {
         getSessionId(); // ensure session ID exists
@@ -71,7 +82,13 @@ export const saveState = async (
         if (defaultColor !== undefined && defaultColor !== null) await localforage.setItem('gxdrip_default_color', defaultColor);
         if (defaultStrokeColor !== undefined && defaultStrokeColor !== null) await localforage.setItem('gxdrip_default_stroke_color', defaultStrokeColor);
         if (defaultStrokeWidth !== undefined && defaultStrokeWidth !== null) await localforage.setItem('gxdrip_default_stroke_width', defaultStrokeWidth);
+        if (currentView !== undefined) await localforage.setItem(STORAGE_KEYS.CURRENT_VIEW, currentView);
+        if (zoom !== undefined) await localforage.setItem(STORAGE_KEYS.ZOOM, zoom);
+        if (cuttingOutline !== undefined) await localforage.setItem(STORAGE_KEYS.CUTTING_OUTLINE, cuttingOutline);
         await localforage.setItem(STORAGE_KEYS.LAST_SAVE, lastSave);
+
+        // Mark this tab session as active so we can auto-restore on warm returns
+        sessionStorage.setItem('gxdrip_active_session', '1');
 
         return true;
     } catch (error) {
@@ -94,6 +111,9 @@ export const loadState = async (): Promise<Partial<PersistedState> | null> => {
         const defaultColor = await localforage.getItem<string>('gxdrip_default_color');
         const defaultStrokeColor = await localforage.getItem<string>('gxdrip_default_stroke_color');
         const defaultStrokeWidth = await localforage.getItem<number>('gxdrip_default_stroke_width');
+        const currentView = await localforage.getItem<CanvasViewType>(STORAGE_KEYS.CURRENT_VIEW);
+        const zoom = await localforage.getItem<number>(STORAGE_KEYS.ZOOM);
+        const cuttingOutline = await localforage.getItem<boolean>(STORAGE_KEYS.CUTTING_OUTLINE);
         const lastSave = await localforage.getItem<string>(STORAGE_KEYS.LAST_SAVE);
 
         if (!jerseyImages && (!playerData || playerData.length === 0)) {
@@ -109,6 +129,9 @@ export const loadState = async (): Promise<Partial<PersistedState> | null> => {
             defaultColor: defaultColor || undefined,
             defaultStrokeColor: defaultStrokeColor || undefined,
             defaultStrokeWidth: defaultStrokeWidth !== null ? defaultStrokeWidth : undefined,
+            currentView: currentView || undefined,
+            zoom: zoom || undefined,
+            cuttingOutline: cuttingOutline !== null ? cuttingOutline : undefined,
             sessionId: getSessionId(),
             lastSave: lastSave || undefined
         };
@@ -117,6 +140,13 @@ export const loadState = async (): Promise<Partial<PersistedState> | null> => {
         toast.error('Failed to load previous session. Starting fresh.');
         return null;
     }
+};
+
+/**
+ * Check if this is a warm return (user navigated away and back in the same tab session)
+ */
+export const isWarmReturn = (): boolean => {
+    return sessionStorage.getItem('gxdrip_active_session') === '1';
 };
 
 /**
@@ -136,6 +166,7 @@ export const clearState = async (): Promise<void> => {
         await localforage.removeItem('gxdrip_default_color');
         await localforage.removeItem('gxdrip_default_stroke_color');
         await localforage.removeItem('gxdrip_default_stroke_width');
+        sessionStorage.removeItem('gxdrip_active_session');
     } catch (error) {
         console.error('Failed to clear session keys:', error);
     }

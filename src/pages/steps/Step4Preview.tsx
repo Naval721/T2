@@ -166,18 +166,102 @@ export const Step4Preview = ({ playerData, jerseyImages, onNext, onPrev, default
 
                     // Apply Name & Number
                     if (currentView === 'back') {
-                        nameText.set({ text: player.playerName, left: np?.left ?? backCX, top: np?.top ?? (br.top + br.height * 0.26) });
+                        let nameLeft = np?.left ?? backCX;
+                        let nameTop = np?.top ?? (br.top + br.height * 0.26);
+                        let nameFontSize = np?.fontSize ?? 38;
+                        let nameScaleX = np?.scaleX ?? 1;
+                        let nameScaleY = np?.scaleY ?? 1;
+
+                        if (np && np.relLeft !== undefined && np.relLeft !== null) {
+                            nameLeft = br.left + (np.relLeft * br.width);
+                            nameTop = br.top + (np.relTop * br.height);
+                            if (np.relFontSize) nameFontSize = np.relFontSize * br.height;
+                            if (np.relScaleX) nameScaleX = np.relScaleX * bgImg.scaleX!;
+                            if (np.relScaleY) nameScaleY = np.relScaleY * bgImg.scaleY!;
+                        }
+
+                        nameText.set({
+                            text: player.playerName,
+                            left: nameLeft,
+                            top: nameTop,
+                            fontSize: nameFontSize,
+                            scaleX: nameScaleX,
+                            scaleY: nameScaleY
+                        });
                         canvas.add(nameText);
 
-                        numberText.set({ text: player.jerseyNumber, left: nump?.left ?? backCX, top: nump?.top ?? (br.top + br.height * 0.52) });
+                        let numLeft = nump?.left ?? backCX;
+                        let numTop = nump?.top ?? (br.top + br.height * 0.52);
+                        let numFontSize = nump?.fontSize ?? 115;
+                        let numScaleX = nump?.scaleX ?? 1;
+                        let numScaleY = nump?.scaleY ?? 1;
+
+                        if (nump && nump.relLeft !== undefined && nump.relLeft !== null) {
+                            numLeft = br.left + (nump.relLeft * br.width);
+                            numTop = br.top + (nump.relTop * br.height);
+                            if (nump.relFontSize) numFontSize = nump.relFontSize * br.height;
+                            if (nump.relScaleX) numScaleX = nump.relScaleX * bgImg.scaleX!;
+                            if (nump.relScaleY) numScaleY = nump.relScaleY * bgImg.scaleY!;
+                        }
+
+                        numberText.set({
+                            text: player.jerseyNumber,
+                            left: numLeft,
+                            top: numTop,
+                            fontSize: numFontSize,
+                            scaleX: numScaleX,
+                            scaleY: numScaleY
+                        });
                         canvas.add(numberText);
                     } else {
                         if (viewTemplate.name) {
-                            nameText.set({ text: player.playerName, left: np?.left ?? backCX, top: np?.top ?? (br.top + br.height * 0.26) });
+                            let nameLeft = np?.left ?? backCX;
+                            let nameTop = np?.top ?? (br.top + br.height * 0.26);
+                            let nameFontSize = np?.fontSize ?? 38;
+                            let nameScaleX = np?.scaleX ?? 1;
+                            let nameScaleY = np?.scaleY ?? 1;
+
+                            if (np && np.relLeft !== undefined && np.relLeft !== null) {
+                                nameLeft = br.left + (np.relLeft * br.width);
+                                nameTop = br.top + (np.relTop * br.height);
+                                if (np.relFontSize) nameFontSize = np.relFontSize * br.height;
+                                if (np.relScaleX) nameScaleX = np.relScaleX * bgImg.scaleX!;
+                                if (np.relScaleY) nameScaleY = np.relScaleY * bgImg.scaleY!;
+                            }
+
+                            nameText.set({
+                                text: player.playerName,
+                                left: nameLeft,
+                                top: nameTop,
+                                fontSize: nameFontSize,
+                                scaleX: nameScaleX,
+                                scaleY: nameScaleY
+                            });
                             canvas.add(nameText);
                         }
                         if (viewTemplate.number) {
-                            numberText.set({ text: player.jerseyNumber, left: nump?.left ?? backCX, top: nump?.top ?? (br.top + br.height * 0.52) });
+                            let numLeft = nump?.left ?? backCX;
+                            let numTop = nump?.top ?? (br.top + br.height * 0.52);
+                            let numFontSize = nump?.fontSize ?? 115;
+                            let numScaleX = nump?.scaleX ?? 1;
+                            let numScaleY = nump?.scaleY ?? 1;
+
+                            if (nump && nump.relLeft !== undefined && nump.relLeft !== null) {
+                                numLeft = br.left + (nump.relLeft * br.width);
+                                numTop = br.top + (nump.relTop * br.height);
+                                if (nump.relFontSize) numFontSize = nump.relFontSize * br.height;
+                                if (nump.relScaleX) numScaleX = nump.relScaleX * bgImg.scaleX!;
+                                if (nump.relScaleY) numScaleY = nump.relScaleY * bgImg.scaleY!;
+                            }
+
+                            numberText.set({
+                                text: player.jerseyNumber,
+                                left: numLeft,
+                                top: numTop,
+                                fontSize: numFontSize,
+                                scaleX: numScaleX,
+                                scaleY: numScaleY
+                            });
                             canvas.add(numberText);
                         }
                     }
@@ -198,7 +282,15 @@ export const Step4Preview = ({ playerData, jerseyImages, onNext, onPrev, default
                     };
 
                     for (const ct of (viewElements.customTexts || [])) {
-                        const t = new FabricText(ct.text ?? '', { ...ct, paintFirst: 'stroke', selectable: false, objectCaching: false });
+                        const propsToUse = { ...ct };
+                        if (propsToUse.relLeft !== undefined && propsToUse.relLeft !== null) {
+                            propsToUse.left = br.left + (propsToUse.relLeft * br.width);
+                            propsToUse.top = br.top + (propsToUse.relTop! * br.height);
+                            if (propsToUse.relFontSize) propsToUse.fontSize = propsToUse.relFontSize * br.height;
+                            if (propsToUse.relScaleX) propsToUse.scaleX = propsToUse.relScaleX * bgImg.scaleX!;
+                            if (propsToUse.relScaleY) propsToUse.scaleY = propsToUse.relScaleY * bgImg.scaleY!;
+                        }
+                        const t = new FabricText(ct.text ?? '', { ...propsToUse, paintFirst: 'stroke', selectable: false, objectCaching: false });
                         canvas.add(t);
                     }
 
@@ -206,7 +298,28 @@ export const Step4Preview = ({ playerData, jerseyImages, onNext, onPrev, default
                     for (const cl of (viewElements.customLogos || [])) {
                         try {
                             const logoImg = await FabricImage.fromURL(cl.src);
-                            logoImg.set({ ...cl, selectable: false });
+                            let targetLeft = cl.left;
+                            let targetTop = cl.top;
+                            let targetScaleX = cl.scaleX;
+                            let targetScaleY = cl.scaleY;
+
+                            if (cl.relLeft !== undefined && cl.relLeft !== null) {
+                                targetLeft = br.left + (cl.relLeft * br.width);
+                                targetTop = br.top + (cl.relTop * br.height);
+                                if (cl.relScaleX !== undefined && cl.relScaleX !== null) {
+                                    targetScaleX = cl.relScaleX * bgImg.scaleX!;
+                                    targetScaleY = cl.relScaleY * bgImg.scaleY!;
+                                }
+                            }
+
+                            logoImg.set({
+                                ...cl,
+                                left: targetLeft,
+                                top: targetTop,
+                                scaleX: targetScaleX,
+                                scaleY: targetScaleY,
+                                selectable: false
+                            });
                             canvas.add(logoImg);
                         } catch (e) {
                             logger.warn('Preview: Logo load failed', e);

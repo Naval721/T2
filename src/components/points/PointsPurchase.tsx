@@ -4,13 +4,6 @@ import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { toast } from 'sonner'
-import {
   Star,
   Zap,
   Crown,
@@ -33,30 +26,13 @@ const SUPPORT_EMAIL = 'alexxzzx4839@outlook.com'
 
 export const PointsPurchase = ({ isOpen, onClose, currentPoints }: PointsPurchaseProps) => {
 
-  const getEmailParams = (plan: typeof POINTS_PLANS[0]) => {
-    const subject = `Points Purchase Request — ${plan.name}`
-    const body = `Hi,\n\nI'd like to purchase the ${plan.name} (${formatCurrency(plan.price)} — ${formatPoints(calculateTotalPoints(plan))} points).\n\nPlease let me know the next steps.\n\nThank you!`
-    return { subject, body }
-  }
-
-  const openGmail = (plan: typeof POINTS_PLANS[0]) => {
-    const { subject, body } = getEmailParams(plan)
-    window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${SUPPORT_EMAIL}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank')
-  }
-
-  const openOutlook = (plan: typeof POINTS_PLANS[0]) => {
-    const { subject, body } = getEmailParams(plan)
-    window.open(`https://outlook.live.com/mail/0/deeplink/compose?to=${SUPPORT_EMAIL}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank')
-  }
-
-  const openDefaultMail = (plan: typeof POINTS_PLANS[0]) => {
-    const { subject, body } = getEmailParams(plan)
-    window.location.href = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
-  }
-
-  const copyEmail = () => {
-    navigator.clipboard.writeText(SUPPORT_EMAIL)
-    toast.success("Support email copied to clipboard")
+  const handleContactPurchase = (plan: typeof POINTS_PLANS[0]) => {
+    const subject = encodeURIComponent(`Points Purchase Request — ${plan.name}`)
+    const body = encodeURIComponent(
+      `Hi,\n\nI'd like to purchase the ${plan.name} (${formatCurrency(plan.price)} — ${formatPoints(calculateTotalPoints(plan))} points).\n\nPlease let me know the next steps.\n\nThank you!`
+    )
+    // eslint-disable-next-line react-hooks/immutability
+    window.location.href = `mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`
   }
 
   return (
@@ -94,7 +70,7 @@ export const PointsPurchase = ({ isOpen, onClose, currentPoints }: PointsPurchas
         </div>
 
         {/* Points Packages */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-2">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-2">
           {POINTS_PLANS.map((plan) => {
             const totalPoints = calculateTotalPoints(plan)
             const isEnterprise = plan.id === 'enterprise'
@@ -113,31 +89,31 @@ export const PointsPurchase = ({ isOpen, onClose, currentPoints }: PointsPurchas
                   </div>
                 )}
 
-                <CardHeader className="text-center pb-2 pt-4">
-                  <div className="mx-auto w-12 h-12 bg-gray-100 border border-gray-200 rounded-xl flex items-center justify-center mb-2">
-                    {plan.id === 'basic' && <Zap className="w-6 h-6 text-black" />}
-                    {plan.id === 'professional' && <Crown className="w-6 h-6 text-black" />}
-                    {plan.id === 'enterprise' && <Building2 className="w-6 h-6 text-black" />}
+                <CardHeader className="text-center pb-4">
+                  <div className="mx-auto w-16 h-16 bg-gray-100 border border-gray-200 rounded-xl flex items-center justify-center mb-3">
+                    {plan.id === 'basic' && <Zap className="w-8 h-8 text-black" />}
+                    {plan.id === 'professional' && <Crown className="w-8 h-8 text-black" />}
+                    {plan.id === 'enterprise' && <Building2 className="w-8 h-8 text-black" />}
                   </div>
-                  <CardTitle className="text-lg tracking-tight">{plan.name}</CardTitle>
-                  <CardDescription className="text-xs text-gray-500">{plan.description}</CardDescription>
+                  <CardTitle className="text-xl tracking-tight">{plan.name}</CardTitle>
+                  <CardDescription className="text-sm text-gray-500">{plan.description}</CardDescription>
                 </CardHeader>
 
-                <CardContent className="space-y-3 pb-4">
+                <CardContent className="space-y-4">
                   {/* Price */}
                   <div className="text-center">
                     {isEnterprise ? (
-                      <div className="space-y-1">
-                        <p className="text-2xl font-bold text-gray-900">Custom</p>
-                        <p className="text-xs text-gray-600">Contact for pricing</p>
+                      <div className="space-y-2">
+                        <p className="text-3xl font-bold text-gray-900">Custom</p>
+                        <p className="text-sm text-gray-600">Contact for pricing</p>
                       </div>
                     ) : (
                       <div className="space-y-1">
-                        <p className="text-3xl font-bold text-black tracking-tight">
+                        <p className="text-4xl font-bold text-black tracking-tight">
                           {formatCurrency(plan.price)}
                         </p>
                         {plan.bonusPoints && plan.bonusPoints > 0 && (
-                          <Badge variant="outline" className="border-gray-200 bg-white text-black font-semibold text-[10px] py-0">
+                          <Badge variant="outline" className="border-gray-200 bg-white text-black font-semibold">
                             <Gift className="w-3 h-3 mr-1" />
                             +{plan.bonusPoints} bonus points
                           </Badge>
@@ -148,13 +124,13 @@ export const PointsPurchase = ({ isOpen, onClose, currentPoints }: PointsPurchas
 
                   {/* Points */}
                   {!isEnterprise && (
-                    <div className="bg-gray-50 p-3 rounded-xl border border-gray-200">
+                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
                       <div className="text-center">
-                        <p className="text-xs font-medium text-gray-500 mb-1">You Get</p>
-                        <p className="text-2xl font-bold text-black">{formatPoints(totalPoints)}</p>
-                        <p className="text-[10px] text-gray-500 mt-0">points</p>
+                        <p className="text-sm font-medium text-gray-500 mb-1">You Get</p>
+                        <p className="text-3xl font-bold text-black">{formatPoints(totalPoints)}</p>
+                        <p className="text-xs text-gray-500 mt-1">points</p>
                         {plan.value && (
-                          <p className="text-[10px] text-gray-500 mt-1">{plan.value}</p>
+                          <p className="text-xs text-gray-500 mt-2">{plan.value}</p>
                         )}
                       </div>
                     </div>
@@ -171,34 +147,17 @@ export const PointsPurchase = ({ isOpen, onClose, currentPoints }: PointsPurchas
                   </div>
 
                   {/* Contact Button */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        className={`w-full font-semibold ${plan.popular
-                          ? 'bg-black text-white hover:bg-gray-800'
-                          : 'bg-white text-black border border-gray-300 hover:bg-gray-50'
-                          }`}
-                        variant={plan.popular ? 'default' : 'outline'}
-                      >
-                        <Mail className="w-4 h-4 mr-2" />
-                        {isEnterprise ? 'Contact Sales' : 'Request Purchase'}
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="center" className="w-[200px]">
-                      <DropdownMenuItem onClick={() => openGmail(plan)} className="cursor-pointer">
-                        Open in Gmail
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => openOutlook(plan)} className="cursor-pointer">
-                        Open in Outlook
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => openDefaultMail(plan)} className="cursor-pointer">
-                        Open Default Mail App
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={copyEmail} className="cursor-pointer">
-                        Copy Email Address
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <Button
+                    onClick={() => handleContactPurchase(plan)}
+                    className={`w-full font-semibold ${plan.popular
+                      ? 'bg-black text-white hover:bg-gray-800'
+                      : 'bg-white text-black border border-gray-300 hover:bg-gray-50'
+                      }`}
+                    variant={plan.popular ? 'default' : 'outline'}
+                  >
+                    <Mail className="w-4 h-4 mr-2" />
+                    {isEnterprise ? 'Contact Sales' : 'Request Purchase'}
+                  </Button>
                 </CardContent>
               </Card>
             )

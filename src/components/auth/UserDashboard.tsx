@@ -41,12 +41,10 @@ export const UserDashboard = ({ onClose }: UserDashboardProps) => {
   const [newName, setNewName] = useState(profile?.full_name || '')
   const [newPassword, setNewPassword] = useState('')
 
-  // Sync the newName state when profile finishes loading
-  useEffect(() => {
-    if (profile?.full_name) {
-      setNewName(profile.full_name)
-    }
-  }, [profile?.full_name])
+  const handleToggleSettings = () => {
+    setNewName(profile?.full_name || '')
+    setShowSettings(!showSettings)
+  }
 
   const handleSignOut = async () => {
     setLoading(true)
@@ -93,8 +91,8 @@ export const UserDashboard = ({ onClose }: UserDashboardProps) => {
   const currentPoints = profile?.points_balance || 0
   const totalPurchased = profile?.total_points_purchased || 0
   const totalUsed = profile?.total_points_used || 0
-  // Free trial: only started with the 5-point bonus and never bought more
-  const isFreeTrial = totalPurchased === 5 && totalUsed === 0
+  // Free trial: user has never purchased extra points — their only source is the 5-point signup bonus
+  const isFreeTrial = totalPurchased <= 5 && currentPoints <= 5
 
   const exportsPossible = calculateExportsPossible(currentPoints)
 
@@ -313,7 +311,7 @@ export const UserDashboard = ({ onClose }: UserDashboardProps) => {
         <Button
           variant="outline"
           className="w-full justify-start border-gray-200 hover:bg-gray-50"
-          onClick={() => setShowSettings(!showSettings)}
+          onClick={handleToggleSettings}
         >
           <Settings className="w-4 h-4 mr-2" />
           Account Settings

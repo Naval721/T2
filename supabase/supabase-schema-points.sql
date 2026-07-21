@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS points_packages (
 -- Insert default points packages
 INSERT INTO points_packages (package_id, name, description, price, points, bonus_points) VALUES
 ('basic', 'Basic Package', 'Perfect for small projects', 1000.00, 700, 0),
-('professional', 'Professional Package', 'Best value for designers', 2500.00, 1800, 200),
+('professional', 'Professional Package', 'Best value for designers', 2500.00, 2000, 200),
 ('enterprise', 'Enterprise Package', 'Custom pricing for large teams', 0.00, 0, 0)
 ON CONFLICT (package_id) DO NOTHING;
 

@@ -10,7 +10,7 @@ import { Canvas as FabricCanvas, IText as FabricText } from "fabric";
 
 interface CustomizationToolsProps {
   onAddText?: (text: string, fontFamily: string, fontSize: number, fill: string, stroke: string, strokeWidth: number) => void;
-  onAddLogo?: (logoUrl: string) => void;
+  onAddLogo?: (logoUrl: string, logoType: 'custom' | 'front1' | 'front2' | 'front3') => void;
   canvasRef?: FabricCanvas | null;
 }
 
@@ -21,6 +21,7 @@ export const CustomizationTools = ({ onAddText, onAddLogo, canvasRef }: Customiz
   const [textColor, setTextColor] = useState("#ffffff");
   const [strokeColor, setStrokeColor] = useState("#000000");
   const [strokeWidth, setStrokeWidth] = useState(2);
+  const [activeLogoType, setActiveLogoType] = useState<'custom' | 'front1' | 'front2' | 'front3'>('custom');
   const logoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -111,7 +112,7 @@ export const CustomizationTools = ({ onAddText, onAddLogo, canvasRef }: Customiz
       if (ctx) {
         ctx.drawImage(img, 0, 0, width, height);
         const dataUrl = canvas.toDataURL('image/png');
-        onAddLogo?.(dataUrl);
+        onAddLogo?.(dataUrl, activeLogoType);
         toast.success("Logo added to canvas");
       } else {
         toast.error("Failed to process image");
@@ -252,8 +253,8 @@ export const CustomizationTools = ({ onAddText, onAddLogo, canvasRef }: Customiz
       </div>
 
       {/* Logo Upload */}
-      <div className="pt-2">
-        <Label className="mb-2 block uppercase text-xs font-bold tracking-widest text-gray-500">Custom Logo</Label>
+      <div className="pt-2 space-y-2">
+        <Label className="mb-2 block uppercase text-xs font-bold tracking-widest text-gray-500">Logos</Label>
         <input
           ref={logoInputRef}
           type="file"
@@ -261,14 +262,40 @@ export const CustomizationTools = ({ onAddText, onAddLogo, canvasRef }: Customiz
           onChange={handleAddLogo}
           className="hidden"
         />
-        <Button
-          onClick={() => logoInputRef.current?.click()}
-          variant="outline"
-          className="w-full h-12 uppercase font-bold tracking-widest rounded-none border-2 border-black bg-white text-black hover:bg-black hover:text-white transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[-1px] hover:shadow-[5px_5px_0px_0px_rgba(0,0,0,1)]"
-        >
-          <Upload className="w-4 h-4 mr-2" />
-          Upload Logo
-        </Button>
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            onClick={() => { setActiveLogoType('front1'); logoInputRef.current?.click(); }}
+            variant="outline"
+            className="w-full h-10 uppercase text-xs font-bold tracking-widest rounded-none border-2 border-black bg-white text-black hover:bg-black hover:text-white transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[-1px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+          >
+            <Upload className="w-3 h-3 mr-1" />
+            Front Logo 1
+          </Button>
+          <Button
+            onClick={() => { setActiveLogoType('front2'); logoInputRef.current?.click(); }}
+            variant="outline"
+            className="w-full h-10 uppercase text-xs font-bold tracking-widest rounded-none border-2 border-black bg-white text-black hover:bg-black hover:text-white transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[-1px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+          >
+            <Upload className="w-3 h-3 mr-1" />
+            Front Logo 2
+          </Button>
+          <Button
+            onClick={() => { setActiveLogoType('front3'); logoInputRef.current?.click(); }}
+            variant="outline"
+            className="w-full h-10 uppercase text-xs font-bold tracking-widest rounded-none border-2 border-black bg-white text-black hover:bg-black hover:text-white transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[-1px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+          >
+            <Upload className="w-3 h-3 mr-1" />
+            Front Logo 3
+          </Button>
+          <Button
+            onClick={() => { setActiveLogoType('custom'); logoInputRef.current?.click(); }}
+            variant="outline"
+            className="w-full h-10 uppercase text-xs font-bold tracking-widest rounded-none border-2 border-black bg-black text-white hover:bg-gray-800 transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[-1px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+          >
+            <Upload className="w-3 h-3 mr-1" />
+            Custom Logo
+          </Button>
+        </div>
       </div>
     </div>
   );

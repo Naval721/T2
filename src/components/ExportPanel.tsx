@@ -355,23 +355,64 @@ export const ExportPanel = ({
                             const backCX = br.left + br.width / 2;
                             const np = viewData.name; const nump = viewData.number;
 
+                            let nameLeft = np?.left ?? backCX;
+                            let nameTop = np?.top ?? (br.top + br.height * 0.26);
+                            let nameFontSize = np?.fontSize ?? 38;
+                            let nameScaleX = np?.scaleX ?? 1;
+                            let nameScaleY = np?.scaleY ?? 1;
+
+                            if (np && np.relLeft !== undefined && np.relLeft !== null) {
+                                nameLeft = br.left + (np.relLeft * br.width);
+                                nameTop = br.top + (np.relTop * br.height);
+                                if (np.relFontSize) nameFontSize = np.relFontSize * br.height;
+                                if (np.relScaleX) nameScaleX = np.relScaleX * bgImg.scaleX!;
+                                if (np.relScaleY) nameScaleY = np.relScaleY * bgImg.scaleY!;
+                            }
+
                             const nameText = new FabricText(player.playerName, {
                                 ...(np || {}), text: player.playerName,
-                                left: np?.left ?? backCX, top: np?.top ?? (br.top + br.height * 0.26),
-                                fontSize: np?.fontSize ?? 38, fontFamily: np?.fontFamily ?? defaultFont, fill: np?.fill ?? defaultColor, originX: 'center', originY: 'center', selectable: false, objectCaching: false
+                                left: nameLeft, top: nameTop,
+                                fontSize: nameFontSize,
+                                scaleX: nameScaleX, scaleY: nameScaleY,
+                                fontFamily: np?.fontFamily ?? defaultFont, fill: np?.fill ?? defaultColor, originX: 'center', originY: 'center', selectable: false, objectCaching: false
                             });
                             (nameText as any).name = 'playerName'; canvasRef.add(nameText);
 
+                            let numLeft = nump?.left ?? backCX;
+                            let numTop = nump?.top ?? (br.top + br.height * 0.52);
+                            let numFontSize = nump?.fontSize ?? 115;
+                            let numScaleX = nump?.scaleX ?? 1;
+                            let numScaleY = nump?.scaleY ?? 1;
+
+                            if (nump && nump.relLeft !== undefined && nump.relLeft !== null) {
+                                numLeft = br.left + (nump.relLeft * br.width);
+                                numTop = br.top + (nump.relTop * br.height);
+                                if (nump.relFontSize) numFontSize = nump.relFontSize * br.height;
+                                if (nump.relScaleX) numScaleX = nump.relScaleX * bgImg.scaleX!;
+                                if (nump.relScaleY) numScaleY = nump.relScaleY * bgImg.scaleY!;
+                            }
+
                             const numText = new FabricText(player.jerseyNumber, {
                                 ...(nump || {}), text: player.jerseyNumber,
-                                left: nump?.left ?? backCX, top: nump?.top ?? (br.top + br.height * 0.52),
-                                fontSize: nump?.fontSize ?? 115, fontFamily: nump?.fontFamily ?? defaultFont, fill: nump?.fill ?? defaultColor, originX: 'center', originY: 'center', selectable: false, objectCaching: false
+                                left: numLeft, top: numTop,
+                                fontSize: numFontSize,
+                                scaleX: numScaleX, scaleY: numScaleY,
+                                fontFamily: nump?.fontFamily ?? defaultFont, fill: nump?.fill ?? defaultColor, originX: 'center', originY: 'center', selectable: false, objectCaching: false
                             });
                             (numText as any).name = 'jerseyNumber'; canvasRef.add(numText);
                         }
 
                         for (const ct of (viewPlayerElements.customTexts || [])) {
-                            const t = new FabricText(ct.text ?? '', { ...ct, paintFirst: 'stroke', selectable: false, objectCaching: false });
+                            const propsToUse = { ...ct };
+                            if (bgImg && propsToUse.relLeft !== undefined && propsToUse.relLeft !== null) {
+                                const rect = bgImg.getBoundingRect();
+                                propsToUse.left = rect.left + (propsToUse.relLeft * rect.width);
+                                propsToUse.top = rect.top + (propsToUse.relTop! * rect.height);
+                                if (propsToUse.relFontSize) propsToUse.fontSize = propsToUse.relFontSize * rect.height;
+                                if (propsToUse.relScaleX) propsToUse.scaleX = propsToUse.relScaleX * bgImg.scaleX!;
+                                if (propsToUse.relScaleY) propsToUse.scaleY = propsToUse.relScaleY * bgImg.scaleY!;
+                            }
+                            const t = new FabricText(propsToUse.text ?? '', { ...propsToUse, paintFirst: 'stroke', selectable: false, objectCaching: false });
                             (t as any).name = 'customText'; canvasRef.add(t);
                         }
                         for (const cl of (viewPlayerElements.customLogos || [])) {
@@ -384,7 +425,30 @@ export const ExportPanel = ({
                                 }
                                 
                                 const clonedLogo = await logoImg!.clone();
-                                clonedLogo.set({ ...cl, selectable: false });
+                                let targetLeft = cl.left;
+                                let targetTop = cl.top;
+                                let targetScaleX = cl.scaleX;
+                                let targetScaleY = cl.scaleY;
+
+                                if (bgImg && cl.relLeft !== undefined && cl.relLeft !== null) {
+                                    const rect = bgImg.getBoundingRect();
+                                    targetLeft = rect.left + (cl.relLeft * rect.width);
+                                    targetTop = rect.top + (cl.relTop * rect.height);
+                                    
+                                    if (cl.relScaleX !== undefined && cl.relScaleX !== null) {
+                                        targetScaleX = cl.relScaleX * bgImg.scaleX!;
+                                        targetScaleY = cl.relScaleY * bgImg.scaleY!;
+                                    }
+                                }
+
+                                clonedLogo.set({
+                                    ...cl,
+                                    left: targetLeft,
+                                    top: targetTop,
+                                    scaleX: targetScaleX,
+                                    scaleY: targetScaleY,
+                                    selectable: false
+                                });
                                 (clonedLogo as any).name = 'customLogo'; 
                                 canvasRef.add(clonedLogo);
                             } catch (e) { logger.warn('Logo load failed', e); }

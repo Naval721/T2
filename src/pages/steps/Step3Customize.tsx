@@ -66,19 +66,89 @@ export const Step3Customize = ({
     canvasRef.requestRenderAll();
   };
 
-  const handleAddLogo = async (logoUrl: string) => {
+  const handleAddLogo = async (logoUrl: string, logoType: 'custom' | 'front1' | 'front2' | 'front3' = 'custom') => {
     if (!canvasRef) return;
     try {
       const logoImg = await FabricImage.fromURL(logoUrl);
+      
+      // Find current jersey image on canvas to compute relative positioning/scaling
+      const shirtObj = canvasRef.getObjects().find(o => {
+        const n = (o as { name?: string }).name;
+        return n === 'jerseyFront' || n === 'jerseyBack' ||
+            n === 'leftSleeve' || n === 'rightSleeve' || n === 'collar';
+      });
+      const rect = shirtObj ? shirtObj.getBoundingRect() : null;
+
+      // Default custom logo placement
+      let targetLeft = canvasRef.width! / 2;
+      let targetTop = canvasRef.height! / 2;
+      
+      // Baseline size 28 dimensions (width: 434px, height: 630px)
+      const baselineWidth = 434;
+      
+      // Current scale relative to baseline jersey size
+      const scaleFactor = rect ? (rect.width / baselineWidth) : 1;
+      
+      // Calculate sizes: Front 1 & 2 are 3.3in x 3.5in. Front 3 (Sponsor) is 7.5in x 3.0in
+      let widthIn = 3.3;
+      let heightIn = 3.5;
+      if (logoType === 'front3') {
+        widthIn = 7.5;
+        heightIn = 3.0;
+      }
+      
+      const fixedWidthPx = widthIn * 28 * scaleFactor; 
+      const fixedHeightPx = heightIn * 28 * scaleFactor;
+
+      if (rect) {
+        if (logoType === 'front1') {
+          // Left Chest (Viewer's Right) - relLeft = 0.684, relTop = 0.341
+          targetLeft = rect.left + 0.684 * rect.width;
+          targetTop = rect.top + 0.341 * rect.height;
+        } else if (logoType === 'front2') {
+          // Right Chest (Viewer's Left) - relLeft = 0.316, relTop = 0.341
+          targetLeft = rect.left + 0.316 * rect.width;
+          targetTop = rect.top + 0.341 * rect.height;
+        } else if (logoType === 'front3') {
+          // Center Bottom - relLeft = 0.5, relTop = 0.754
+          targetLeft = rect.left + 0.5 * rect.width;
+          targetTop = rect.top + 0.754 * rect.height;
+        }
+      } else {
+        // Fallback to absolute positions if no jersey image is on canvas
+        if (logoType === 'front1') {
+          targetLeft = (canvasRef.width! / 2) + 80; // Left Chest (Viewer's Right)
+          targetTop = 260;
+        } else if (logoType === 'front2') {
+          targetLeft = (canvasRef.width! / 2) - 80; // Right Chest (Viewer's Left)
+          targetTop = 260;
+        } else if (logoType === 'front3') {
+          targetLeft = canvasRef.width! / 2;        // Center Bottom
+          targetTop = 520;
+        }
+      }
+
       logoImg.set({
-        left: canvasRef.width! / 2,
-        top: canvasRef.height! / 2,
+        left: targetLeft,
+        top: targetTop,
         originX: 'center',
         originY: 'center',
       });
-      if (logoImg.width && logoImg.width > 300) {
-        logoImg.scaleToWidth(300);
+
+      if (logoType !== 'custom') {
+        // Scale proportionally to fit within the scaled 3.3in x 3.5in box
+        if (logoImg.width && logoImg.height) {
+          const scaleX = fixedWidthPx / logoImg.width;
+          const scaleY = fixedHeightPx / logoImg.height;
+          const scale = Math.min(scaleX, scaleY);
+          logoImg.scale(scale);
+        }
+      } else {
+        if (logoImg.width && logoImg.width > 300) {
+          logoImg.scaleToWidth(300);
+        }
       }
+
       // BUG-C4/A1 FIX: Set .name and .src BEFORE adding to canvas so that
       // the object:added → persistState() handler captures them correctly.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

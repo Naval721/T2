@@ -36,9 +36,11 @@ export const OnboardingPage = () => {
   useEffect(() => {
     if (user && currentPoints > 0) {
       // User is logged in and has points, ready to design
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCurrentStep('ready')
     } else if (user && currentPoints === 0) {
       // User is logged in but needs to buy points
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCurrentStep('points')
     }
   }, [user, currentPoints])

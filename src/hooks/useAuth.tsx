@@ -153,6 +153,20 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         total_points_used: 0
       }
 
+      // Use upsert (insert or ignore) so this is idempotent:
+      // if the DB trigger already created the profile, we just fetch it instead.
+      const { data: existingProfile } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle()
+
+      if (existingProfile) {
+        // Profile already exists (created by DB trigger) — just load it
+        setProfile(existingProfile)
+        return
+      }
+
       const { data, error } = await supabase
         .from('user_profiles')
         .insert([{ id: userId, ...newProfile }])
@@ -163,8 +177,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         logger.error('Error creating profile:', error)
       } else {
         setProfile(data)
-        // Create free trial transaction
-        await supabase
+        // Create free trial transaction (best-effort)
+        supabase
           .from('points_transactions')
           .insert({
             user_id: userId,
@@ -172,6 +186,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             points_amount: 5,
             description: 'Free trial - 5 free exports'
           })
+          .then(({ error: txErr }) => { if (txErr) logger.warn('Free trial transaction log failed:', txErr) })
       }
     } catch (error) {
       logger.error('Error in createUserProfile:', error)
@@ -459,7 +474,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       return { success: false, error: 'Not authenticated' }
     }
 
-    // ── Rate-limit guard ──────────────────────────────────────────────────────
+    // Safety guard: reject suspiciously large point additions (>= 10,000).
+    // This prevents bugs where a price (e.g. ₹2500) is accidentally passed instead of the points count (e.g. 2200).
+    if (points <= 0 || points >= 10000) {
+      logger.error(`addPoints: rejected out-of-range value ${points}. Only values 1–9999 are accepted.`)
+      return { success: false, error: `Invalid points amount: ${points}. Must be between 1 and 9,999.` }
+    }
+
     if (_isRateLimited()) {
       return { success: false, error: 'Rate limit exceeded. Please try again shortly.' }
     }

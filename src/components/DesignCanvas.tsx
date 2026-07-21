@@ -32,6 +32,11 @@ type TextProps = {
     scaleX?: number;
     scaleY?: number;
     paintFirst?: 'fill' | 'stroke';
+    relLeft?: number | null;
+    relTop?: number | null;
+    relScaleX?: number | null;
+    relScaleY?: number | null;
+    relFontSize?: number | null;
 };
 
 type LogoProps = {
@@ -82,25 +87,41 @@ type CanvasBounds = {
     height: number;
 };
 
-const pickTextProps = (t: ExtendedFabricText): TextProps => ({
-    text: t.text || '',
-    left: t.left ?? 0,
-    top: t.top ?? 0,
-    fontSize: t.fontSize ?? 38,
-    fontFamily: t.fontFamily ?? 'Anton',
-    fill: (t.fill as string) ?? '#000000',
-    stroke: (t.stroke as string) ?? '',
-    strokeWidth: t.strokeWidth ?? 0,
-    angle: t.angle ?? 0,
-    textAlign: t.textAlign ?? 'center',
-    width: t.width,
-    height: t.height,
-    originX: 'center',
-    originY: 'center',
-    scaleX: t.scaleX ?? 1,
-    scaleY: t.scaleY ?? 1,
-    paintFirst: t.paintFirst ?? 'stroke',
-});
+const pickTextProps = (t: ExtendedFabricText, shirtObj?: ExtendedFabricImage | null, shirtRect?: CanvasBounds | null): TextProps => {
+    let relLeft = null, relTop = null, relFontSize = null, relScaleX = null, relScaleY = null;
+    if (shirtObj && shirtRect) {
+        relLeft = (t.left! - shirtRect.left) / shirtRect.width;
+        relTop = (t.top! - shirtRect.top) / shirtRect.height;
+        relScaleX = t.scaleX! / shirtObj.scaleX!;
+        relScaleY = t.scaleY! / shirtObj.scaleY!;
+        relFontSize = t.fontSize! / shirtRect.height;
+    }
+
+    return {
+        text: t.text || '',
+        left: t.left ?? 0,
+        top: t.top ?? 0,
+        fontSize: t.fontSize ?? 38,
+        fontFamily: t.fontFamily ?? 'Anton',
+        fill: (t.fill as string) ?? '#000000',
+        stroke: (t.stroke as string) ?? '',
+        strokeWidth: t.strokeWidth ?? 0,
+        angle: t.angle ?? 0,
+        textAlign: t.textAlign ?? 'center',
+        width: t.width,
+        height: t.height,
+        originX: 'center',
+        originY: 'center',
+        scaleX: t.scaleX ?? 1,
+        scaleY: t.scaleY ?? 1,
+        paintFirst: t.paintFirst ?? 'stroke',
+        relLeft,
+        relTop,
+        relScaleX,
+        relScaleY,
+        relFontSize
+    };
+};
 
 const getVisibleContentBounds = (canvas: FabricCanvas): CanvasBounds | null => {
     // Filter to only include jersey design elements (exclude UI labels)
@@ -288,7 +309,7 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
     useEffect(() => {
         currentViewRef.current = currentView;
         onViewChange?.(currentView);
-    }, [currentView]);
+    }, [currentView, onViewChange]);
 
     useEffect(() => {
         if (!canvasRef.current || isInitialized.current) return;
@@ -351,12 +372,20 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
             textRef.current[view] = {};
         }
 
+        // Find shirt object to compute relative coordinates
+        const shirtObj = fabricCanvas.getObjects().find(o => {
+            const n = (o as ExtendedFabricImage).name;
+            return n === 'jerseyFront' || n === 'jerseyBack' ||
+                n === 'leftSleeve' || n === 'rightSleeve' || n === 'collar';
+        }) as ExtendedFabricImage | undefined;
+        const shirtRect = shirtObj ? shirtObj.getBoundingRect() : null;
+
         // Persist name and number globally
         if (nameObj && view === 'back') {
-            textRef.current[view].name = pickTextProps(nameObj);
+            textRef.current[view].name = pickTextProps(nameObj, shirtObj, shirtRect);
         }
         if (numberObj && view === 'back') {
-            textRef.current[view].number = pickTextProps(numberObj);
+            textRef.current[view].number = pickTextProps(numberObj, shirtObj, shirtRect);
         }
 
         // Persist custom texts & logos into the global template too,
@@ -369,29 +398,37 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
             return '';
         };
 
-        textRef.current[view].customTexts = customTexts.map(pickTextProps);
-        textRef.current[view].customLogos = customLogos.map(logo => ({
-            src: pickLogoSrc(logo),
-            left: logo.left ?? 0,
-            top: logo.top ?? 0,
-            scaleX: logo.scaleX ?? 1,
-            scaleY: logo.scaleY ?? 1,
-            angle: logo.angle ?? 0,
-            originX: 'center' as const,
-            originY: 'center' as const,
-        }));
-        const customElementsData = {
-            customTexts: customTexts.map(pickTextProps),
-            customLogos: customLogos.map(logo => ({
+
+
+        const mapLogo = (logo: ExtendedFabricImage) => {
+            let relLeft = null, relTop = null, relScaleX = null, relScaleY = null;
+            if (shirtRect && shirtObj) {
+                relLeft = (logo.left! - shirtRect.left) / shirtRect.width;
+                relTop = (logo.top! - shirtRect.top) / shirtRect.height;
+                relScaleX = logo.scaleX! / shirtObj.scaleX!;
+                relScaleY = logo.scaleY! / shirtObj.scaleY!;
+            }
+            return {
                 src: pickLogoSrc(logo),
                 left: logo.left ?? 0,
                 top: logo.top ?? 0,
                 scaleX: logo.scaleX ?? 1,
                 scaleY: logo.scaleY ?? 1,
                 angle: logo.angle ?? 0,
-                originX: 'center',
-                originY: 'center',
-            }))
+                originX: 'center' as const,
+                originY: 'center' as const,
+                relLeft,
+                relTop,
+                relScaleX,
+                relScaleY
+            };
+        };
+
+        textRef.current[view].customTexts = customTexts.map(t => pickTextProps(t, shirtObj, shirtRect));
+        textRef.current[view].customLogos = customLogos.map(mapLogo);
+        const customElementsData = {
+            customTexts: customTexts.map(t => pickTextProps(t, shirtObj, shirtRect)),
+            customLogos: customLogos.map(mapLogo)
         };
 
         const playerKey = `jerseyDesigner:playerElements_${currentPlayer.playerName}_${currentPlayer.jerseyNumber}`;
@@ -525,13 +562,26 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
                     textRef.current[prevView] = {};
                 }
 
-                if (nameObjPrev) textRef.current[prevView].name = pickTextProps(nameObjPrev);
-                if (numberObjPrev) textRef.current[prevView].number = pickTextProps(numberObjPrev);
-
                 // Persist the current view's custom elements to the local player store before clearing
-                const customElementsData = {
-                    customTexts: customTextsPrev.map(pickTextProps),
-                    customLogos: customLogosPrev.map(logo => ({
+                const shirtObj = fabricCanvas.getObjects().find(o => {
+                    const n = (o as ExtendedFabricImage).name;
+                    return n === 'jerseyFront' || n === 'jerseyBack' ||
+                        n === 'leftSleeve' || n === 'rightSleeve' || n === 'collar';
+                }) as ExtendedFabricImage | undefined;
+                const shirtRect = shirtObj ? shirtObj.getBoundingRect() : null;
+
+                if (nameObjPrev) textRef.current[prevView].name = pickTextProps(nameObjPrev, shirtObj, shirtRect);
+                if (numberObjPrev) textRef.current[prevView].number = pickTextProps(numberObjPrev, shirtObj, shirtRect);
+
+                const mapLogo = (logo: ExtendedFabricImage) => {
+                    let relLeft = null, relTop = null, relScaleX = null, relScaleY = null;
+                    if (shirtRect && shirtObj) {
+                        relLeft = (logo.left! - shirtRect.left) / shirtRect.width;
+                        relTop = (logo.top! - shirtRect.top) / shirtRect.height;
+                        relScaleX = logo.scaleX! / shirtObj.scaleX!;
+                        relScaleY = logo.scaleY! / shirtObj.scaleY!;
+                    }
+                    return {
                         src: (logo as any).src || ((logo as any).getSrc?.() ?? '') || '',
                         left: logo.left ?? 0,
                         top: logo.top ?? 0,
@@ -540,7 +590,16 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
                         angle: logo.angle ?? 0,
                         originX: 'center',
                         originY: 'center',
-                    }))
+                        relLeft,
+                        relTop,
+                        relScaleX,
+                        relScaleY
+                    };
+                };
+
+                const customElementsData = {
+                    customTexts: customTextsPrev.map(t => pickTextProps(t, shirtObj, shirtRect)),
+                    customLogos: customLogosPrev.map(mapLogo)
                 };
 
                 // Also update global template ref so logos propagate to all players
@@ -721,9 +780,16 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
 
             // Add player information if selected and on back view
             if (selectedPlayer && activeView === 'back') {
+                const currentShirt = fabricCanvas.getObjects().find(o => {
+                    const n = (o as ExtendedFabricImage).name;
+                    return n === 'jerseyFront' || n === 'jerseyBack' ||
+                        n === 'leftSleeve' || n === 'rightSleeve' || n === 'collar';
+                }) as ExtendedFabricImage | undefined;
+                const rect = currentShirt ? currentShirt.getBoundingRect() : null;
+
                 // Player name (preserve previous placement/style if existed)
                 const defaultNameTop = 103;
-                const nameProps = prevNameProps ?? {
+                let nameProps = prevNameProps ?? {
                     text: selectedPlayer.playerName,
                     left: fabricCanvas.width! / 2,
                     top: defaultNameTop,
@@ -738,6 +804,19 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
                     originX: 'center' as const,
                     originY: 'center' as const,
                 };
+                
+                if (rect && nameProps.relLeft !== undefined && nameProps.relLeft !== null) {
+                    nameProps = {
+                        ...nameProps,
+                        text: selectedPlayer.playerName,
+                        left: rect.left + (nameProps.relLeft * rect.width),
+                        top: rect.top + (nameProps.relTop! * rect.height),
+                        fontSize: nameProps.relFontSize ? nameProps.relFontSize * rect.height : nameProps.fontSize,
+                        scaleX: nameProps.relScaleX ? nameProps.relScaleX * currentShirt!.scaleX! : nameProps.scaleX,
+                        scaleY: nameProps.relScaleY ? nameProps.relScaleY * currentShirt!.scaleY! : nameProps.scaleY,
+                    };
+                }
+
                 const nameText = new FabricText(selectedPlayer.playerName, {
                     ...nameProps,
                     objectCaching: false,
@@ -748,7 +827,7 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
 
                 // Jersey number (preserve previous placement/style if existed)
                 const defaultNumberTop = 257;
-                const numberProps = prevNumberProps ?? {
+                let numberProps = prevNumberProps ?? {
                     text: selectedPlayer.jerseyNumber,
                     left: fabricCanvas.width! / 2,
                     top: defaultNumberTop,
@@ -763,6 +842,19 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
                     originX: 'center' as const,
                     originY: 'center' as const,
                 };
+                
+                if (rect && numberProps.relLeft !== undefined && numberProps.relLeft !== null) {
+                    numberProps = {
+                        ...numberProps,
+                        text: selectedPlayer.jerseyNumber,
+                        left: rect.left + (numberProps.relLeft * rect.width),
+                        top: rect.top + (numberProps.relTop! * rect.height),
+                        fontSize: numberProps.relFontSize ? numberProps.relFontSize * rect.height : numberProps.fontSize,
+                        scaleX: numberProps.relScaleX ? numberProps.relScaleX * currentShirt!.scaleX! : numberProps.scaleX,
+                        scaleY: numberProps.relScaleY ? numberProps.relScaleY * currentShirt!.scaleY! : numberProps.scaleY,
+                    };
+                }
+
                 const numberText = new FabricText(selectedPlayer.jerseyNumber, {
                     ...numberProps,
                     objectCaching: false,
@@ -796,8 +888,8 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
                         fitTextToWidth(numberText, maxTextWidth, 24);
                         // Persist the auto-center positions immediately without wiping out loading logos
                         if (!textRef.current[activeView]) textRef.current[activeView] = {};
-                        textRef.current[activeView].name = pickTextProps(nameText);
-                        textRef.current[activeView].number = pickTextProps(numberText);
+                        textRef.current[activeView].name = pickTextProps(nameText, backImg, rect);
+                        textRef.current[activeView].number = pickTextProps(numberText, backImg, rect);
                         saveGlobalTemplateDebounced();
                     } else if (backImg) {
                         // Even with saved placements, clamp text that overflows the jersey
@@ -830,8 +922,25 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
             // Add custom texts for this view
             const customTexts = viewPlayerElements.customTexts || [];
             const customTextObjects = customTexts.map((customTextProps: any) => {
-                const customText = new FabricText(customTextProps.text, {
-                    ...customTextProps,
+                const propsToUse = { ...customTextProps };
+                
+                const currentShirt = fabricCanvas.getObjects().find(o => {
+                    const n = (o as ExtendedFabricImage).name;
+                    return n === 'jerseyFront' || n === 'jerseyBack' ||
+                        n === 'leftSleeve' || n === 'rightSleeve' || n === 'collar';
+                }) as ExtendedFabricImage | undefined;
+                
+                if (currentShirt && propsToUse.relLeft !== undefined && propsToUse.relLeft !== null) {
+                    const rect = currentShirt.getBoundingRect();
+                    propsToUse.left = rect.left + (propsToUse.relLeft * rect.width);
+                    propsToUse.top = rect.top + (propsToUse.relTop * rect.height);
+                    if (propsToUse.relFontSize) propsToUse.fontSize = propsToUse.relFontSize * rect.height;
+                    if (propsToUse.relScaleX) propsToUse.scaleX = propsToUse.relScaleX * currentShirt.scaleX!;
+                    if (propsToUse.relScaleY) propsToUse.scaleY = propsToUse.relScaleY * currentShirt.scaleY!;
+                }
+
+                const customText = new FabricText(propsToUse.text, {
+                    ...propsToUse,
                     paintFirst: 'stroke',
                     objectCaching: false,
                 }) as ExtendedFabricText;
@@ -851,11 +960,34 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
                             // Guard: if another loadJerseyView started while we were awaiting,
                             // discard this result to avoid adding logos to the wrong player's canvas.
                             if (myToken !== loadTokenRef.current) return null;
+                            let targetLeft = logoProps.left;
+                            let targetTop = logoProps.top;
+                            let targetScaleX = logoProps.scaleX;
+                            let targetScaleY = logoProps.scaleY;
+
+                            // Find current shirt rect to compute relative positions
+                            const currentShirt = fabricCanvas.getObjects().find(o => {
+                                const n = (o as ExtendedFabricImage).name;
+                                return n === 'jerseyFront' || n === 'jerseyBack' ||
+                                    n === 'leftSleeve' || n === 'rightSleeve' || n === 'collar';
+                            }) as ExtendedFabricImage | undefined;
+
+                            if (currentShirt && logoProps.relLeft !== undefined && logoProps.relLeft !== null) {
+                                const rect = currentShirt.getBoundingRect();
+                                targetLeft = rect.left + (logoProps.relLeft * rect.width);
+                                targetTop = rect.top + (logoProps.relTop * rect.height);
+                                
+                                if (logoProps.relScaleX !== undefined && logoProps.relScaleX !== null) {
+                                    targetScaleX = logoProps.relScaleX * currentShirt.scaleX!;
+                                    targetScaleY = logoProps.relScaleY * currentShirt.scaleY!;
+                                }
+                            }
+
                             logoImg.set({
-                                left: logoProps.left,
-                                top: logoProps.top,
-                                scaleX: logoProps.scaleX,
-                                scaleY: logoProps.scaleY,
+                                left: targetLeft,
+                                top: targetTop,
+                                scaleX: targetScaleX,
+                                scaleY: targetScaleY,
                                 angle: logoProps.angle,
                                 originX: 'center',
                                 originY: 'center',
@@ -885,14 +1017,13 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
                         n === 'leftSleeve' || n === 'rightSleeve' || n === 'collar';
                 }) as ExtendedFabricImage | undefined;
 
-                // Build label text: name · #number · size · team (if any)
+                // Build label text: name#numberSZsize (direct code style, no spaces)
                 const labelParts: string[] = [
-                    selectedPlayer.playerName,
+                    selectedPlayer.playerName.replace(/\s+/g, '').toUpperCase(),
                     `#${selectedPlayer.jerseyNumber}`,
-                    `Sz ${selectedPlayer.size}`,
+                    `SZ${selectedPlayer.size.replace(/\s+/g, '').toUpperCase()}`,
                 ];
-                if (selectedPlayer.teamName) labelParts.push(selectedPlayer.teamName);
-                const labelText = labelParts.join('  ·  ');
+                const labelText = labelParts.join('');
 
                 // Default to canvas bottom-left if no shirt image on canvas yet
                 let labelLeft = 12;
@@ -911,10 +1042,11 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
                 const playerLabel = new FabricText(labelText, {
                     left: labelLeft,
                     top: labelTop,
-                    fontSize: 9,
+                    fontSize: 7,
                     fontFamily: 'monospace',
-                    fill: '#1a1a1a',
-                    opacity: 0.72,
+                    fontWeight: 'bold',
+                    fill: '#000000',
+                    opacity: 1.0,
                     selectable: false,
                     evented: false,
                     originX,

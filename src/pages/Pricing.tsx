@@ -25,7 +25,7 @@ const Pricing = () => {
 
   const currentPoints = profile?.points_balance || 0;
 
-  const SUPPORT_EMAIL = 'support@jerseyartist.com';
+  const SUPPORT_EMAIL = 'alexxzzx4839@outlook.com';
   const getEmailParams = () => {
     const subject = `Enterprise Pricing Inquiry`;
     const body = `Hi,\n\nI'd like to inquire about Enterprise pricing for GxDrip.\n\nPlease let me know the next steps.\n\nThank you!`;

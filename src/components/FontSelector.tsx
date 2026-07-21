@@ -353,7 +353,7 @@ export const FontSelector = ({
                                         <button
                                             key={swatch}
                                             title={swatch}
-                                            onClick={() => { onColorChange(swatch); setHexInput(swatch); }}
+                                            onClick={() => { onColorChange(swatch); setHexInput(swatch); setColorOpen(false); }}
                                             className={`w-5 h-5 rounded-sm border transition-transform hover:scale-110 hover:z-10
                         ${color === swatch ? "ring-2 ring-primary ring-offset-1 scale-110" : "border-border/40"}`}
                                             style={{ background: swatch }}
@@ -378,13 +378,21 @@ export const FontSelector = ({
                                         value={hexInput}
                                         onChange={e => setHexInput(e.target.value)}
                                         onBlur={e => applyHex(e.target.value)}
-                                        onKeyDown={e => e.key === "Enter" && applyHex(hexInput)}
+                                        onKeyDown={e => {
+                                            if (e.key === "Enter") {
+                                                applyHex(hexInput);
+                                                setColorOpen(false);
+                                            }
+                                        }}
                                         maxLength={7}
                                         className="flex-1 h-8 px-2 rounded border border-border bg-background text-xs font-mono uppercase outline-none focus:ring-2 focus:ring-primary/30"
                                         placeholder="#000000"
                                     />
                                     <button
-                                        onClick={() => applyHex(hexInput)}
+                                        onClick={() => {
+                                            applyHex(hexInput);
+                                            setColorOpen(false);
+                                        }}
                                         className="h-8 px-2 rounded bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition"
                                     >OK</button>
                                 </div>
@@ -418,7 +426,7 @@ export const FontSelector = ({
                                         <button
                                             key={swatch}
                                             title={swatch}
-                                            onClick={() => { onStrokeColorChange(swatch); setStrokeHexInput(swatch); }}
+                                            onClick={() => { onStrokeColorChange(swatch); setStrokeHexInput(swatch); setStrokeOpen(false); }}
                                             className={`w-5 h-5 rounded-sm border transition-transform hover:scale-110 hover:z-10
                         ${strokeColor === swatch ? "ring-2 ring-primary ring-offset-1 scale-110" : "border-border/40"}`}
                                             style={{ background: swatch }}
@@ -442,13 +450,21 @@ export const FontSelector = ({
                                         value={strokeHexInput}
                                         onChange={e => setStrokeHexInput(e.target.value)}
                                         onBlur={e => applyStrokeHex(e.target.value)}
-                                        onKeyDown={e => e.key === "Enter" && applyStrokeHex(strokeHexInput)}
+                                        onKeyDown={e => {
+                                            if (e.key === "Enter") {
+                                                applyStrokeHex(strokeHexInput);
+                                                setStrokeOpen(false);
+                                            }
+                                        }}
                                         maxLength={7}
                                         className="flex-1 h-8 px-2 rounded border border-border bg-background text-xs font-mono uppercase outline-none focus:ring-2 focus:ring-primary/30"
                                         placeholder="#000000"
                                     />
                                     <button
-                                        onClick={() => applyStrokeHex(strokeHexInput)}
+                                        onClick={() => {
+                                            applyStrokeHex(strokeHexInput);
+                                            setStrokeOpen(false);
+                                        }}
                                         className="h-8 px-2 rounded bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition"
                                     >OK</button>
                                 </div>

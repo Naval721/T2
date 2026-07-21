@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,17 +9,18 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import Footer from "@/components/Footer";
 import { Loader2 } from "lucide-react";
 import "@/utils/debug"; // Check environment variables
+import { lazyWithRetry } from "@/lib/lazy";
 
 // Lazy load pages for better performance
-const OnboardingPage = lazy(() => import("./pages/OnboardingPage").then(m => ({ default: m.OnboardingPage })));
-const Index = lazy(() => import("./pages/Index"));
-const NotFound = lazy(() => import("./pages/NotFound"));
-const Pricing = lazy(() => import("./pages/Pricing"));
-const Contact = lazy(() => import("./pages/Contact"));
-const Privacy = lazy(() => import("./pages/Privacy"));
-const Terms = lazy(() => import("./pages/Terms"));
-const Refund = lazy(() => import("./pages/Refund"));
-const Shipping = lazy(() => import("./pages/Shipping"));
+const OnboardingPage = lazyWithRetry(() => import("./pages/OnboardingPage").then(m => ({ default: m.OnboardingPage })));
+const Index = lazyWithRetry(() => import("./pages/Index"));
+const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
+const Pricing = lazyWithRetry(() => import("./pages/Pricing"));
+const Contact = lazyWithRetry(() => import("./pages/Contact"));
+const Privacy = lazyWithRetry(() => import("./pages/Privacy"));
+const Terms = lazyWithRetry(() => import("./pages/Terms"));
+const Refund = lazyWithRetry(() => import("./pages/Refund"));
+const Shipping = lazyWithRetry(() => import("./pages/Shipping"));
 
 const queryClient = new QueryClient({
   defaultOptions: {

@@ -20,7 +20,7 @@ interface PointsPurchaseProps {
   currentPoints: number
 }
 
-const SUPPORT_EMAIL = 'alexxzzx4839@outlook.com'
+const SUPPORT_EMAIL = 'navalmagdum721@gmail.com'
 
 export const PointsPurchase = ({ isOpen, onClose, currentPoints }: PointsPurchaseProps) => {
   const [selectedPlanForMail, setSelectedPlanForMail] = useState<typeof POINTS_PLANS[0] | null>(null)

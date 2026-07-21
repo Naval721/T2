@@ -20,7 +20,7 @@ const Refund = () => {
             <section>
               <h2 className="text-2xl font-semibold text-black mb-3">2. Unused Points</h2>
               <p className="text-gray-700 leading-relaxed">
-                Refunds for completely unused point packages may be considered on a case-by-case basis within 7 days of purchase. To request a refund, email <a href="mailto:support@gxdrip.in" className="text-black underline">support@gxdrip.in</a> with your account email and order details.
+                Refunds for completely unused point packages may be considered on a case-by-case basis within 7 days of purchase. To request a refund, email <a href="mailto:navalmagdum721@gmail.com" className="text-black underline">navalmagdum721@gmail.com</a> with your account email and order details.
               </p>
             </section>
 
@@ -34,7 +34,7 @@ const Refund = () => {
             <section>
               <h2 className="text-2xl font-semibold text-black mb-3">4. Contact</h2>
               <p className="text-gray-700 leading-relaxed">
-                For refund requests, contact us at <a href="mailto:support@gxdrip.in" className="text-black underline">support@gxdrip.in</a> with the subject line "Refund Request".
+                For refund requests, contact us at <a href="mailto:navalmagdum721@gmail.com" className="text-black underline">navalmagdum721@gmail.com</a> with the subject line "Refund Request".
               </p>
             </section>
           </div>

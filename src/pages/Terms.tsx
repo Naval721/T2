@@ -55,7 +55,7 @@ const Terms = () => {
             <section>
               <h2 className="text-2xl font-semibold text-black mb-3">7. Contact</h2>
               <p className="text-gray-700 leading-relaxed">
-                For questions about these terms, contact us at <a href="mailto:support@gxdrip.in" className="text-black underline">support@gxdrip.in</a>.
+                For questions about these terms, contact us at <a href="mailto:navalmagdum721@gmail.com" className="text-black underline">navalmagdum721@gmail.com</a>.
               </p>
             </section>
           </div>

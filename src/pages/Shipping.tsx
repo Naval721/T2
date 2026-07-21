@@ -34,7 +34,7 @@ const Shipping = () => {
             <section>
               <h2 className="text-2xl font-semibold text-black mb-3">4. Contact</h2>
               <p className="text-gray-700 leading-relaxed">
-                If you experience any issues receiving your downloaded files, contact us at <a href="mailto:support@gxdrip.in" className="text-black underline">support@gxdrip.in</a>.
+                If you experience any issues receiving your downloaded files, contact us at <a href="mailto:navalmagdum721@gmail.com" className="text-black underline">navalmagdum721@gmail.com</a>.
               </p>
             </section>
           </div>

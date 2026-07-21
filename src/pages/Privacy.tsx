@@ -41,14 +41,14 @@ const Privacy = () => {
             <section>
               <h2 className="text-2xl font-semibold text-black mb-3">5. Your Rights</h2>
               <p className="text-gray-700 leading-relaxed">
-                You may request deletion of your account and associated data at any time by contacting us at <a href="mailto:support@gxdrip.in" className="text-black underline">support@gxdrip.in</a>. We will process deletion requests within 30 days.
+                You may request deletion of your account and associated data at any time by contacting us at <a href="mailto:navalmagdum721@gmail.com" className="text-black underline">navalmagdum721@gmail.com</a>. We will process deletion requests within 30 days.
               </p>
             </section>
 
             <section>
               <h2 className="text-2xl font-semibold text-black mb-3">6. Contact</h2>
               <p className="text-gray-700 leading-relaxed">
-                For any privacy-related questions, please contact us at <a href="mailto:support@gxdrip.in" className="text-black underline">support@gxdrip.in</a>.
+                For any privacy-related questions, please contact us at <a href="mailto:navalmagdum721@gmail.com" className="text-black underline">navalmagdum721@gmail.com</a>.
               </p>
             </section>
           </div>

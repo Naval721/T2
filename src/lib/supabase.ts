@@ -54,5 +54,5 @@ export interface DesignProject {
 export const SECURITY_CONFIG = Object.freeze({
   SESSION_TIMEOUT: 24 * 60 * 60 * 1000, // 24 hours
   RATE_LIMIT_WINDOW:        60 * 1000,   // 1 minute sliding window
-  MAX_REQUESTS_PER_WINDOW:  10           // max points API calls per window
+  MAX_REQUESTS_PER_WINDOW:  60           // max points API calls per window
 })

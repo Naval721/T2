@@ -57,8 +57,10 @@ export const CustomizationTools = ({ onAddText, onAddLogo, canvasRef }: Customiz
     if (activeObject && activeObject instanceof FabricText) {
       if (key === 'fontSize') {
         activeObject.set({ fontSize: value as number, scaleX: 1, scaleY: 1 });
+        activeObject.setCoords();
       } else {
         activeObject.set(key as keyof FabricText, value as never);
+        activeObject.setCoords();
       }
       canvasRef.requestRenderAll();
       canvasRef.fire('object:modified', { target: activeObject });

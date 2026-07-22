@@ -12,6 +12,8 @@ import localforage from "localforage";
 import { getSizeScaleFactorFromDim, computeExportMultiplier, getSizeDisplayBox, getSizeDim } from "@/lib/sizes";
 import { logger } from "@/lib/logger";
 import { setPngDpi } from "@/utils/pngDpi";
+import { addPlayerIdentityLabel } from "@/utils/playerIdentity";
+import { getPlayerIdentifier } from "@/lib/statePersistence";
 
 // Export quality constants
 const EXPORT_TARGET_DPI = 450;
@@ -119,7 +121,7 @@ export const ExportPanel = ({
             if (!obj.visible) return false;
             const name = (obj as any).name as string | undefined;
             if (nameFilter) return name && nameFilter.includes(name);
-            return name === 'jerseyFront' || name === 'jerseyBack' || name === 'leftSleeve' || name === 'rightSleeve' || name === 'collar' || name === 'playerName' || name === 'jerseyNumber' || name === 'customText' || name === 'customLogo' || (!name && (obj as any).src);
+            return name === 'jerseyFront' || name === 'jerseyBack' || name === 'leftSleeve' || name === 'rightSleeve' || name === 'collar' || name === 'playerName' || name === 'jerseyNumber' || name === 'customText' || name === 'customLogo' || name === 'playerIdentity' || (!name && (obj as any).src);
         });
 
         if (designObjects.length === 0) return null;
@@ -289,7 +291,7 @@ export const ExportPanel = ({
 
                     try {
                         const viewData = globalTemplate[view] || {};
-                        const playerKey = `jerseyDesigner:playerElements_${player.playerName}_${player.jerseyNumber}`;
+                        const playerKey = `jerseyDesigner:playerElements_${getPlayerIdentifier(player.playerName, player.jerseyNumber)}`;
                         const playerElementsData: any = await localforage.getItem(playerKey) || {};
                         const rawPlayerView = playerElementsData[view] || {};
 
@@ -307,13 +309,15 @@ export const ExportPanel = ({
                         canvasRef.backgroundColor = 'transparent';
 
                         // Clone the cached background so we don't mutate the original
-                        let bgImg = bgCache.get(view);
-                        if (!bgImg) {
-                            bgImg = await FabricImage.fromURL(imgUrl, { crossOrigin: 'anonymous' }).catch(
+                        let cachedBg = bgCache.get(view);
+                        if (!cachedBg) {
+                            cachedBg = await FabricImage.fromURL(imgUrl, { crossOrigin: 'anonymous' }).catch(
                                 () => FabricImage.fromURL(imgUrl)
                             );
-                            bgCache.set(view, bgImg as FabricImage);
+                            bgCache.set(view, cachedBg as FabricImage);
                         }
+
+                        const bgImg = (await cachedBg.clone()) as FabricImage;
 
                         const imgW = bgImg.width ?? 0;
                         const imgH = bgImg.height ?? 0;
@@ -452,6 +456,15 @@ export const ExportPanel = ({
                                 (clonedLogo as any).name = 'customLogo'; 
                                 canvasRef.add(clonedLogo);
                             } catch (e) { logger.warn('Logo load failed', e); }
+                        }
+
+                        // Attach player identity code label (snapped to bottom-right of jersey)
+                        if (player) {
+                            addPlayerIdentityLabel({
+                                canvas: canvasRef,
+                                player,
+                                targetImage: bgImg,
+                            });
                         }
 
                         canvasRef.renderAll();

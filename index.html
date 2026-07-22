@@ -110,8 +110,8 @@
       /* 6 ── Devtools size-based detection */
       var _dt = false;
       setInterval(function () {
-        var w = window.outerWidth - window.innerWidth > 160;
-        var h = window.outerHeight - window.innerHeight > 160;
+        var w = window.outerWidth - window.innerWidth > 250;
+        var h = window.outerHeight - window.innerHeight > 250;
         if ((w || h) && !_dt) {
           _dt = true;
           console.clear();

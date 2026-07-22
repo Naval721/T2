@@ -41,6 +41,7 @@ export const JerseyUpload = ({ jerseyImages, onImagesChange }: JerseyUploadProps
       const options = {
         maxSizeMB: 2,          // Max file size
         maxWidthOrHeight: 2048, // Good balance for 4K downscaling
+        fileType: file.type,   // Preserve original file type & PNG transparency
         useWebWorker: true,
       };
       

@@ -245,7 +245,7 @@ export const formatLastSaveTime = async (): Promise<string> => {
 /**
  * Generate a unique player identifier from player name and jersey number
  */
-const getPlayerIdentifier = (playerName: string, jerseyNumber: string): string => {
+export const getPlayerIdentifier = (playerName: string, jerseyNumber: string): string => {
     return `${playerName}_${jerseyNumber}`.replace(/\s+/g, '_');
 };
 

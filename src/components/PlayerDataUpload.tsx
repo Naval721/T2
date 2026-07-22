@@ -14,6 +14,7 @@ import type { PlayerData } from "@/pages/Index";
 import { logger } from "@/lib/logger";
 import { ALLOWED_SIZES, formatSizeDim } from "@/lib/sizes";
 import localforage from 'localforage';
+import { getPlayerIdentifier } from "@/lib/statePersistence";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // IMPORTANT: Field is defined OUTSIDE PlayerDataUpload.
@@ -144,8 +145,8 @@ export const PlayerDataUpload = ({ playerData, onDataChange }: PlayerDataUploadP
     const numberChanged = oldPlayer.jerseyNumber !== editingPlayer.jerseyNumber;
 
     if (nameChanged || numberChanged) {
-      const oldKey = `jerseyDesigner:playerElements_${oldPlayer.playerName}_${oldPlayer.jerseyNumber}`;
-      const newKey = `jerseyDesigner:playerElements_${editingPlayer.playerName}_${editingPlayer.jerseyNumber}`;
+      const oldKey = `jerseyDesigner:playerElements_${getPlayerIdentifier(oldPlayer.playerName, oldPlayer.jerseyNumber)}`;
+      const newKey = `jerseyDesigner:playerElements_${getPlayerIdentifier(editingPlayer.playerName, editingPlayer.jerseyNumber)}`;
       try {
         const oldData = await localforage.getItem(oldKey);
         if (oldData) {
@@ -198,25 +199,25 @@ export const PlayerDataUpload = ({ playerData, onDataChange }: PlayerDataUploadP
 
     data.forEach((row, index) => {
       const rowNum = index + 2;
-      const playerName = row["Player Name"];
-      if (!playerName || typeof playerName !== "string") errors.push(`Row ${rowNum}: Player Name is required`);
+      const playerNameStr = row["Player Name"] != null ? String(row["Player Name"]).trim() : "";
+      if (!playerNameStr) errors.push(`Row ${rowNum}: Player Name is required`);
 
-      const jerseyStr = row["Jersey Number"] != null ? row["Jersey Number"].toString().trim() : "";
+      const jerseyStr = row["Jersey Number"] != null ? String(row["Jersey Number"]).trim() : "";
       if (!jerseyStr) errors.push(`Row ${rowNum}: Jersey Number is required`);
 
-      let sizeStr = row["Size"] != null ? row["Size"].toString().trim() : "";
+      let sizeStr = row["Size"] != null ? String(row["Size"]).trim() : "";
       if (sizeStr.endsWith(".0")) sizeStr = sizeStr.slice(0, -2);
       if (!sizeStr || !ALLOWED_SIZES.includes(sizeStr))
         errors.push(`Row ${rowNum}: Size must be one of: ${ALLOWED_SIZES.join(", ")}`);
 
       if (!errors.some(e => e.includes(`Row ${rowNum}`))) {
         validData.push({
-          playerName: (playerName as string) || "",
+          playerName: playerNameStr,
           jerseyNumber: jerseyStr,
           size: sizeStr,
-          position: row["Position"] || "",
-          teamName: row["Team Name"] || "",
-          customTag: row["Custom Tag"] || "",
+          position: row["Position"] ? String(row["Position"]).trim() : "",
+          teamName: row["Team Name"] ? String(row["Team Name"]).trim() : "",
+          customTag: row["Custom Tag"] ? String(row["Custom Tag"]).trim() : "",
         });
       }
     });

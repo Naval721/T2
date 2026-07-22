@@ -7,6 +7,8 @@ import type { PlayerData, JerseyImages } from "@/pages/Index";
 import { logger } from "@/lib/logger";
 import { getSizeDim, getSizeDisplayBox } from "@/lib/sizes";
 import localforage from 'localforage';
+import { addPlayerIdentityLabel } from "@/utils/playerIdentity";
+import { getPlayerIdentifier } from "@/lib/statePersistence";
 
 interface Step4PreviewProps {
     playerData: PlayerData[];
@@ -268,7 +270,7 @@ export const Step4Preview = ({ playerData, jerseyImages, onNext, onPrev, default
 
                     // Apply Custom Elements for this player
                     // Fall back to globalTemplate logos/texts if the player has no per-player data
-                    const playerKey = `jerseyDesigner:playerElements_${player.playerName}_${player.jerseyNumber}`;
+                    const playerKey = `jerseyDesigner:playerElements_${getPlayerIdentifier(player.playerName, player.jerseyNumber)}`;
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     const playerElements: any = await localforage.getItem(playerKey) || {};
                     const rawViewElements = playerElements[currentView] || {};
@@ -326,6 +328,15 @@ export const Step4Preview = ({ playerData, jerseyImages, onNext, onPrev, default
                         }
                     }
 
+                    // Attach player identity code label (snapped to bottom-right of jersey)
+                    if (player) {
+                        addPlayerIdentityLabel({
+                            canvas,
+                            player,
+                            targetImage: bgImg,
+                        });
+                    }
+
                     canvas.renderAll();
 
                     // Generate tight cropped thumbnail around the jersey
@@ -343,7 +354,7 @@ export const Step4Preview = ({ playerData, jerseyImages, onNext, onPrev, default
                     });
 
                     // Key includes view so each view has its own cached thumbnails
-                    newThumbnails[`${currentView}__${player.playerName}_${player.jerseyNumber}`] = dataUrl;
+                    newThumbnails[`${currentView}__${getPlayerIdentifier(player.playerName, player.jerseyNumber)}`] = dataUrl;
 
                     // Update progress UI every few players to avoid freezing
                     if (i % 3 === 0) {
@@ -434,10 +445,11 @@ export const Step4Preview = ({ playerData, jerseyImages, onNext, onPrev, default
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4 gap-8">
                     {playerData.map((player) => {
+                        const pId = getPlayerIdentifier(player.playerName, player.jerseyNumber);
                         // Look up thumbnail by view + player key
-                        const thumb = thumbnails[`${currentView}__${player.playerName}_${player.jerseyNumber}`];
+                        const thumb = thumbnails[`${currentView}__${pId}`];
                         return (
-                            <div key={`${player.playerName}_${player.jerseyNumber}`} className="flex flex-col bg-[#1a1a1a] border-2 border-zinc-800 hover:border-zinc-500 transition-colors group">
+                            <div key={pId} className="flex flex-col bg-[#1a1a1a] border-2 border-zinc-800 hover:border-zinc-500 transition-colors group">
                                 <div className="aspect-[4/5] bg-[#0a0a0a] relative overflow-hidden flex items-center justify-center">
                                     {thumb ? (
                                         <img src={thumb} alt={`${player.playerName} preview`} className="w-full h-full object-contain scale-100 group-hover:scale-105 transition-transform duration-500" />

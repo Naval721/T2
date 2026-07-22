@@ -13,6 +13,7 @@ import { fitTextToWidth } from "@/lib/textFit";
 import { getSizeScaleFactorFromDim, computeExportMultiplier, getSizeDim, getSizeDisplayBox } from '@/lib/sizes';
 import { useAuth } from "@/hooks/useAuth";
 import localforage from 'localforage';
+import { addPlayerIdentityLabel } from "@/utils/playerIdentity";
 
 type TextProps = {
     text: string;
@@ -865,7 +866,9 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
 
                 // Auto-center only if no previous saved placement
                 const shouldAutoCenter = !prevNameProps || !prevNumberProps;
-                setTimeout(() => {
+                setTimeout(async () => {
+                    if (myToken !== loadTokenRef.current) return;
+                    await document.fonts.ready;
                     if (myToken !== loadTokenRef.current) return;
 
                     // Find jersey back image to compute bounds for text fitting
@@ -903,7 +906,7 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
             }
 
             // Read per-player custom elements
-            const playerKey = `jerseyDesigner:playerElements_${selectedPlayer?.playerName}_${selectedPlayer?.jerseyNumber}`;
+            const playerKey = `jerseyDesigner:playerElements_${getPlayerIdentifier(selectedPlayer?.playerName || '', selectedPlayer?.jerseyNumber || '')}`;
             const playerElementsData: any = await localforage.getItem(playerKey) || {};
 
             const rawPlayerView = playerElementsData[activeView] || {};
@@ -1007,61 +1010,19 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
                 await Promise.all(customLogoPromises);
             }
 
-            // Player identity tag — tiny text snapped to the bottom-right corner of the
-            // jersey image so it looks "on the shirt". Non-selectable, excluded from export.
+            // Player identity tag — monospace bold text snapped to bottom-right corner of jersey
             if (selectedPlayer) {
-                // Find the jersey/sleeve/collar image currently on canvas
                 const shirtObj = fabricCanvas.getObjects().find(o => {
                     const n = (o as ExtendedFabricImage).name;
                     return n === 'jerseyFront' || n === 'jerseyBack' ||
                         n === 'leftSleeve' || n === 'rightSleeve' || n === 'collar';
                 }) as ExtendedFabricImage | undefined;
 
-                // Build label text: name#numberSZsize (direct code style, no spaces)
-                const labelParts: string[] = [
-                    selectedPlayer.playerName.replace(/\s+/g, '').toUpperCase(),
-                    `#${selectedPlayer.jerseyNumber}`,
-                    `SZ${selectedPlayer.size.replace(/\s+/g, '').toUpperCase()}`,
-                ];
-                const labelText = labelParts.join('');
-
-                // Default to canvas bottom-left if no shirt image on canvas yet
-                let labelLeft = 12;
-                let labelTop = fabricCanvas.height! - 10;
-                let originX: 'left' | 'right' = 'left';
-                const originY = 'bottom' as const;
-
-                if (shirtObj) {
-                    // Position inside the bottom-right corner of the shirt
-                    const rect = shirtObj.getBoundingRect();
-                    labelLeft = rect.left + rect.width - 8;
-                    labelTop = rect.top + rect.height - 8;
-                    originX = 'right';
-                }
-
-                const playerLabel = new FabricText(labelText, {
-                    left: labelLeft,
-                    top: labelTop,
-                    fontSize: 7,
-                    fontFamily: 'monospace',
-                    fontWeight: 'bold',
-                    fill: '#000000',
-                    opacity: 1.0,
-                    selectable: false,
-                    evented: false,
-                    originX,
-                    originY,
-                    objectCaching: false,
+                addPlayerIdentityLabel({
+                    canvas: fabricCanvas,
+                    player: selectedPlayer,
+                    targetImage: shirtObj,
                 });
-
-                playerLabel.shadow = new Shadow({
-                    color: 'rgba(255, 255, 255, 0.95)',
-                    blur: 5,
-                    offsetX: 0,
-                    offsetY: 0,
-                });
-
-                fabricCanvas.add(playerLabel);
             }
 
             if (myToken !== loadTokenRef.current) return;
@@ -1123,7 +1084,7 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
 
     const applyCustomElementsToAll = async () => {
         if (!selectedPlayer) return;
-        const playerKey = `jerseyDesigner:playerElements_${selectedPlayer.playerName}_${selectedPlayer.jerseyNumber}`;
+        const playerKey = `jerseyDesigner:playerElements_${getPlayerIdentifier(selectedPlayer.playerName, selectedPlayer.jerseyNumber)}`;
         const parsedData: any = await localforage.getItem(playerKey);
 
         if (!parsedData) {
@@ -1156,7 +1117,7 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
             // 2. Remove all player-specific overrides for all other players
             // to ensure they fall back to the global template and don't take up duplicate space.
             await Promise.all(playerData.map(p => {
-                const pKey = `jerseyDesigner:playerElements_${p.playerName}_${p.jerseyNumber}`;
+                const pKey = `jerseyDesigner:playerElements_${getPlayerIdentifier(p.playerName, p.jerseyNumber)}`;
                 return localforage.removeItem(pKey);
             }));
 

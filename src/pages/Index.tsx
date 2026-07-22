@@ -140,7 +140,6 @@ const Index = () => {
       setLastSaveTime(await formatLastSaveTime());
     };
     checkSession();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Protect route — OnboardingPage lives at '/'
@@ -231,7 +230,6 @@ const Index = () => {
         );
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Sync selectedPlayer when playerData changes

@@ -46,6 +46,7 @@ export const Step4Preview = ({ playerData, jerseyImages, onNext, onPrev, default
             width: 960,
             height: 720,
             renderOnAddRemove: false,
+            enableRetinaScaling: true,
         });
         fabricCanvasRef.current = canvas;
 
@@ -226,9 +227,11 @@ export const Step4Preview = ({ playerData, jerseyImages, onNext, onPrev, default
                             if (np && np.relLeft !== undefined && np.relLeft !== null) {
                                 nameLeft = br.left + (np.relLeft * br.width);
                                 nameTop = br.top + (np.relTop * br.height);
-                                if (np.relFontSize) nameFontSize = np.relFontSize * br.height;
-                                if (np.relScaleX) nameScaleX = np.relScaleX * bgImg.scaleX!;
-                                if (np.relScaleY) nameScaleY = np.relScaleY * bgImg.scaleY!;
+                                if (np.relFontSize) {
+                                    nameFontSize = Math.round(np.relFontSize * br.height);
+                                    nameScaleY = 1;
+                                    nameScaleX = np.relAspectScale ?? 1;
+                                }
                             }
 
                             nameText.set({
@@ -251,9 +254,11 @@ export const Step4Preview = ({ playerData, jerseyImages, onNext, onPrev, default
                             if (nump && nump.relLeft !== undefined && nump.relLeft !== null) {
                                 numLeft = br.left + (nump.relLeft * br.width);
                                 numTop = br.top + (nump.relTop * br.height);
-                                if (nump.relFontSize) numFontSize = nump.relFontSize * br.height;
-                                if (nump.relScaleX) numScaleX = nump.relScaleX * bgImg.scaleX!;
-                                if (nump.relScaleY) numScaleY = nump.relScaleY * bgImg.scaleY!;
+                                if (nump.relFontSize) {
+                                    numFontSize = Math.round(nump.relFontSize * br.height);
+                                    numScaleY = 1;
+                                    numScaleX = nump.relAspectScale ?? 1;
+                                }
                             }
 
                             numberText.set({
@@ -288,9 +293,11 @@ export const Step4Preview = ({ playerData, jerseyImages, onNext, onPrev, default
                         if (propsToUse.relLeft !== undefined && propsToUse.relLeft !== null) {
                             propsToUse.left = br.left + (propsToUse.relLeft * br.width);
                             propsToUse.top = br.top + (propsToUse.relTop! * br.height);
-                            if (propsToUse.relFontSize) propsToUse.fontSize = propsToUse.relFontSize * br.height;
-                            if (propsToUse.relScaleX) propsToUse.scaleX = propsToUse.relScaleX * bgImg.scaleX!;
-                            if (propsToUse.relScaleY) propsToUse.scaleY = propsToUse.relScaleY * bgImg.scaleY!;
+                            if (propsToUse.relFontSize) {
+                                propsToUse.fontSize = Math.round(propsToUse.relFontSize * br.height);
+                                propsToUse.scaleY = 1;
+                                propsToUse.scaleX = propsToUse.relAspectScale ?? 1;
+                            }
                         }
                         const t = new FabricText(ct.text ?? '', { ...propsToUse, paintFirst: 'stroke', selectable: false, objectCaching: false });
                         canvas.add(t);

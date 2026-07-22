@@ -368,9 +368,11 @@ export const ExportPanel = ({
                             if (np && np.relLeft !== undefined && np.relLeft !== null) {
                                 nameLeft = br.left + (np.relLeft * br.width);
                                 nameTop = br.top + (np.relTop * br.height);
-                                if (np.relFontSize) nameFontSize = np.relFontSize * br.height;
-                                if (np.relScaleX) nameScaleX = np.relScaleX * bgImg.scaleX!;
-                                if (np.relScaleY) nameScaleY = np.relScaleY * bgImg.scaleY!;
+                                if (np.relFontSize) {
+                                    nameFontSize = Math.round(np.relFontSize * br.height);
+                                    nameScaleY = 1;
+                                    nameScaleX = np.relAspectScale ?? 1;
+                                }
                             }
 
                             const nameText = new FabricText(player.playerName, {
@@ -391,9 +393,11 @@ export const ExportPanel = ({
                             if (nump && nump.relLeft !== undefined && nump.relLeft !== null) {
                                 numLeft = br.left + (nump.relLeft * br.width);
                                 numTop = br.top + (nump.relTop * br.height);
-                                if (nump.relFontSize) numFontSize = nump.relFontSize * br.height;
-                                if (nump.relScaleX) numScaleX = nump.relScaleX * bgImg.scaleX!;
-                                if (nump.relScaleY) numScaleY = nump.relScaleY * bgImg.scaleY!;
+                                if (nump.relFontSize) {
+                                    numFontSize = Math.round(nump.relFontSize * br.height);
+                                    numScaleY = 1;
+                                    numScaleX = nump.relAspectScale ?? 1;
+                                }
                             }
 
                             const numText = new FabricText(player.jerseyNumber, {
@@ -412,9 +416,11 @@ export const ExportPanel = ({
                                 const rect = bgImg.getBoundingRect();
                                 propsToUse.left = rect.left + (propsToUse.relLeft * rect.width);
                                 propsToUse.top = rect.top + (propsToUse.relTop! * rect.height);
-                                if (propsToUse.relFontSize) propsToUse.fontSize = propsToUse.relFontSize * rect.height;
-                                if (propsToUse.relScaleX) propsToUse.scaleX = propsToUse.relScaleX * bgImg.scaleX!;
-                                if (propsToUse.relScaleY) propsToUse.scaleY = propsToUse.relScaleY * bgImg.scaleY!;
+                                if (propsToUse.relFontSize) {
+                                    propsToUse.fontSize = Math.round(propsToUse.relFontSize * rect.height);
+                                    propsToUse.scaleY = 1;
+                                    propsToUse.scaleX = propsToUse.relAspectScale ?? 1;
+                                }
                             }
                             const t = new FabricText(propsToUse.text ?? '', { ...propsToUse, paintFirst: 'stroke', selectable: false, objectCaching: false });
                             (t as any).name = 'customText'; canvasRef.add(t);

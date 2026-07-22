@@ -68,7 +68,7 @@ export const addPlayerIdentityLabel = ({
         offsetY: 0,
     });
 
-    (playerLabel as any).name = 'playerIdentity';
+    (playerLabel as FabricText & { name?: string }).name = 'playerIdentity';
     canvas.add(playerLabel);
     return playerLabel;
 };

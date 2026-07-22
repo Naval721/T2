@@ -14,6 +14,7 @@ import { getSizeScaleFactorFromDim, computeExportMultiplier, getSizeDim, getSize
 import { useAuth } from "@/hooks/useAuth";
 import localforage from 'localforage';
 import { addPlayerIdentityLabel } from "@/utils/playerIdentity";
+import { getPlayerIdentifier } from "@/lib/statePersistence";
 
 type TextProps = {
     text: string;
@@ -38,6 +39,7 @@ type TextProps = {
     relScaleX?: number | null;
     relScaleY?: number | null;
     relFontSize?: number | null;
+    relAspectScale?: number | null;
 };
 
 type LogoProps = {
@@ -49,6 +51,23 @@ type LogoProps = {
     angle: number;
     originX: 'center';
     originY: 'center';
+    relLeft?: number | null;
+    relTop?: number | null;
+    relScaleX?: number | null;
+    relScaleY?: number | null;
+};
+
+type ViewTemplate = {
+    name?: TextProps;
+    number?: TextProps;
+    customTexts?: TextProps[];
+    customLogos?: LogoProps[];
+};
+
+type CanvasViewType = 'front' | 'back' | 'leftSleeve' | 'rightSleeve' | 'collar';
+
+type GlobalTemplate = {
+    [key in CanvasViewType]?: ViewTemplate;
 };
 
 interface ExtendedFabricText extends FabricText {
@@ -89,13 +108,16 @@ type CanvasBounds = {
 };
 
 const pickTextProps = (t: ExtendedFabricText, shirtObj?: ExtendedFabricImage | null, shirtRect?: CanvasBounds | null): TextProps => {
-    let relLeft = null, relTop = null, relFontSize = null, relScaleX = null, relScaleY = null;
-    if (shirtObj && shirtRect) {
+    let relLeft = null, relTop = null, relFontSize = null, relScaleX = null, relScaleY = null, relAspectScale = null;
+    if (shirtObj && shirtRect && shirtRect.height > 0) {
         relLeft = (t.left! - shirtRect.left) / shirtRect.width;
         relTop = (t.top! - shirtRect.top) / shirtRect.height;
+        // Effective font size is (fontSize * scaleY) relative to shirt height
+        const effectiveFontSize = (t.fontSize ?? 38) * (t.scaleY ?? 1);
+        relFontSize = effectiveFontSize / shirtRect.height;
+        relAspectScale = (t.scaleX ?? 1) / (t.scaleY ?? 1);
         relScaleX = t.scaleX! / shirtObj.scaleX!;
         relScaleY = t.scaleY! / shirtObj.scaleY!;
-        relFontSize = t.fontSize! / shirtRect.height;
     }
 
     return {
@@ -120,7 +142,8 @@ const pickTextProps = (t: ExtendedFabricText, shirtObj?: ExtendedFabricImage | n
         relTop,
         relScaleX,
         relScaleY,
-        relFontSize
+        relFontSize,
+        relAspectScale,
     };
 };
 
@@ -321,10 +344,8 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
             backgroundColor: 'transparent',
             renderOnAddRemove: false, // Performance optimization
             skipOffscreen: true, // Performance optimization
+            enableRetinaScaling: true, // High-DPI support
         });
-
-        // Enable hardware acceleration
-        canvas.enableRetinaScaling = true;
 
         // Expose helper to compute the minimal bounding box of visible objects for exporting
         (canvas as ExportableCanvas).getVisibleContentBounds = () => getVisibleContentBounds(canvas);
@@ -658,6 +679,7 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
                             strokeWidth: showCuttingOutline ? 2 : 0,
                         });
                         (jerseyImg as ExtendedFabricImage).name = activeView === 'front' ? 'jerseyFront' : 'jerseyBack';
+                        (jerseyImg as any).src = jerseyImageUrl;
 
                         if (myToken !== loadTokenRef.current) return; // view changed mid-load
                         fabricCanvas.add(jerseyImg);
@@ -812,9 +834,9 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
                         text: selectedPlayer.playerName,
                         left: rect.left + (nameProps.relLeft * rect.width),
                         top: rect.top + (nameProps.relTop! * rect.height),
-                        fontSize: nameProps.relFontSize ? nameProps.relFontSize * rect.height : nameProps.fontSize,
-                        scaleX: nameProps.relScaleX ? nameProps.relScaleX * currentShirt!.scaleX! : nameProps.scaleX,
-                        scaleY: nameProps.relScaleY ? nameProps.relScaleY * currentShirt!.scaleY! : nameProps.scaleY,
+                        fontSize: nameProps.relFontSize ? Math.round(nameProps.relFontSize * rect.height) : nameProps.fontSize,
+                        scaleY: nameProps.relFontSize ? 1 : nameProps.scaleY,
+                        scaleX: nameProps.relFontSize ? (nameProps.relAspectScale ?? 1) : nameProps.scaleX,
                     };
                 }
 
@@ -850,9 +872,9 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
                         text: selectedPlayer.jerseyNumber,
                         left: rect.left + (numberProps.relLeft * rect.width),
                         top: rect.top + (numberProps.relTop! * rect.height),
-                        fontSize: numberProps.relFontSize ? numberProps.relFontSize * rect.height : numberProps.fontSize,
-                        scaleX: numberProps.relScaleX ? numberProps.relScaleX * currentShirt!.scaleX! : numberProps.scaleX,
-                        scaleY: numberProps.relScaleY ? numberProps.relScaleY * currentShirt!.scaleY! : numberProps.scaleY,
+                        fontSize: numberProps.relFontSize ? Math.round(numberProps.relFontSize * rect.height) : numberProps.fontSize,
+                        scaleY: numberProps.relFontSize ? 1 : numberProps.scaleY,
+                        scaleX: numberProps.relFontSize ? (numberProps.relAspectScale ?? 1) : numberProps.scaleX,
                     };
                 }
 
@@ -937,9 +959,11 @@ export const DesignCanvas = ({ jerseyImages, playerData = [], selectedPlayer, on
                     const rect = currentShirt.getBoundingRect();
                     propsToUse.left = rect.left + (propsToUse.relLeft * rect.width);
                     propsToUse.top = rect.top + (propsToUse.relTop * rect.height);
-                    if (propsToUse.relFontSize) propsToUse.fontSize = propsToUse.relFontSize * rect.height;
-                    if (propsToUse.relScaleX) propsToUse.scaleX = propsToUse.relScaleX * currentShirt.scaleX!;
-                    if (propsToUse.relScaleY) propsToUse.scaleY = propsToUse.relScaleY * currentShirt.scaleY!;
+                    if (propsToUse.relFontSize) {
+                        propsToUse.fontSize = Math.round(propsToUse.relFontSize * rect.height);
+                        propsToUse.scaleY = 1;
+                        propsToUse.scaleX = propsToUse.relAspectScale ?? 1;
+                    }
                 }
 
                 const customText = new FabricText(propsToUse.text, {

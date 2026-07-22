@@ -3,19 +3,19 @@
 import { lazy, ComponentType } from 'react';
 
 // Lazy load component with automatic retry on chunk fetch failures
-export const lazyWithRetry = <T extends ComponentType<any>>(
-  importFunc: () => Promise<{ default: T } | { default: ComponentType<any> }>
+export const lazyWithRetry = <T extends ComponentType<unknown>>(
+  importFunc: () => Promise<{ default: T } | { default: ComponentType<unknown> }>
 ) => {
   return lazy(async () => {
     try {
       const component = await importFunc();
       return component as { default: T };
-    } catch (error: any) {
-      // Check if it's a dynamic import failure
-      const isChunkLoadFailed =
+    } catch (error: unknown) {
+      const isChunkLoadFailed = error instanceof Error && (
         error.message?.includes('Failed to fetch dynamically imported module') ||
         error.message?.includes('Error loading chunk') ||
-        (error.name === 'TypeError' && error.message?.includes('import'));
+        (error.name === 'TypeError' && error.message?.includes('import'))
+      );
       
       if (isChunkLoadFailed) {
         console.warn('Dynamic import failed, attempting page reload...', error);
@@ -39,16 +39,14 @@ export const lazyWithRetry = <T extends ComponentType<any>>(
 };
 
 // Lazy load heavy components
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const lazyLoad = <T extends ComponentType<any>>(
+export const lazyLoad = <T extends ComponentType<unknown>>(
   importFunc: () => Promise<{ default: T }>
 ) => {
   return lazyWithRetry(importFunc);
 };
 
 // Preload component
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const preloadComponent = (lazyComponent: any) => {
+export const preloadComponent = (lazyComponent: { _payload?: { _result?: unknown } }) => {
   if (lazyComponent._payload) {
     return lazyComponent._payload._result;
   }

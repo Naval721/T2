@@ -46,6 +46,12 @@ export const JERSEY_FONTS = [
     { value: 'Squada One', label: 'Squada One - Square', category: 'Display' },
     { value: 'Gruppo', label: 'Gruppo - Casual Athletic', category: 'Display' },
     { value: 'Press Start 2P', label: 'Press Start 2P - Gaming', category: 'Display' },
+    { value: 'Bangers', label: 'Bangers - Comic Boom', category: 'Display' },
+    { value: 'Racing Sans One', label: 'Racing Sans One - Speed', category: 'Display' },
+    { value: 'Rubik Mono One', label: 'Rubik Mono One - Blocky', category: 'Display' },
+    { value: 'Luckiest Guy', label: 'Luckiest Guy - Chunky', category: 'Display' },
+    { value: 'Sigmar One', label: 'Sigmar One - Playful Bold', category: 'Display' },
+    { value: 'Carter One', label: 'Carter One - Classic', category: 'Display' },
 
     // International & Versatile
     { value: 'Kanit', label: 'Kanit - Thai Modern', category: 'International' },

@@ -165,6 +165,7 @@ const getVisibleContentBounds = (canvas: FabricCanvas): CanvasBounds | null => {
             name === 'jerseyNumber' ||
             name === 'customText' ||
             name === 'customLogo' ||
+            name === 'playerIdentity' ||
             // Include sleeve and collar images (they don't have names but are design elements)
             (!name && extendedObj instanceof FabricImage);
     });
@@ -220,6 +221,7 @@ export const exportCleanJerseyDesign = (
             name === 'jerseyNumber' ||
             name === 'customText' ||
             name === 'customLogo' ||
+            name === 'playerIdentity' ||
             (!name && (extendedObj as any).src);
     });
 

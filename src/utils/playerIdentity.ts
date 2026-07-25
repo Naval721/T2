@@ -34,31 +34,31 @@ export const addPlayerIdentityLabel = ({
 }: PlayerIdentityOptions): FabricText => {
     const labelText = createPlayerIdentityLabelText(player);
 
-    let labelLeft = 12;
-    let labelTop = (canvas.height ?? 720) - 10;
-    let originX: 'left' | 'right' = 'left';
-    const originY = 'bottom' as const;
-
-    if (targetImage) {
-        const rect = targetImage.getBoundingRect();
-        labelLeft = rect.left + rect.width - 8;
-        labelTop = rect.top + rect.height - 8;
-        originX = 'right';
-    }
-
     const playerLabel = new FabricText(labelText, {
-        left: labelLeft,
-        top: labelTop,
-        fontSize: 7,
+        fontSize: 12, // Increased for visibility on prints
         fontFamily: 'monospace',
         fontWeight: 'bold',
         fill: '#000000',
         opacity: 1.0,
         selectable: false,
         evented: false,
-        originX,
-        originY,
-        objectCaching: false,
+        originX: 'left',
+        originY: 'top',
+        objectCaching: true,
+    });
+
+    let labelLeft = 12;
+    let labelTop = (canvas.height ?? 720) - 10 - (playerLabel.height || 0);
+
+    if (targetImage) {
+        const rect = targetImage.getBoundingRect();
+        labelLeft = rect.left + rect.width - (playerLabel.width || 0) - 8;
+        labelTop = rect.top + rect.height - (playerLabel.height || 0) - 8;
+    }
+
+    playerLabel.set({
+        left: labelLeft,
+        top: labelTop,
     });
 
     playerLabel.shadow = new Shadow({

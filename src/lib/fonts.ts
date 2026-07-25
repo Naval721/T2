@@ -1,12 +1,45 @@
 // Popular sports/football jersey fonts
 export const JERSEY_FONTS = [
-    // Classic Sports Fonts
+
+    // ─── PRO JERSEY ──────────────────────────────────────────────────────────────
+    // Fonts actually used on or inspired by professional sports kits
+    { value: 'Tourney', label: 'Tourney - Sport Official ★', category: 'Pro Jersey' },
+    { value: 'Big Shoulders Display', label: 'Big Shoulders Display - NFL Style ★', category: 'Pro Jersey' },
+    { value: 'Dela Gothic One', label: 'Dela Gothic One - Mega Bold ★', category: 'Pro Jersey' },
+    { value: 'Unbounded', label: 'Unbounded - Esports Pro ★', category: 'Pro Jersey' },
+    { value: 'Tilt Prism', label: 'Tilt Prism - 3D Jersey ★', category: 'Pro Jersey' },
+    { value: 'Bruno Ace SC', label: 'Bruno Ace SC - Racing Pro ★', category: 'Pro Jersey' },
+    { value: 'Bruno Ace', label: 'Bruno Ace - Racing ★', category: 'Pro Jersey' },
+    { value: 'Faster One', label: 'Faster One - Speed Italic ★', category: 'Pro Jersey' },
+    { value: 'Tektur', label: 'Tektur - Angular Pro ★', category: 'Pro Jersey' },
+    { value: 'Road Rage', label: 'Road Rage - Aggressive ★', category: 'Pro Jersey' },
+
+    // ─── ULTRA CONDENSED ─────────────────────────────────────────────────────────
+    // Very narrow fonts perfect for long player names on jersey name bars
+    { value: 'Saira Extra Condensed', label: 'Saira Extra Condensed - Ultra Narrow', category: 'Ultra Condensed' },
+    { value: 'Barlow Semi Condensed', label: 'Barlow Semi Condensed - Slim', category: 'Ultra Condensed' },
+    { value: 'Stint Ultra Condensed', label: 'Stint Ultra Condensed - Extreme Narrow', category: 'Ultra Condensed' },
+    { value: 'Big Shoulders Text', label: 'Big Shoulders Text - Tall & Narrow', category: 'Ultra Condensed' },
+    { value: 'Fjalla One', label: 'Fjalla One - Condensed Impact', category: 'Ultra Condensed' },
+    { value: 'Yanone Kaffeesatz', label: 'Yanone Kaffeesatz - Light Condensed', category: 'Ultra Condensed' },
+    { value: 'Economica', label: 'Economica - Slim Bold', category: 'Ultra Condensed' },
+
+    // ─── OUTLINED & HOLLOW ───────────────────────────────────────────────────────
+    // Inline/hollow/outlined styles common on authentic jerseys
+    { value: 'Wallpoet', label: 'Wallpoet - Stencil Style', category: 'Outlined' },
+    { value: 'Rampart One', label: 'Rampart One - Hollow Outlined', category: 'Outlined' },
+    { value: 'Blaka Hollow', label: 'Blaka Hollow - Inline Letters', category: 'Outlined' },
+    { value: 'Expletus Sans', label: 'Expletus Sans - Open Letters', category: 'Outlined' },
+    { value: 'Bungee Inline', label: 'Bungee Inline - Outlined Urban', category: 'Outlined' },
+    { value: 'Bungee Shade', label: 'Bungee Shade - 3D Effect', category: 'Outlined' },
+
+    // ─── CLASSIC SPORTS ──────────────────────────────────────────────────────────
     { value: 'Anton', label: 'Anton - Bold & Classic', category: 'Classic' },
     { value: 'Bebas Neue', label: 'Bebas Neue - Athletic', category: 'Classic' },
     { value: 'Oswald', label: 'Oswald - Professional', category: 'Classic' },
     { value: 'Roboto Condensed', label: 'Roboto Condensed - Modern', category: 'Classic' },
 
-    // Bold & Impact Fonts
+    // ─── BOLD & IMPACT ───────────────────────────────────────────────────────────
     { value: 'Russo One', label: 'Russo One - Heavy Impact', category: 'Bold' },
     { value: 'Archivo Black', label: 'Archivo Black - Extra Bold', category: 'Bold' },
     { value: 'Black Ops One', label: 'Black Ops One - Military', category: 'Bold' },
@@ -15,17 +48,13 @@ export const JERSEY_FONTS = [
     { value: 'Fugaz One', label: 'Fugaz One - Bold Italic', category: 'Bold' },
     { value: 'Passion One', label: 'Passion One - Strong', category: 'Bold' },
 
-    // Collegiate & Traditional
+    // ─── COLLEGIATE & TRADITIONAL ────────────────────────────────────────────────
     { value: 'Graduate', label: 'Graduate - College Style', category: 'Collegiate' },
     { value: 'Saira Condensed', label: 'Saira Condensed - Varsity', category: 'Collegiate' },
     { value: 'Barlow Condensed', label: 'Barlow Condensed - Team', category: 'Collegiate' },
     { value: 'Staatliches', label: 'Staatliches - Retro', category: 'Collegiate' },
 
-    // Note: Custom local fonts (Old Sport Athletic, Jersey M54, etc.) 
-    // require actual font files. They have been removed until files are provided.
-    // Users can still upload their own TTF/WOFF files via the font selector UI.
-
-    // Modern & Futuristic
+    // ─── MODERN & FUTURISTIC ─────────────────────────────────────────────────────
     { value: 'Orbitron', label: 'Orbitron - Futuristic', category: 'Modern' },
     { value: 'Exo 2', label: 'Exo 2 - Tech Sport', category: 'Modern' },
     { value: 'Rajdhani', label: 'Rajdhani - Sharp & Clean', category: 'Modern' },
@@ -36,10 +65,8 @@ export const JERSEY_FONTS = [
     { value: 'Chakra Petch', label: 'Chakra Petch - Tech', category: 'Modern' },
     { value: 'Syne', label: 'Syne - Modern Sans', category: 'Modern' },
 
-    // Display & Stylish
+    // ─── DISPLAY & STYLISH ───────────────────────────────────────────────────────
     { value: 'Bungee', label: 'Bungee - Urban Style', category: 'Display' },
-    { value: 'Bungee Inline', label: 'Bungee Inline - Outlined', category: 'Display' },
-    { value: 'Bungee Shade', label: 'Bungee Shade - 3D Effect', category: 'Display' },
     { value: 'Righteous', label: 'Righteous - Curvy Bold', category: 'Display' },
     { value: 'Concert One', label: 'Concert One - Rounded', category: 'Display' },
     { value: 'Lilita One', label: 'Lilita One - Friendly Bold', category: 'Display' },
@@ -53,26 +80,29 @@ export const JERSEY_FONTS = [
     { value: 'Sigmar One', label: 'Sigmar One - Playful Bold', category: 'Display' },
     { value: 'Carter One', label: 'Carter One - Classic', category: 'Display' },
 
-    // International & Versatile
+    // ─── INTERNATIONAL & VERSATILE ───────────────────────────────────────────────
     { value: 'Kanit', label: 'Kanit - Thai Modern', category: 'International' },
     { value: 'Saira', label: 'Saira - Global Sports', category: 'International' },
     { value: 'Khand', label: 'Khand - Light & Bold', category: 'International' },
     { value: 'Barlow', label: 'Barlow - Universal', category: 'International' },
     { value: 'Pathway Extreme', label: 'Pathway Extreme - Variable', category: 'International' },
 
-    // Hand-drawn & Unique
+    // ─── HAND-DRAWN & UNIQUE ─────────────────────────────────────────────────────
     { value: 'Permanent Marker', label: 'Permanent Marker - Hand Drawn', category: 'Unique' },
 ];
 
 export const FONT_CATEGORIES = [
     'All',
+    'Pro Jersey',
+    'Ultra Condensed',
+    'Outlined',
     'Classic',
     'Bold',
     'Collegiate',
     'Modern',
     'Display',
     'International',
-    'Unique'
+    'Unique',
 ];
 
 export const getFontsByCategory = (category: string) => {

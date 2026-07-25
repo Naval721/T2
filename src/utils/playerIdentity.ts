@@ -35,11 +35,11 @@ export const addPlayerIdentityLabel = ({
     const labelText = createPlayerIdentityLabelText(player);
 
     const playerLabel = new FabricText(labelText, {
-        fontSize: 12, // Increased for visibility on prints
+        fontSize: 6, // Small — identity check only
         fontFamily: 'monospace',
         fontWeight: 'bold',
         fill: '#000000',
-        opacity: 1.0,
+        opacity: 0.75,
         selectable: false,
         evented: false,
         originX: 'left',
@@ -47,13 +47,13 @@ export const addPlayerIdentityLabel = ({
         objectCaching: true,
     });
 
-    let labelLeft = 12;
-    let labelTop = (canvas.height ?? 720) - 10 - (playerLabel.height || 0);
+    let labelLeft = 8;
+    let labelTop = (canvas.height ?? 720) - 3 - (playerLabel.height || 0);
 
     if (targetImage) {
         const rect = targetImage.getBoundingRect();
-        labelLeft = rect.left + rect.width - (playerLabel.width || 0) - 8;
-        labelTop = rect.top + rect.height - (playerLabel.height || 0) - 8;
+        labelLeft = rect.left + rect.width - (playerLabel.width || 0) - 3;
+        labelTop = rect.top + rect.height - (playerLabel.height || 0) - 3;
     }
 
     playerLabel.set({

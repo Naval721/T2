@@ -16,9 +16,8 @@
   <a href="#-tech-stack">Tech Stack</a> ·
   <a href="#-architecture">Architecture</a> ·
   <a href="#-project-structure">Structure</a> ·
-  <a href="#-database">Database</a> ·
-  <a href="#-local-development">Setup</a> ·
-  <a href="#-deployment">Deployment</a>
+  <a href="#-scripts">Scripts</a> ·
+  <a href="#-license">License</a>
 </p>
 
 <br />
@@ -47,7 +46,7 @@
 2. **Canvas** — Each player's name and number are automatically placed on a live Fabric.js canvas at the correct DPI.
 3. **Customize** — Drag, resize, recolor text; drop in logos; switch jersey views; toggle cutting guides.
 4. **Preview** — A unified grid renders every player's front + back side-by-side for a final proof.
-5. **Export** — Download individual PNGs or a bulk ZIP at 300 / 450 / 600 DPI — gated behind a points ledger stored in Supabase.
+5. **Export** — Download individual PNGs or a bulk ZIP at 300 / 450 / 600 DPI — gated behind a credits system.
 
 No Photoshop. No round-trips to a server. Everything renders client-side on the Fabric.js canvas and exports at print resolution instantly.
 
@@ -56,58 +55,47 @@ No Photoshop. No round-trips to a server. Everything renders client-side on the 
 ## ✨ Features
 
 ### 🗂 Roster Automation
-- Parse `.xlsx` and `.csv` files via **SheetJS** — columns: `playerName`, `jerseyNumber`, `size`, `position`, `teamName`, `customTag`
+- Parse `.xlsx` and `.csv` files via **SheetJS** — supports player name, number, size, position, team name, and custom tags
 - Bulk-generate individual canvas designs for an entire squad in one step
-- Per-player size scaling — jersey silhouette auto-scales to `XS → 5XL` using a DPI-aware multiplier table
+- Per-player size scaling — jersey silhouette auto-scales from XS to 5XL using a DPI-aware multiplier
 
-### 🎨 Canvas Design Engine (Fabric.js 7)
+### 🎨 Canvas Design Engine
 - Multi-view canvas: **Front · Back · Left Sleeve · Right Sleeve · Collar**
-- Persistent DOM portal trick — `DesignCanvas` is mounted once and teleported between step containers via `createPortal`, preventing canvas teardown when navigating steps
-- Global template system — text/logo positions propagate to **all players** automatically; per-player overrides stored separately in IndexedDB
-- Debounced state persistence — canvas object coordinates serialised and saved via **localforage** (IndexedDB) at 300 ms intervals; no data lost on refresh
-- Cutting outline mode — toggleable black stroke around jersey silhouette for sublimation cutting guides
-- Race-condition safe view switching — load token system ensures stale async loads from previous view switches are discarded
+- Single persistent canvas instance — teleported between wizard steps via React portals, eliminating costly teardown/reinit cycles
+- Global template system — text and logo positions propagate to **all players** automatically
+- Per-player overrides saved independently in browser storage
+- Cutting outline mode — toggleable stroke around the jersey silhouette for sublimation cutting guides
 
 ### 🖼 Typography & Fonts
 - **90+ Google Fonts** purpose-built for sportswear, organised into categories:
   - `Pro Jersey` · `Ultra Condensed` · `Outlined / Hollow` · `Classic` · `Bold & Impact`
   - `Collegiate` · `Modern / Futuristic` · `Display` · `International` · `Hand-Drawn`
-- Auto-fit text — long names auto-scale to fill the name bar without overflow
-- Full control: font size, family, fill colour, stroke colour, stroke width, text alignment, rotation, scale
+- Auto-fit text — long names shrink automatically to fill the name bar without overflow
+- Full control: font size, family, fill colour, stroke colour, stroke width, alignment, rotation, and scale
 
 ### 📦 Export Engine
-| Mode | DPI | Points Cost |
+| Mode | DPI | Credits |
 |---|---|---|
 | Front only | 450 DPI | 1 pt |
 | Back only | 450 DPI | 1 pt |
 | Per sleeve | 450 DPI | 1 pt each |
 | Collar | 450 DPI | 1 pt |
-| Full Jersey (F+B+2S) | 450 DPI | 4 pts |
+| Full Jersey (F + B + 2 Sleeves) | 450 DPI | 4 pts |
 | Full Jersey + Collar | 450 DPI | 5 pts |
 
-- Exports are computed client-side using `canvas.toDataURL()` with a pixel multiplier derived from actual content bounding box and target DPI
-- Bulk export all players → **JSZip** → single `.zip` download via **file-saver**
-- Source maps **disabled** in production; chunk names are hashed to prevent reverse-engineering
+- All exports are rendered entirely in the browser — zero server load
+- Bulk export — all players packaged into a single ZIP via **JSZip** + **file-saver**
 
 ### 🔐 Auth & Credits System
-- **Supabase Auth** — email/password, OTP sign-in, session auto-refresh, JWT via `@supabase/supabase-js`
-- Supabase Auth UI React — drop-in sign-in / sign-up forms
-- **Points ledger** — every high-res export atomically deducts credits via a PostgreSQL stored procedure (`deduct_points_from_user`), preventing race conditions
-- 5-point free trial automatically granted on signup via DB trigger
-- Rate limiting frozen in a `const` object — console tampering cannot relax limits
-- Row-Level Security on all tables — users can only read/write their own rows
+- **Supabase Auth** — email/password and OTP sign-in with JWT session management
+- **Points ledger** — credits are managed server-side; every export deducts from the user's balance atomically
+- 5-point free trial granted on signup — no credit card required to get started
+- Credits never expire
 
 ### 💾 Session Persistence
-- Full session auto-saved to **IndexedDB (localforage)** — jersey images (as data URLs), player roster, current step, selected player, canvas view, zoom level, cutting outline state
-- Warm-return detection — if the user navigates back within the same browser session, the previous state is silently restored without a dialog
-- Cold-start restore dialog prompts the user to continue or start fresh
-
-### 🛡 Security Headers (Vercel)
-- `Content-Security-Policy` — allowlists only self + Google Fonts + Supabase endpoints
-- `Strict-Transport-Security` — HSTS with `preload`
-- `X-Frame-Options: DENY`, `X-XSS-Protection`, `X-Content-Type-Options`
-- `Permissions-Policy` — camera, microphone, geolocation all blocked
-- Assets cached with `Cache-Control: public, max-age=31536000, immutable`
+- Full session auto-saved to **IndexedDB** — jersey images, player roster, current step, zoom level, and canvas state
+- Warm-return detection — navigating back to the app silently restores the previous session
+- Cold-start dialog lets users choose to continue or start fresh
 
 ---
 
@@ -119,18 +107,16 @@ No Photoshop. No round-trips to a server. Everything renders client-side on the 
 | Framework | **React** | 19.x | Component model, concurrent rendering |
 | Language | **TypeScript** | 5.9 | End-to-end type safety |
 | Build Tool | **Vite** | 7.x | Dev server, HMR, ESM bundling |
-| Compiler | **@vitejs/plugin-react-swc** | 4.x | SWC-based fast JSX transform |
 | Routing | **React Router DOM** | 7.x | Client-side SPA routing |
-| Server State | **TanStack React Query** | 5.x | Auth state caching, stale-while-revalidate |
 
 ### UI & Styling
 | Layer | Technology | Purpose |
 |---|---|---|
-| CSS Framework | **Tailwind CSS** | 3.x utility classes |
+| CSS Framework | **Tailwind CSS** | Utility-first styling |
 | Component Library | **shadcn/ui** | Radix UI primitives + CVA variants |
 | Primitive Layer | **Radix UI** | 25+ accessible, headless components |
 | Icons | **Lucide React** | 575+ SVG icons, tree-shakeable |
-| Animations | **tailwindcss-animate** | Keyframe utilities |
+| Animations | **tailwindcss-animate** | Keyframe animation utilities |
 | Variant Engine | **class-variance-authority** | Type-safe component variants |
 | Class Merger | **tailwind-merge + clsx** | Conflict-free class composition |
 | Toast Notifications | **Sonner** | Opinionated toast stack |
@@ -164,17 +150,16 @@ No Photoshop. No round-trips to a server. Everything renders client-side on the 
 | Layer | Technology | Purpose |
 |---|---|---|
 | BaaS | **Supabase** | Hosted PostgreSQL + Auth + RLS |
-| Client SDK | **@supabase/supabase-js** | 2.x — typed DB queries, realtime, auth |
+| Client SDK | **@supabase/supabase-js** | Typed DB queries, realtime, auth |
 | Auth UI | **@supabase/auth-ui-react** | Pre-built sign-in/sign-up components |
-| Database | **PostgreSQL** (via Supabase) | `user_profiles`, `points_transactions`, `points_packages`, `design_projects` |
-| Security | **Row-Level Security** | Every table scoped to `auth.uid()` |
-| Stored Procedures | **PL/pgSQL** | Atomic point deduction (`deduct_points_from_user`), signup trigger (`handle_new_user`) |
+| Database | **PostgreSQL** (via Supabase) | User profiles, points ledger, transaction log |
+| Security | **Row-Level Security** | Every table scoped per authenticated user |
 
 ### Deployment & DevOps
 | Technology | Purpose |
 |---|---|
-| **Vercel** | CDN hosting, edge config, security headers |
-| **Bun** | Package manager (lockfile present) |
+| **Vercel** | CDN hosting, edge network, security headers |
+| **Bun** | Primary package manager |
 | **npm** | Fallback package manager |
 | **ESLint 9** | Flat config linting with `typescript-eslint` |
 | **PostCSS + Autoprefixer** | CSS vendor-prefixing pipeline |
@@ -186,46 +171,35 @@ No Photoshop. No round-trips to a server. Everything renders client-side on the 
 ```
 Browser Session
 │
-├── React 19 + TanStack Query  ←── global state: auth, points
+├── React 19 + TanStack Query  ←── global state: auth, credits
 │   │
 │   ├── BrowserRouter (React Router 7)
 │   │   ├── /           OnboardingPage → HomePage → AuthModal
 │   │   ├── /design     Index (5-step wizard)
 │   │   │   ├── Step 1  JerseyUpload + PlayerDataUpload
-│   │   │   ├── Step 2  Canvas preview (read-only)
-│   │   │   ├── Step 3  CustomizationTools + DesignCanvas (edit)
-│   │   │   ├── Step 4  Step4Preview (bulk grid, read-only)
-│   │   │   └── Step 5  ExportPanel → deductPoints() → ZIP download
+│   │   │   ├── Step 2  Canvas preview
+│   │   │   ├── Step 3  CustomizationTools + DesignCanvas
+│   │   │   ├── Step 4  Bulk preview grid
+│   │   │   └── Step 5  ExportPanel → credits check → ZIP download
 │   │   ├── /pricing    Pricing
 │   │   └── /contact    Contact
 │   │
 │   └── DesignCanvas (Fabric.js)  ←── single instance, portal-mounted
-│       ├── globalTemplate (textRef) — positions for all players
-│       ├── playerElements (localforage) — per-player logo overrides
-│       └── exportCleanJerseyDesign() — toDataURL at target DPI
 │
-├── localforage (IndexedDB)
-│   ├── jerseyDesigner:session    — full session snapshot
-│   ├── jerseyDesigner:globalTemplate  — font/position template
-│   └── jerseyDesigner:playerElements_<name>_<number>  — per-player
+├── localforage (IndexedDB)       ←── session + canvas state
 │
-└── Supabase (remote)
-    ├── Auth — JWT session, OTP, auto-refresh
-    ├── user_profiles — points_balance, totals
-    ├── points_transactions — full audit log
-    └── points_packages — pricing catalogue
+└── Supabase (remote)             ←── auth + credits ledger
 ```
 
 ### Key Design Decisions
 
 | Decision | Rationale |
 |---|---|
-| **Single canvas instance + portal** | Fabric.js canvas teardown is expensive and lossy. Mounting once into a stable `div` and teleporting it via `createPortal` avoids re-initialisation on every step switch. |
-| **Global template, per-player overrides** | One set of text/logo positions covers the whole squad. Individual players can deviate without breaking the global layout. |
-| **IndexedDB over localStorage** | Player logo images (data URLs) can easily exceed the 5 MB localStorage quota. IndexedDB handles 50–100 MB without issue. |
-| **Atomic SQL for point deduction** | Server-side `deduct_points_from_user()` reads and updates in a single transaction — no double-spend race condition possible from the client. |
-| **Client-side export** | Zero server load; the canvas renders at pixel-exact DPI directly in the browser using Fabric's `toDataURL` multiplier. |
-| **Hashed chunk filenames** | Strips readable module paths from the production bundle, preventing source enumeration. |
+| **Single canvas instance + portal** | Avoids costly Fabric.js canvas teardown on every step navigation |
+| **Global template, per-player overrides** | One layout covers the full squad; individuals can deviate without breaking it |
+| **IndexedDB over localStorage** | Handles large image data URLs without quota errors |
+| **Server-side credit deduction** | Prevents any client-side balance manipulation |
+| **Client-side export** | Zero server load; full DPI rendering happens entirely in the browser |
 
 ---
 
@@ -234,11 +208,9 @@ Browser Session
 ```
 GxStudioStitch-main/
 │
-├── public/                        # Static assets served as-is
+├── public/                        # Static assets
 │
 ├── src/
-│   ├── assets/                    # Hero images, brand assets
-│   │
 │   ├── components/
 │   │   ├── auth/
 │   │   │   ├── AuthModal.tsx      # Sign-in / sign-up dialog
@@ -246,7 +218,7 @@ GxStudioStitch-main/
 │   │   ├── points/
 │   │   │   └── PointsPurchase.tsx # Package selection UI
 │   │   ├── ui/                    # shadcn/ui generated components
-│   │   ├── DesignCanvas.tsx       # ★ Core Fabric.js canvas (1500+ lines)
+│   │   ├── DesignCanvas.tsx       # ★ Core Fabric.js canvas
 │   │   ├── CustomizationTools.tsx # Font, colour, stroke controls
 │   │   ├── ExportPanel.tsx        # DPI selection, ZIP export
 │   │   ├── FontSelector.tsx       # 90+ sports fonts, categorised
@@ -258,24 +230,19 @@ GxStudioStitch-main/
 │   │   └── ErrorBoundary.tsx      # React error boundary
 │   │
 │   ├── hooks/
-│   │   ├── useAuth.tsx            # Auth context: sign-in, sign-up, points ops
-│   │   ├── use-toast.ts           # Toast hook (shadcn)
+│   │   ├── useAuth.tsx            # Auth context
+│   │   ├── use-toast.ts           # Toast hook
 │   │   └── use-mobile.tsx         # Breakpoint detection
 │   │
 │   ├── lib/
 │   │   ├── supabase.ts            # Supabase client + DB typings
-│   │   ├── fonts.ts               # JERSEY_FONTS catalogue (90+ entries)
-│   │   ├── sizes.ts               # DPI multiplier + size-to-pixel table
-│   │   ├── textFit.ts             # Auto-fit text-to-width algorithm
-│   │   ├── statePersistence.ts    # localforage session read/write
-│   │   ├── logger.ts              # Dev-only console wrapper
-│   │   └── lazy.ts                # lazyWithRetry — chunk-fail auto-reload
+│   │   ├── fonts.ts               # JERSEY_FONTS catalogue
 │   │
 │   ├── pages/
 │   │   ├── Index.tsx              # ★ 5-step wizard orchestrator
-│   │   ├── OnboardingPage.tsx     # Auth flow + onboarding wizard
-│   │   ├── HomePage.tsx           # Landing / marketing page
-│   │   ├── Pricing.tsx            # Points packages page
+│   │   ├── OnboardingPage.tsx     # Auth flow
+│   │   ├── HomePage.tsx           # Landing page
+│   │   ├── Pricing.tsx            # Credits packages page
 │   │   ├── Contact.tsx            # Contact form
 │   │   ├── Privacy.tsx            # Privacy policy
 │   │   ├── Terms.tsx              # Terms of service
@@ -287,10 +254,10 @@ GxStudioStitch-main/
 │   │       ├── Step2Canvas.tsx    # Read-only canvas preview
 │   │       ├── Step3Customize.tsx # Design tools + live canvas
 │   │       ├── Step4Preview.tsx   # Bulk preview grid
-│   │       └── Step5Export.tsx    # Export + points deduction
+│   │       └── Step5Export.tsx    # Export + credits deduction
 │   │
 │   ├── types/
-│   │   └── points.ts              # Points formatting helpers
+│   │   └── points.ts              # Credits formatting helpers
 │   │
 │   ├── utils/
 │   │   ├── playerIdentity.ts      # Player label placement utility

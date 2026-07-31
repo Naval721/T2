@@ -15,11 +15,11 @@ export default defineConfig(({ mode }) => ({
     },
   },
 
-  // ── esbuild: ONLY strip debugger in dev; no minify (that's build-only) ──
+  // ── esbuild: Strip console logs and debugger statements in production ──
   esbuild: {
-    // Drop debugger statements in all modes (safe)
-    drop: mode === "production" ? ["debugger"] : [],
-    // Legal comments stripped only in production
+    // Drop console and debugger in production to hide code execution details & env logs from DevTools
+    drop: mode === "production" ? ["console", "debugger"] : [],
+    // Legal comments stripped in production
     legalComments: mode === "production" ? "none" : "inline",
   },
 

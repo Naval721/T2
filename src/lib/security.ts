@@ -180,9 +180,32 @@ function _integrityCheck(): void {
     try { sessionStorage.setItem(_SHIELD_KEY, 'true'); } catch { /* ignore */ }
 }
 
+/* ─── 11. Disable React Developer Tools Hook ─────────────────── */
+function _disableReactDevTools(): void {
+    try {
+        if (typeof window !== 'undefined') {
+            const noop = () => { /* disabled */ };
+            // Disable React DevTools Global Hook to prevent state/component inspection
+            if ((window as any).__REACT_DEVTOOLS_GLOBAL_HOOK__) {
+                const hook = (window as any).__REACT_DEVTOOLS_GLOBAL_HOOK__;
+                for (const prop in hook) {
+                    if (prop === 'renderers') {
+                        hook[prop] = new Map();
+                    } else if (typeof hook[prop] === 'function') {
+                        hook[prop] = noop;
+                    }
+                }
+            }
+        }
+    } catch {
+        /* ignore */
+    }
+}
+
 /* ─── BOOT: Initialise all layers (wrapped — never crashes app) */
 export function initSecurityShield(): void {
     try {
+        _disableReactDevTools();
         _domainLock();
         _bustFrames();
         _blockContextMenu();
@@ -202,3 +225,4 @@ export function initSecurityShield(): void {
         // Security module must NEVER crash the host application
     }
 }
+

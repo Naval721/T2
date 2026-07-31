@@ -1,23 +1,21 @@
-// Debug utility to check environment variables
+// Environment variable validation utility (silent for security)
 export const checkEnvironment = () => {
-  console.log('🔍 Environment Check:');
-  console.log('VITE_SUPABASE_URL:', import.meta.env.VITE_SUPABASE_URL ? '✅ Set' : '❌ Missing');
-  console.log('VITE_SUPABASE_ANON_KEY:', import.meta.env.VITE_SUPABASE_ANON_KEY ? '✅ Set' : '❌ Missing');
-  console.log('Mode:', import.meta.env.MODE);
-  console.log('Base URL:', import.meta.env.BASE_URL);
+  const isUrlSet = !!import.meta.env.VITE_SUPABASE_URL;
+  const isKeySet = !!import.meta.env.VITE_SUPABASE_ANON_KEY;
   
-  if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
-    console.error('❌ CRITICAL: Environment variables are missing!');
-    console.error('Please add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to Vercel environment variables.');
+  if (!isUrlSet || !isKeySet) {
+    if (import.meta.env.DEV) {
+      console.error('Environment check: Required variables missing.');
+    }
     return false;
   }
   
-  console.log('✅ All environment variables are set correctly!');
   return true;
 };
 
-// Run on import but only log in development
-if (import.meta.env.MODE === 'development') {
+// Run on import quietly in dev mode
+if (import.meta.env.DEV) {
   checkEnvironment();
 }
+
 

@@ -378,19 +378,6 @@ npm install
 bun install
 ```
 
-### 2 — Configure environment
-
-```bash
-cp .env.example .env
-```
-
-Open `.env` and fill in your Supabase credentials:
-
-```env
-VITE_SUPABASE_URL=https://<your-project>.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-```
-
 > **Note:** If these are missing, the app runs in demo mode — auth operations are no-ops and points are not enforced.
 
 ### 3 — Apply database migrations
